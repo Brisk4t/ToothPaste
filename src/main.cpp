@@ -79,7 +79,7 @@ void onWrite(uint16_t conn_hdl, BLECharacteristic* chr, uint8_t* data, uint16_t 
 
 void setup() {
   Serial.begin(115200);
-  while ( !Serial ) delay(100);
+  delay(100);
 
   // Manual begin() is required on core without built-in support e.g. mbed rp2040
   Serial.println("Starting TinyUSB Device...");
