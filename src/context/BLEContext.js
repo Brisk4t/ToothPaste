@@ -10,7 +10,7 @@ export function BLEProvider({ children }) {
     const [characteristic, setCharacteristic] = useState(null);
 
     const serviceUUID = '19b10000-e8f2-537e-4f6c-d104768a1214'; // ClipBoard service UUID from example
-    const characteristicUUID = '19b10002-e8f2-537e-4f6c-d104768a1214'; // String characteristic UUID from example
+    const characteristicUUID = '6856e119-2c7b-455a-bf42-cf7ddd2c5907'; // String characteristic UUID from example
 
     const connectToDevice = async () => {
         
@@ -18,7 +18,7 @@ export function BLEProvider({ children }) {
             setStatus(0);
             const device = await navigator.bluetooth.requestDevice({
                 filters: [
-                {name: "ClipBoard"},
+                {name: "Clipboard NRF"},
                 ],
                 optionalServices: [serviceUUID],
             });

@@ -12,6 +12,7 @@ import {
  
 // lexical
 import {
+  $getRoot,
   $getNodeByKey,
   $getSelection,
   $isRangeSelection,
@@ -87,8 +88,8 @@ function Divider() {
  
 function Placeholder() {
   return (
-    <div className="pointer-events-none absolute left-2.5 top-4 inline-block select-none overflow-hidden text-base font-normal text-gray-400">
-      Play around with the editor...
+    <div className="pointer-events-none absolute left-2.5 top-4 inline-block select-none overflow-hidden text-base font-sans font-medium text-gray-600">
+      The data you enter here will be sent to the device.....
     </div>
   );
 }
@@ -745,7 +746,22 @@ function FloatingLinkEditor({ editor }) {
     </div>
   );
 }
- 
+
+function OnChangePlugin({ onChange }) {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    return editor.registerUpdateListener(({ editorState }) => {
+      editorState.read(() => {
+        const plainText = $getRoot().getTextContent();
+        onChange(plainText);
+      });
+    });
+  }, [editor, onChange]);
+
+  return null;
+}
+
 function ToolbarPlugin() {
   const [editor] = useLexicalComposerContext();
   const toolbarRef = useRef(null);
@@ -846,7 +862,8 @@ function ToolbarPlugin() {
  
   return (
     <div
-      className="m-1 flex items-center gap-0.5 rounded-lg bg-hover p-1"
+      className="m-1 flex items-center gap-0.5 rounded-lg bg-shelf p-1"
+      color="text"
       ref={toolbarRef}
     >
       {supportedBlockTypes.has(blockType) && (
@@ -856,7 +873,7 @@ function ToolbarPlugin() {
             onClick={() =>
               setShowBlockOptionsDropDown(!showBlockOptionsDropDown)
             }
-            className="flex items-center gap-1 font-medium capitalize text-text"
+            className="flex items-center gap-1 font-medium capitalize text-text color-text"
             aria-label="Formatting Options"
           >
             {blockTypeToBlockName[blockType]}
@@ -903,6 +920,7 @@ function ToolbarPlugin() {
               editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold");
             }}
             aria-label="Format Bold"
+            className= "text-text"
           >
             <svg
               strokeWidth="1.5"
@@ -925,6 +943,7 @@ function ToolbarPlugin() {
               editor.dispatchCommand(FORMAT_TEXT_COMMAND, "italic");
             }}
             aria-label="Format Italics"
+            className= "text-text"
           >
             <svg
               strokeWidth="1.5"
@@ -949,6 +968,7 @@ function ToolbarPlugin() {
               editor.dispatchCommand(FORMAT_TEXT_COMMAND, "code");
             }}
             aria-label="Insert Code"
+            className= "text-text"
           >
             <svg
               strokeWidth="1.5"
@@ -985,6 +1005,7 @@ function ToolbarPlugin() {
             onClick={insertLink}
             variant={isLink ? "filled" : "text"}
             aria-label="Insert Link"
+            className= "text-text"
           >
             <svg
               strokeWidth="1.5"
@@ -1035,16 +1056,19 @@ const editorConfig = {
   ],
 };
  
-export default function RichTextArea() {
+export default function RichTextArea({onChange}) {
+  const [isFocused, setIsFocused] = useState(false);
+  
   return (
     <LexicalComposer initialConfig={editorConfig}>
-      <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-gray-300 bg-transparent text-left font-normal leading-5 text-text overflow-hidden">
+      <div className={`flex flex-1 flex-col overflow-hidden rounded-xl transition-all border ${isFocused? 'border-hover':'border-text'} bg-transparent text-left font-normal leading-5 text-text overflow-hidden`}>
         <ToolbarPlugin />
         
         <div className="flex-1 min-h-0 relative overflow-y-auto rounded-b-lg border-opacity-5 bg-transparent">
           <RichTextPlugin
+            
             contentEditable={
-              <ContentEditable className="h-full w-full lexical px-2.5 py-4 text-base caret-text outline-none" />
+              <ContentEditable onFocus={() => setIsFocused(true)} onBlur={() => setIsFocused(false)} className="h-full w-full lexical px-2.5 py-4 text-base caret-text outline-none" />
             }
             placeholder={<Placeholder />}
             ErrorBoundary={null}
@@ -1052,8 +1076,10 @@ export default function RichTextArea() {
           <AutoFocusPlugin />
           <ListPlugin />
           <LinkPlugin />
+          {onChange && <OnChangePlugin onChange={onChange} />}
         </div>
       </div>
+
     </LexicalComposer>
   );
 }

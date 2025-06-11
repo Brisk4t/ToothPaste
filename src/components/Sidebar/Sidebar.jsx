@@ -44,7 +44,7 @@ function ConnectionButton({connected }) {
       {/* <Badge color={status ? "primary" : "secondary"} onClick={connectToDevice}>
       </Badge> */}
       <Button className={`flex items-center justify-between w-full p-4 border-2 ${status ? 'border-primary' : 'border-secondary'} bg-transparent hover:border-text `} onClick={connectToDevice}>
-          <Typography variant="h6" color="text" className="text-lg font-normal font-inter normal-case ">
+          <Typography variant="h6" color="text" className="text-lg font-sans font-medium normal-case ">
               {device ? device.name : "Connect to Device"}
           </Typography>
           <ArrowPathIcon className="text-text h-6 w-6" />
