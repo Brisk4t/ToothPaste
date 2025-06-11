@@ -37,14 +37,48 @@ void onDisconnect(uint16_t conn_handle, uint8_t reason) { // Callback handler fo
     Serial.println(reason, HEX);
 };
 
-// Basic ascii to HID keycode (very minimal, only lowercase a-z here)
+#include <cstdint>
+
 uint8_t asciiToHID(char c) {
-  if (c >= 'a' && c <= 'z') {
-    return (c - 'a') + 4; // HID usage for 'a' starts at 4
-  }
-  // TODO: Add uppercase, numbers, symbols...
-  return 0;
+    // Letters
+    if (c >= 'a' && c <= 'z') {
+        return 4 + (c - 'a'); // HID_KEY_A = 4
+    }
+    if (c >= 'A' && c <= 'Z') {
+        return 4 + (c - 'A'); // TODO: Handle uppercase letters by returning keycode + shift modifier
+    }
+
+    // Numbers
+    if (c >= '1' && c <= '9') {
+        return 30 + (c - '1'); // '1' = 30
+    }
+    if (c == '0') {
+        return 39; // '0' = 39
+    }
+
+    // Special characters
+    switch (c) {
+        case '\n': return 40;  // Enter
+        case ' ':  return 44;  // Space
+        case '\b': return 42;  // Backspace
+        case '\t': return 43;  // Tab
+        case '-':  return 45;  // Minus
+        case '=':  return 46;  // Equal
+        case '[':  return 47;  // Left bracket
+        case ']':  return 48;  // Right bracket
+        case '\\': return 49;  // Backslash
+        case '#':  return 50;  // Non-US # and ~ (if needed)
+        case ';':  return 51;  // Semicolon
+        case '\'': return 52;  // Apostrophe
+        case '`':  return 53;  // Grave accent
+        case ',':  return 54;  // Comma
+        case '.':  return 55;  // Period
+        case '/':  return 56;  // Slash
+        default:
+            return 0; // No HID mapping available
+    }
 }
+
 
 void sendKey(uint8_t keycode) {
   uint8_t report[8] = {0};
@@ -67,7 +101,6 @@ void sendString(const char *str) {
 }
 
 
-
 void onWrite(uint16_t conn_hdl, BLECharacteristic* chr, uint8_t* data, uint16_t len) {
   Serial.print("Received: ");
   Serial.write(data, len); // Print exactly what was written
@@ -88,7 +121,7 @@ void setup() {
   keyboard.setBootProtocol(HID_ITF_PROTOCOL_KEYBOARD);
   keyboard.setPollInterval(2);
   keyboard.setReportDescriptor(desc_hid_report, sizeof(desc_hid_report));
-  keyboard.setStringDescriptor("TinyUSB Keyboard");
+  keyboard.setStringDescriptor("ClipBoard Keyboard");
 
   // Initialize HID keyboard
   if (!keyboard.begin()) {
@@ -126,29 +159,6 @@ void setup() {
   inputStringCharacteristic.setWriteCallback(onWrite); // Register the write callback
   inputStringCharacteristic.begin();
 
-  // // Set the led Characteristic properties
-  // led.setProperties(CHR_PROPS_WRITE);
-  // led.setPermission(SECMODE_OPEN, SECMODE_NO_ACCESS); // No read access, only write
-  // led.begin();
-
-  // // Create a BLE Characteristic
-  // pSensorCharacteristic = pService->createCharacteristic(
-  //                     INPUT_STRING_CHARACTERISTIC,
-  //                     BLECharacteristic::PROPERTY_READ   |
-  //                     BLECharacteristic::PROPERTY_WRITE  |
-  //                     BLECharacteristic::PROPERTY_NOTIFY |
-  //                     BLECharacteristic::PROPERTY_INDICATE
-  //                   );
-
-  // Create the ON button Characteristic
-  // pLedCharacteristic = pService->createCharacteristic(
-  //                     LED_CHARACTERISTIC_UUID,
-  //                     BLECharacteristic::PROPERTY_WRITE
-  //                   );
-
-  // Register the callback for the ON button characteristic
-  //pLedCharacteristic->setCallbacks(new MyCharacteristicCallbacks());
-
   // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
 
   // Setup advertising
@@ -167,10 +177,7 @@ void setup() {
 }
 
 void loop() {
-  #ifdef TINYUSB_NEED_POLLING_TASK
-    // Manual call tud_task since it isn't called by Core's background
-    TinyUSBDevice.task();
-  #endif
+
 }
 
 
