@@ -53,7 +53,7 @@ function ConnectionButton({connected }) {
   );
 }
 
-export function SidebarWithLogo() {
+export function SidebarWithLogo({ onOpenPairing }) {
   const [open, setOpen] = React.useState(0);
   const [openAlert, setOpenAlert] = React.useState(true);
   const { status, device } = useBLEContext();
@@ -113,6 +113,12 @@ export function SidebarWithLogo() {
             <PlayIcon className="h-5 w-5" />
           </ListItemPrefix>
           Live Capture
+        </ListItem>
+        <ListItem className="ml-1" onClick={onOpenPairing}>
+          <ListItemPrefix>
+            <PlayIcon className="h-5 w-5" />
+          </ListItemPrefix>
+          Pair Device
         </ListItem>
       </List>
     </Card>
