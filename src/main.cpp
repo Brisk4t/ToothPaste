@@ -25,31 +25,32 @@ void setup() {
   uint8_t pubKey[SecureSession::PUBKEY_SIZE];
   size_t pubLen;
 
-  sec.init();
+  // Initialize the secure session
+  // sec.init();
   
-  int ret = sec.generateKeypair(pubKey, pubLen); // Generate the public key on setup
-  if (!ret) {
-    //led.blink(5000, 3, 30,30,30); // blink 3 times
-    size_t olen = 0;
-    char base64pubKey[50];
-    mbedtls_base64_encode((unsigned char *)base64pubKey, sizeof(base64pubKey), &olen, pubKey, SecureSession::PUBKEY_SIZE); // turn the 
-    base64pubKey[olen] = '\0';  // Null-terminate
+  // int ret = sec.generateKeypair(pubKey, pubLen); // Generate the public key on setup
+  // if (!ret) {
+  //   //led.blink(5000, 3, 30,30,30); // blink 3 times
+  //   size_t olen = 0;
+  //   char base64pubKey[50];
+  //   mbedtls_base64_encode((unsigned char *)base64pubKey, sizeof(base64pubKey), &olen, pubKey, SecureSession::PUBKEY_SIZE); // turn the 
+  //   base64pubKey[olen] = '\0';  // Null-terminate
     
-    delay(5000);
-    sendString(base64pubKey);
+  //   //delay(5000);
+  //   //sendString(base64pubKey);
     
-    led.set(0, 30, 50);
-  }
+  //   led.set(0, 30, 50);
+  // }
   
-  else{
-    char retchar[12];
-    snprintf(retchar, 12, "%d", ret);  
+  // else{
+  //   char retchar[12];
+  //   snprintf(retchar, 12, "%d", ret);  
 
-    sendString("Something went wrong: ");
-    sendString(retchar);
-    led.setColor(255, 0,0);  // Red
-    led.show();
-  }
+  //   sendString("Something went wrong: ");
+  //   sendString(retchar);
+  //   led.setColor(255, 0,0);  // Red
+  //   led.show();
+  // }
   //Serial.println("Waiting a client connection to notify...");
 }
 
