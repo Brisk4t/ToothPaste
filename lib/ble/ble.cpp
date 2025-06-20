@@ -26,7 +26,7 @@ class MyCharacteristicCallbacks : public BLECharacteristicCallbacks {
      
     // Callback handler for BLE Characteristic events
     void onWrite(BLECharacteristic* inputCharacteristic) {
-      String value = String(inputCharacteristic->getValue().c_str());
+      //String value = String(inputCharacteristic->getValue().c_str());
       std::string rawValue = inputCharacteristic->getValue();
 
       // Receive base64 encoded value
@@ -41,17 +41,16 @@ class MyCharacteristicCallbacks : public BLECharacteristicCallbacks {
 
         const uint8_t* raw = reinterpret_cast<const uint8_t*>(rawValue.data());
 
-        const uint8_t* iv = raw;
-        const uint8_t* tag = raw + IV_SIZE;
-        const uint8_t* ciphertext = raw + IV_SIZE + TAG_SIZE;
-        size_t ciphertext_len = rawValue.length() - IV_SIZE - TAG_SIZE;
+        const uint8_t* iv = raw; // the iv is the pointer to the start of the characteristic data received
+        const uint8_t* tag = raw + IV_SIZE; // the next data is the tag
+        const uint8_t* ciphertext = raw + IV_SIZE + TAG_SIZE; // remaining data is the ciphertext itself
+        size_t ciphertext_len = rawValue.length() - IV_SIZE - TAG_SIZE; // ciphertext length
 
         // Allocate buffer for plaintext output
         uint8_t* plaintext_out = new uint8_t[ciphertext_len + 1];  // +1 for null-terminator if it's a string
         memset(plaintext_out, 0, ciphertext_len + 1);  // optional, to null-terminate
 
-        SecureSession session;
-        int ret = session.decrypt(ciphertext, ciphertext_len, iv, tag, plaintext_out);
+        int ret = session->decrypt(ciphertext, ciphertext_len, iv, tag, plaintext_out);
 
         if (ret == 0) {
           //Serial.print("Decrypted: ");
