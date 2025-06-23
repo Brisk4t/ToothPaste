@@ -103,7 +103,7 @@ int SecureSession::encrypt( // Encrypt a given text string using gcm
         const uint8_t* plaintext, // Text data to be encrypted
         size_t plaintext_len, 
         uint8_t* ciphertext, // Pointer to store the encrypted data
-        uint8_t iv[IV_SIZE], // prng initialization vector
+        uint8_t iv[IV_SIZE], // prng initialization vector (nonce)
         uint8_t tag[TAG_SIZE])  // Tag for GCM to ensure data integrity 
     
     {
@@ -138,7 +138,8 @@ int SecureSession::encrypt( // Encrypt a given text string using gcm
 }
 
 int SecureSession::decrypt( // Decrypt an ecrypted string
-    const uint8_t* ciphertext, size_t ciphertext_len,
+    const uint8_t* ciphertext, 
+    size_t ciphertext_len,
     const uint8_t iv[IV_SIZE],
     const uint8_t tag[TAG_SIZE],
     uint8_t* plaintext_out) {

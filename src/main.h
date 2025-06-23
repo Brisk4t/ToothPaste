@@ -7,6 +7,6 @@
 #define LED_CHARACTERISTIC_UUID "19b10002-e8f2-537e-4f6c-d104768a1214"
 
 
-extern NeoPixelRMT led(GPIO_NUM_48);
+extern NeoPixelRMT led(GPIO_NUM_21);
 
 
