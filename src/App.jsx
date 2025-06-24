@@ -4,7 +4,7 @@ import './styles/global.css'; // Ensure global styles are applied
 import {Sidebar, SidebarWithLogo} from './components/Sidebar/Sidebar';
 import BulkSend from './views/BulkSend';
 import { BLEProvider } from './context/BLEContext';
-import ECDHComponent from './context/SecurityContext';
+import ECDHOverlay from './components/ECDHOverlay/ECDHOverlay';
 
 
 function App() {
@@ -15,7 +15,7 @@ function App() {
         <div className="flex flex-1 min-h-screen max-h-screen">
           <SidebarWithLogo onOpenPairing={() => setShowOverlay(true)}/>
           <BulkSend />
-          <ECDHComponent showOverlay={showOverlay} setShowOverlay={setShowOverlay} />
+          <ECDHOverlay showOverlay={showOverlay} setShowOverlay={setShowOverlay} />
         </div>
       </BLEProvider>
   );
