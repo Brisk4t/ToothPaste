@@ -27,7 +27,7 @@ class MyCharacteristicCallbacks : public BLECharacteristicCallbacks {
     // Callback handler for BLE Characteristic events
     void onWrite(BLECharacteristic* inputCharacteristic) {
       //String value = String(inputCharacteristic->getValue().c_str());
-      std::string rawValue = inputCharacteristic->getValue();
+      std::string rawValue = inputCharacteristic->getValue(); // Gets the std::strig value of the characteristic
 
       // Receive base64 encoded value
       if (!rawValue.empty() && session != nullptr) {
@@ -39,7 +39,7 @@ class MyCharacteristicCallbacks : public BLECharacteristicCallbacks {
           return;
         }
 
-        const uint8_t* raw = reinterpret_cast<const uint8_t*>(rawValue.data());
+        const uint8_t* raw = reinterpret_cast<const uint8_t*>(rawValue.data()); // Gets the raw data pointer from the std::string
 
         const uint8_t* iv = raw; // the iv is the pointer to the start of the characteristic data received
         const uint8_t* tag = raw + IV_SIZE; // the next data is the tag
@@ -50,25 +50,59 @@ class MyCharacteristicCallbacks : public BLECharacteristicCallbacks {
         uint8_t* plaintext_out = new uint8_t[ciphertext_len + 1];  // +1 for null-terminator if it's a string
         memset(plaintext_out, 0, ciphertext_len + 1);  // optional, to null-terminate
 
-        int ret = session->decrypt(ciphertext, ciphertext_len, iv, tag, plaintext_out);
+        Serial0.println("Received data:");
+        Serial0.println(rawValue.c_str()); // Print the received data for debugging
+        Serial0.println(); // Print the received data for debugging
+        Serial0.println("Data Len: " + String(rawValue.length())); // Print the received data for debugging
 
-        if (ret == 0) {
-          //Serial.print("Decrypted: ");
-          //Serial.println((char*)plaintext_out);  // assuming it's printable text
-          sendString((char*) plaintext_out);
-        } 
+        uint8_t peerKey[66];
+        size_t peerKeyLen = 0;
+        int ret = mbedtls_base64_decode(peerKey, 66, &peerKeyLen, (const unsigned char *)rawValue.data(), rawValue.length()); // Decode the base64 public key
         
-        else {
+
+
+        if(ret != 0){
+          delay(5000);
+          sendString("Base64 decode failed");
+          sendString("Error code: ");
           char retchar[12];
           snprintf(retchar, 12, "%d", ret);
 
-          sendString("Decryption failed");
           sendString(retchar);
-          // Serial.print("Decryption failed! Code: ");
-          // Serial.println(ret);
+          return;
         }
 
+        Serial0.println("Decode Successful");
+        Serial0.println((char*) peerKey); // Send the received public key over HID for debugging
+        
+        // int ret = session->decrypt(ciphertext, ciphertext_len, iv, tag, plaintext_out); // Decrypt the received data
+        ret = session->computeSharedSecret(peerKey, 66); // Compute shared secret first
+
+        // if (ret == 0) {
+        //   //Serial.print("Decrypted: ");
+        //   //Serial.println((char*)plaintext_out);  // assuming it's printable text
+        //   delay(5000); // Wait for 5 seconds before sending the shared secret
+        //   sendString((char*) session->sharedSecret); // Send the shared secret over HID
+        // } 
+        
+        // else {
+        //   delay(5000);
+        //   char retchar[12];
+        //   snprintf(retchar, 12, "%d", ret);
+
+        //   sendString("Received: ");
+        //   sendString((char*) peerKey); // Send the received public key over HID
+        //   sendString("Decryption failed");
+        //   sendString(retchar);
+        //   // Serial.print("Decryption failed! Code: ");
+        //   // Serial.println(ret);
+        // }
+
       delete[] plaintext_out;
+      }
+
+      else{
+        sendString("No data received or session not initialized.");
       }
     }
 

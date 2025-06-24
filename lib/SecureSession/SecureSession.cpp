@@ -36,10 +36,10 @@ int SecureSession::generateKeypair(uint8_t outPublicKey[PUBKEY_SIZE], size_t& ou
     
     // Try generating the keypair (TODO: store into memory to persist after 1 pairing)
     int ret = mbedtls_ecdh_gen_public(
-        &ecdh_ctx.grp,
-        &ecdh_ctx.d,
-        &ecdh_ctx.Q,
-        mbedtls_ctr_drbg_random,
+        &ecdh_ctx.grp, // Curve group (e.g., SECP256R1)
+        &ecdh_ctx.d, // private key
+        &ecdh_ctx.Q, // public key
+        mbedtls_ctr_drbg_random, 
         &ctr_drbg);
     if (ret != 0) return ret;
 
@@ -62,20 +62,38 @@ int SecureSession::generateKeypair(uint8_t outPublicKey[PUBKEY_SIZE], size_t& ou
 }
 
 
-int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE], size_t peerPubLen) { // Compute shared secret given the peer's public key
-    if (peerPubLen != PUBKEY_SIZE) return -1;
+int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[66], size_t peerPubLen) { // Compute shared secret given the peer's public key
+    if (peerPubLen < 65) return -1;
 
     // initialize the struct to hold the peer's public key (point on the curve)
     mbedtls_ecp_point peerPoint;
     mbedtls_ecp_point_init(&peerPoint);
 
     // Read the compressed (or uncompressed) peer public key 
-    int ret = mbedtls_ecp_point_read_binary(&ecdh_ctx.grp, &peerPoint, peerPublicKey, peerPubLen);
+    int ret = mbedtls_ecp_point_read_binary(&ecdh_ctx.grp, &peerPoint, peerPublicKey, 65);
     if (ret != 0) {
         mbedtls_ecp_point_free(&peerPoint);
+        Serial0.println("Error reading peer public key");
+        Serial0.printf("Error code: %d\n", ret);
+
         return ret;
     }
 
+    Serial0.println("Peer public key read successfully");
+
+    char buf[1000]; // large enough to hold the key in hex + null terminator
+    size_t olen2 = 0;
+
+    ret = mbedtls_mpi_write_string(&ecdh_ctx.d, 16, buf, sizeof(buf), &olen2);
+    if (ret == 0) {
+        Serial0.println("Private key (hex):");
+        Serial0.println(buf);
+    } else {
+        Serial0.print("Failed to write private key string. Error: ");
+        Serial0.println(ret);
+    }
+
+    
     // Compute the shared secret (this is a scalar)
     ret = mbedtls_ecdh_compute_shared(&ecdh_ctx.grp, &ecdh_ctx.z, &peerPoint, &ecdh_ctx.d,
                                       mbedtls_ctr_drbg_random, &ctr_drbg);

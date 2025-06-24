@@ -17,6 +17,7 @@ public:
     static constexpr size_t PUBKEY_SIZE = 33;    // Uncompressed point size for secp256r1
     static constexpr size_t IV_SIZE = 12;        // Recommended IV size for AES-GCM
     static constexpr size_t TAG_SIZE = 16;       // AES-GCM authentication tag size
+    uint8_t sharedSecret[KEY_SIZE];
 
     SecureSession();
     ~SecureSession();
@@ -52,7 +53,7 @@ private:
     mbedtls_entropy_context entropy;
     mbedtls_gcm_context gcm;
 
-    uint8_t sharedSecret[KEY_SIZE];
+    //uint8_t sharedSecret[KEY_SIZE];
     bool sharedReady;
 
     int deriveAESKeyFromSharedSecret(uint8_t key_out[KEY_SIZE]);
