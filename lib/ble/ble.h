@@ -21,6 +21,7 @@ typedef struct {
 } clipPacket;
 
 void bleSetup(SecureSession* session);
+void decodePacket(void* sessionParams);
 
 extern bool deviceConnected;
 extern bool oldDeviceConnected;
