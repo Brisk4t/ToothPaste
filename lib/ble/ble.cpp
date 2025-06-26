@@ -1,33 +1,28 @@
 #include "ble.h"
-
-bool oldDeviceConnected = false;
-bool deviceConnected= false;
-
+#include "NeoPixelRMT.h"
 
 BLEServer* bluServer = NULL; // Pointer to the BLE Server instance
 BLECharacteristic* inputCharacteristic = NULL; // Characteristic for sensor data
 BLECharacteristic* slowModeCharacteristic = NULL; // Characteristic for LED control
 
 
-class MyServerCallbacks: public BLEServerCallbacks {
-   // Callback handler for BLE Connection events
+class MyServerCallbacks: public BLEServerCallbacks { // Callback handler for BLE Connection events
   void onConnect(BLEServer* bluServer) {
-    deviceConnected = true;
+    led.blinkEnd(); // Stop blinking when a device connects
+    led.set(Colors::Cyan); // Led cyan when connected
   };
 
   void onDisconnect(BLEServer* bluServer) {
-    deviceConnected = false;
+    led.blinkStart(500, Colors::Red); // Start blinking red when a device disconnects
+    bluServer->startAdvertising(); // Restart advertising
   }
 };
 
+// Callback handler for BLE Characteristic events
 class MyCharacteristicCallbacks : public BLECharacteristicCallbacks {
   public:
     MyCharacteristicCallbacks(SecureSession* session) : session(session) {}
-    
-    struct SharedSecretTaskParams {
-      SecureSession* session;
-      std::string* rawValue;
-    };
+
     // Callback handler for BLE Characteristic events
     void onWrite(BLECharacteristic* inputCharacteristic) {
       //String value = String(inputCharacteristic->getValue().c_str());
@@ -47,8 +42,8 @@ class MyCharacteristicCallbacks : public BLECharacteristicCallbacks {
         
         auto* rawCopy = new std::string(rawValue);  // allocate a heap copy
         auto* taskParams = new SharedSecretTaskParams{session, rawCopy};
-        // create and call stack (raw, &session)
-
+       
+        // Create new RTOS task to prevent stack overflow in BLE callback stack
         xTaskCreatePinnedToCore(
           decodePacket,
           "SharedSecretTask",
@@ -116,18 +111,10 @@ void bleSetup(SecureSession* session){
 }
 
 void decodePacket(void* sessionParams){
-    auto* params = static_cast<MyCharacteristicCallbacks::SharedSecretTaskParams*>(sessionParams);
+    auto* params = static_cast<SharedSecretTaskParams*>(sessionParams);
     SecureSession* session = params->session;
     std::string* rawValue = params->rawValue;
 
-    //const uint8_t* iv = raw; // the iv is the pointer to the start of the characteristic data received
-    //const uint8_t* tag = raw + IV_SIZE; // the next data is the tag
-    //const uint8_t* ciphertext = raw + IV_SIZE + TAG_SIZE; // remaining data is the ciphertext itself
-    //size_t ciphertext_len = rawValue.length() - IV_SIZE - TAG_SIZE; // ciphertext length
-    // Allocate buffer for plaintext output
-    //uint8_t* plaintext_out = new uint8_t[ciphertext_len + 1];  // +1 for null-terminator if it's a string
-    //memset(plaintext_out, 0, ciphertext_len + 1);  // optional, to null-terminate
-  
     Serial0.println("Received data:");
     Serial0.println(rawValue->c_str()); // Print the received data for debugging
     Serial0.println(); // Print the received data for debugging
@@ -136,8 +123,6 @@ void decodePacket(void* sessionParams){
     uint8_t peerKey[66];
     size_t peerKeyLen = 0;
     int ret = mbedtls_base64_decode(peerKey, 66, &peerKeyLen, (const unsigned char *)rawValue->data(), rawValue->length()); // Decode the base64 public key
-    
-
 
     if(ret != 0){
       delay(5000);

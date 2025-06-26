@@ -11,11 +11,13 @@
 
 SecureSession sec;
 Preferences preferences; // Preferences for storing data
-void enterPairingMode() {
 
+void enterPairingMode() { // Enter pairing mode, generate a keypair, and send the public key to the transmitter
+  Serial0.println("Entering pairing mode...");
   uint8_t pubKey[SecureSession::PUBKEY_SIZE];
   size_t pubLen;
-
+  
+  led.blinkStart(1000, Colors::Purple); // Blinking Purple
   int ret = sec.generateKeypair(pubKey, pubLen); // Generate the public key in pairing mode
 
   if (!ret) { // Successful keygen returns 0
@@ -25,20 +27,19 @@ void enterPairingMode() {
     mbedtls_base64_encode((unsigned char *)base64pubKey, sizeof(base64pubKey), &olen, pubKey, SecureSession::PUBKEY_SIZE); // turn the 
     base64pubKey[olen] = '\0';  // Null-terminate the public key string
     
-    delay(5000); // Wait for 5 seconds before sending the public key
+    delay(5000); // Wait for 5 seconds before sending the public key (need to make non-blocking)
     sendString(base64pubKey); // Send the public key to the client over HID
     
-    led.blinkStart(500, 0, 30, 30); // Blink to indicate pairing mode
+    //led.blinkStart(500, 0, 80, 30); // Blink to indicate pairing mode
   }
   
   else{
     char retchar[12];
     snprintf(retchar, 12, "%d", ret);  
 
-    sendString("Something went wrong: ");
-    sendString(retchar);
-    led.setColor(255, 0,0);  // Red
-    led.show();
+    Serial0.println("Keygen failed with error: ");
+    Serial0.println(retchar); // Print the error code to Serial for debugging
+    led.set(Colors::Red);  // Red
   }
 }
 
@@ -51,32 +52,11 @@ void setup() {
 
   // Intialize the RMT LED Driver
   led.begin();
-  led.setColor(10,0,10); // Set the LED to purple
-  //led.blinkStart(1000,10,0,10); // Blinking Purple
-  led.show();
-  
-  enterPairingMode();
+  led.set(Colors::Orange); // Set the LED to Orange on startup
+
+  //enterPairingMode();
 }
 
 void loop() {
   led.blinkUpdate(); // The blink state is updated in the loop and notifies the RMT thread
-
-  // notify changed value
-  if (deviceConnected) {
-    //inputCharacteristic->setValue(String(value).c_str());
-    led.set(10,10,10); // Set the LED to white when connected
-    inputCharacteristic->notify();
-    delay(300); // bluetooth stack will go into congestion, if too many packets are sent, in 6 hours test i was able to go as low as 3ms
-  }
-
-  // disconnecting  
-  if (!deviceConnected) {
-    led.blinkStart(1000,10,5,0); // Device was connected, then disconnected
-    Serial.println("Device disconnected.");
-    bluServer->startAdvertising(); // restart advertising
-    Serial.println("Start advertising");
-    oldDeviceConnected = deviceConnected;
-  }
 }
-
-

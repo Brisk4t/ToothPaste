@@ -9,7 +9,7 @@
 #define MAX_DATA_LEN 128
 
 // Struct that defines a single packet of data (can contain whole or partial message)
-typedef struct {
+struct rawDataPacket {
     int packetNumber; // Current packet number out of total
     int totalPackets; // Total packets for current message
     int dataLen; // Length of final message data
@@ -17,8 +17,7 @@ typedef struct {
     uint8_t IV[SecureSession::IV_SIZE]; // The random initialization vector
     uint8_t TAG[SecureSession::TAG_SIZE]; // The AES-GCM integrity tag
     bool slowmode; // When enabled reduces the wpm and slows down HID timing to enable legacy text input compatibility (notepad)
-} rawDataPacket;
+} ;
 
-extern NeoPixelRMT led(GPIO_NUM_21);
 
 
