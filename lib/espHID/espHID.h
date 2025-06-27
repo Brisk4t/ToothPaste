@@ -5,6 +5,7 @@
 
 void hidSetup();
 void sendString(const char* str);
+void sendString(void* arg);
 
 
 #endif

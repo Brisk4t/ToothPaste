@@ -1,3 +1,5 @@
+#ifndef BLE_H
+#define BLE_H
 #include <Arduino.h>
 #include <BLEDevice.h>
 #include <BLEUtils.h>
@@ -12,6 +14,7 @@
 #define INPUT_STRING_CHARACTERISTIC "6856e119-2c7b-455a-bf42-cf7ddd2c5907"
 #define LED_CHARACTERISTIC_UUID "19b10002-e8f2-537e-4f6c-d104768a1214"
 
+
 struct clipPacket{
     uint8_t slow = 0; // 1 byte for slowmode flag
     uint8_t packetNo = 0; // 1 byte for packet number
@@ -20,16 +23,14 @@ struct clipPacket{
     
 };
 
-
 struct SharedSecretTaskParams {
       SecureSession* session;
       std::string* rawValue;
 };
 
 void bleSetup(SecureSession* session);
-void decodePacket(void* sessionParams);
+void generateSharedSecret(void* sessionParams);
+void disconnect();
+void enablePairingMode();
 
-
-BLEServer* bluServer; // Pointer to the BLE Server instance
-BLECharacteristic* inputCharacteristic; // Characteristic for sensor data
-BLECharacteristic* slowModeCharacteristic; // Characteristic for LED control
+#endif // BLE_H

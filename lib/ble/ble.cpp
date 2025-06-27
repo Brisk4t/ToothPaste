@@ -5,6 +5,8 @@ BLEServer* bluServer = NULL; // Pointer to the BLE Server instance
 BLECharacteristic* inputCharacteristic = NULL; // Characteristic for sensor data
 BLECharacteristic* slowModeCharacteristic = NULL; // Characteristic for LED control
 
+bool manualDisconnect = false; // Flag to indicate if the user manually disconnected
+bool pairingMode = false; // Flag to indicate if we are in pairing mode
 
 class MyServerCallbacks: public BLEServerCallbacks { // Callback handler for BLE Connection events
   void onConnect(BLEServer* bluServer) {
@@ -13,7 +15,16 @@ class MyServerCallbacks: public BLEServerCallbacks { // Callback handler for BLE
   };
 
   void onDisconnect(BLEServer* bluServer) {
-    led.blinkStart(500, Colors::Red); // Start blinking red when a device disconnects
+    if(manualDisconnect) {
+      manualDisconnect = false; // Reset the flag if the disconnection was manual
+      led.set(Colors::Yellow); // LED blinks yellow when disconnected manually
+      return; // Do not blink if the disconnection was manual
+    }
+    
+    else{
+      led.blinkStart(500, Colors::Red); // Start blinking red when a device disconnects by itself
+    }
+    
     bluServer->startAdvertising(); // Restart advertising
   }
 };
@@ -27,7 +38,6 @@ class MyCharacteristicCallbacks : public BLECharacteristicCallbacks {
     void onWrite(BLECharacteristic* inputCharacteristic) {
       //String value = String(inputCharacteristic->getValue().c_str());
       std::string rawValue = inputCharacteristic->getValue(); // Gets the std::strig value of the characteristic
-
       // Receive base64 encoded value
       if (!rawValue.empty() && session != nullptr) {
         const size_t IV_SIZE = 12;
@@ -38,21 +48,29 @@ class MyCharacteristicCallbacks : public BLECharacteristicCallbacks {
           return;
         }
 
-        const uint8_t* raw = reinterpret_cast<const uint8_t*>(rawValue.data()); // Gets the raw data pointer from the std::string
+        // Interpret data as peer public key when in pairing mode
+        if(pairingMode) {
+          Serial0.println("Pairing mode active, waiting for peer to send public key...");
+
+          const uint8_t* raw = reinterpret_cast<const uint8_t*>(rawValue.data()); // Gets the raw data pointer from the std::string
+          auto* rawCopy = new std::string(rawValue);  // allocate a heap copy
+          auto* taskParams = new SharedSecretTaskParams{session, rawCopy};
         
-        auto* rawCopy = new std::string(rawValue);  // allocate a heap copy
-        auto* taskParams = new SharedSecretTaskParams{session, rawCopy};
-       
-        // Create new RTOS task to prevent stack overflow in BLE callback stack
-        xTaskCreatePinnedToCore(
-          decodePacket,
-          "SharedSecretTask",
-          8192,
-          taskParams,
-          1,
-          nullptr,
-          1
-        );
+          // Create new RTOS task to prevent stack overflow in BLE callback stack
+          xTaskCreatePinnedToCore(
+            generateSharedSecret, // Function to run in the task
+            "SharedSecretTask", // Task name
+            8192, // Task stack size in bytes
+            taskParams, 
+            1,
+            nullptr, // Callback for task handle (TODO: use this to finish up the handshake)
+            1
+          );
+        }
+
+        else{
+
+        }
       }
 
       else{
@@ -110,16 +128,27 @@ void bleSetup(SecureSession* session){
     BLEDevice::startAdvertising();
 }
 
-void decodePacket(void* sessionParams){
+void disconnect() {
+    manualDisconnect = true; // Set the flag to indicate manual disconnection
+}
+
+void enablePairingMode() {
+    pairingMode = true; // Enable pairing mode
+    Serial0.println("Pairing mode enabled. Waiting for peer public key...");
+}
+
+void generateSharedSecret(void* sessionParams){
     auto* params = static_cast<SharedSecretTaskParams*>(sessionParams);
     SecureSession* session = params->session;
     std::string* rawValue = params->rawValue;
 
+    // Print the received data for debugging
     Serial0.println("Received data:");
-    Serial0.println(rawValue->c_str()); // Print the received data for debugging
-    Serial0.println(); // Print the received data for debugging
-    Serial0.println("Data Len: " + String(rawValue->length())); // Print the received data for debugging
+    Serial0.println(rawValue->c_str()); 
+    Serial0.println(); 
+    Serial0.println("Data Len: " + String(rawValue->length()));
 
+    // Convert the received Base64 peer public key to a byte array
     uint8_t peerKey[66];
     size_t peerKeyLen = 0;
     int ret = mbedtls_base64_decode(peerKey, 66, &peerKeyLen, (const unsigned char *)rawValue->data(), rawValue->length()); // Decode the base64 public key
@@ -135,8 +164,8 @@ void decodePacket(void* sessionParams){
       return;
     }
 
-    Serial0.println("Decode Successful");
-    Serial0.println((char*) peerKey); // Send the received public key over HID for debugging
+    // Serial0.println("Decode Successful");
+    // Serial0.println((char*) peerKey); // Send the received public key over HID for debugging
     
 
    
@@ -145,37 +174,52 @@ void decodePacket(void* sessionParams){
     ret = session->computeSharedSecret(peerKey, 66); // Compute shared secret first
 
 
+    if (!ret) {
+      Serial0.println("Shared secret computed successfully");
 
-    if (ret == 0) {
-      //Serial.print("Decrypted: ");
-      //Serial.println((char*)plaintext_out);  // assuming it's printable text
-      delay(5000); // Wait for 5 seconds before sending the shared secret
-      sendString("Shared secret computed successfully");
+      ret = session->deriveAESKeyFromSharedSecret(); // Derive AES key from shared secret
 
-      char encoded[128]; // Must be large enough for base64
-      size_t olen = 0;
-      mbedtls_base64_encode((unsigned char*)encoded, sizeof(encoded), &olen,
-                            session->sharedSecret, SecureSession::KEY_SIZE);
-      
-      encoded[olen] = '\0'; // Ensure null-termination
-      sendString(encoded); // Send the shared secret over HID
+      if(!ret){
+        Serial0.println("AES key derived successfully");
+      }
+      else {
+        char retchar[12];
+        snprintf(retchar, 12, "%d", ret);
+        Serial0.print("AES key derivation failed! Code: ");
+        Serial0.println(ret);
+      }
+
     } 
     
     else {
-      delay(5000);
       char retchar[12];
       snprintf(retchar, 12, "%d", ret);
-
-      sendString("Received: ");
-      sendString((char*) peerKey); // Send the received public key over HID
-      sendString("Decryption failed");
-      sendString(retchar);
-      // Serial.print("Decryption failed! Code: ");
-      // Serial.println(ret);
+      Serial0.print("Decryption failed! Code: ");
+      Serial0.println(ret);
     }
+
+    pairingMode = false; // Disable pairing mode after processing
+    Serial0.println("Pairing mode disabled.");
 
     delete rawValue;
     delete params;
     vTaskDelete(nullptr);
     //delete[] plaintext_out;
 }
+
+
+void decryptAndSend(SecureSession* session, SecureSession::rawDataPacket* packet) {  
+    uint8_t plaintext[PACKET_DATA_SIZE];
+    int ret = session->decrypt(packet, plaintext);
+
+    if (ret == 0) {
+        Serial0.println("Decryption successful, sending data over HID:");
+        sendString((const char*)  plaintext); // Send the decrypted data over HID
+
+    } else {
+        Serial0.print("Decryption failed with error code: ");
+        Serial0.println(ret);
+    }
+}
+
+

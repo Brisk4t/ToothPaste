@@ -1,14 +1,17 @@
 #include <secureSession.h>
+#include <Preferences.h>
 
 mbedtls_ecdh_context ecdh_ctx;
 mbedtls_ctr_drbg_context ctr_drbg;
 mbedtls_entropy_context entropy;
+Preferences preferences; // Preferences for storing data (Not secure, temporary solution)
     
 
 const char* personalSalt = "ecdh_session";
 
 
 SecureSession::SecureSession(): sharedReady(false){ // Class constructor
+    preferences.begin("security", false); // Start the preferences storage (NOT SECURE, just for testing)
     mbedtls_ecdh_init(&ecdh_ctx);
     mbedtls_ctr_drbg_init(&ctr_drbg);
     mbedtls_entropy_init(&entropy);
@@ -109,11 +112,16 @@ int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[66], size_t p
     return 0;
 }
 
-int SecureSession::deriveAESKeyFromSharedSecret(uint8_t key_out[KEY_SIZE]) { // KDF to generate a key with entropy on every bit
+int SecureSession::deriveAESKeyFromSharedSecret() { // KDF to generate a key with entropy on every bit
     if (!sharedReady) return -1;
-
+    uint8_t key_out[KEY_SIZE]; // Buffer to hold the derived key
     // Use SHA-256 to hash shared secret to derive AES key
     int ret = mbedtls_sha256_ret(sharedSecret, KEY_SIZE, key_out, 0);
+
+    if (ret != 0){
+        preferences.putBytes("aesKey", key_out, KEY_SIZE); // Store the key in preferences for debugging
+    };
+
     return ret;
 }
 
@@ -133,11 +141,12 @@ int SecureSession::encrypt( // Encrypt a given text string using gcm
     if (ret != 0) return ret;
 
     // Use the shared secret to generate a new key
+    // ret = deriveAESKeyFromSharedSecret(aesKey);
+    // if (ret != 0) return ret;
+    
     uint8_t aesKey[KEY_SIZE];
-    ret = deriveAESKeyFromSharedSecret(aesKey);
-    if (ret != 0) return ret;
-
     // set the generated AES key in the GCM context
+    preferences.getBytes("aesKey", aesKey, KEY_SIZE); // Get the AES key from preferences (for debugging)
     mbedtls_gcm_init(&gcm);
     ret = mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES, aesKey, KEY_SIZE * 8);
     if (ret != 0) return ret;
@@ -155,22 +164,25 @@ int SecureSession::encrypt( // Encrypt a given text string using gcm
     return ret;
 }
 
-int SecureSession::decrypt( // Decrypt an ecrypted string
-    const uint8_t* ciphertext, 
-    size_t ciphertext_len,
+int SecureSession::decrypt( // Decrypt an encrypted string
     const uint8_t iv[IV_SIZE],
+    size_t ciphertext_len,
+    const uint8_t* ciphertext, 
     const uint8_t tag[TAG_SIZE],
     uint8_t* plaintext_out) {
 
     if (!sharedReady) return -1;
     
     // Get the AES key from the shared secret (KDF)
-    uint8_t aesKey[KEY_SIZE];
-    int ret = deriveAESKeyFromSharedSecret(aesKey);
-    if (ret != 0) return ret;
+    // uint8_t aesKey[KEY_SIZE];
+    // int ret = deriveAESKeyFromSharedSecret(aesKey);
+    // if (ret != 0) return ret;
     
+    uint8_t aesKey[KEY_SIZE];
+    // set the generated AES key in the GCM context
+    preferences.getBytes("aesKey", aesKey, KEY_SIZE); // Get the AES key from preferences (for debugging)
     mbedtls_gcm_init(&gcm);
-    ret = mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES, aesKey, KEY_SIZE * 8); // Set the AES key for the GCM context
+    int ret = mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES, aesKey, KEY_SIZE * 8); // Set the AES key for the GCM context
     if (ret != 0) return ret;
 
     ret = mbedtls_gcm_auth_decrypt(&gcm,
@@ -182,5 +194,19 @@ int SecureSession::decrypt( // Decrypt an ecrypted string
                                    ciphertext,
                                    plaintext_out); 
     mbedtls_gcm_free(&gcm);
+    return ret;
+}
+
+// Decrypt a rawDataPacket and output the plaintext
+int SecureSession::decrypt(struct rawDataPacket* packet, uint8_t* plaintext_out) {
+    if (!sharedReady) return -1;
+
+    uint8_t aesKey[KEY_SIZE];
+    // set the generated AES key in the GCM context
+    preferences.getBytes("aesKey", aesKey, KEY_SIZE); // Get the AES key from preferences (for debugging)
+
+    uint8_t plaintext[packet->totalDataLen]; // Buffer to hold the decrypted plaintext
+    int ret = decrypt(packet->IV, packet->totalDataLen, packet->data, packet->TAG, plaintext); // Decrypt the packet data
+
     return ret;
 }
