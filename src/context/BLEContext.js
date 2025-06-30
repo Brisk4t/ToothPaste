@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useState } from "react";
+import { keyExists } from './Storage';
+
 
 export const BLEContext = createContext();
 export const useBLEContext = () => useContext(BLEContext);
 
 export function BLEProvider({ children }) {
-    const [status, setStatus] = React.useState(0);
+    const [status, setStatus] = React.useState(0); // 0 = disconnected, 1 = connected & paired, 2 = connected & not paired
     const [device, setDevice] = useState(null);
     const [server, setServer] = useState(null);
     const [characteristic, setCharacteristic] = useState(null);
@@ -15,7 +17,7 @@ export function BLEProvider({ children }) {
     const connectToDevice = async () => {
         
         try {
-            setStatus(0);
+            
             const device = await navigator.bluetooth.requestDevice({
                 filters: [
                 {namePrefix: "Clip"},
@@ -26,7 +28,7 @@ export function BLEProvider({ children }) {
             const server = await device.gatt.connect();
             const service = await server.getPrimaryService(serviceUUID);
             const char = await service.getCharacteristic(characteristicUUID);
-
+            
             setDevice(device);
             device.addEventListener("gattserverdisconnected", () => {
                 setStatus(0);
@@ -34,19 +36,29 @@ export function BLEProvider({ children }) {
             });
 
             
+
             setServer(server);
             setCharacteristic(char);
-            setStatus(1);
+            
+            // If we know the public key of the device, it was paired before
+            if(!await keyExists(device.id)) {
+                console.error("ECDH keys not found for device", device.id);
+                setStatus(2);
+                
+            }
+            
+            // If we don't know the public key, we need to pair
+            else {
+                setStatus(1);
+            }
         } 
         
         catch (error) {
         console.error("Connection failed", error);
 
-        // ✅ Only mark disconnected if you're sure it's not already connected
+        // Only set status to disconnected if the device is not connected, a ble scan cancel might fail but the device could still be connected
         if (!device || !device.gatt.connected) {
             setStatus(0);
-        } else {
-            setStatus(1); // still connected, just something else failed
         }
     }
         

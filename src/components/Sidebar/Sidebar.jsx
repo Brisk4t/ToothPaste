@@ -38,12 +38,24 @@ import { useBLEContext } from "../../context/BLEContext";
 // Status icon for a given device
 function ConnectionButton({connected }) {
   const { connectToDevice, status, device } = useBLEContext();
+  let borderClass;
+  
+  switch (status) {
+    case 0:
+      borderClass = 'border-secondary'; // Disconnected
+      break;
+    case 1:
+      borderClass = 'border-primary'; // Connected & Paired
+      break;
+    default:
+      borderClass = 'border-accent'; // fallback if needed
+  }
 
   return (
     <div className="flex justify-left w-full">
       {/* <Badge color={status ? "primary" : "secondary"} onClick={connectToDevice}>
       </Badge> */}
-      <Button className={`flex items-center justify-between w-full p-4 border-2 ${status ? 'border-primary' : 'border-secondary'} bg-transparent hover:border-text `} onClick={connectToDevice}>
+      <Button className={`flex items-center justify-between w-full p-4 border-2 ${borderClass} bg-transparent hover:border-text `} onClick={connectToDevice}>
           <Typography variant="h6" color="text" className="text-lg font-sans font-medium normal-case ">
               {device ? device.name : "Connect to Device"}
           </Typography>

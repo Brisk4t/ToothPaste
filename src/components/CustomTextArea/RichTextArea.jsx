@@ -1061,7 +1061,7 @@ export default function RichTextArea({onChange}) {
   
   return (
     <LexicalComposer initialConfig={editorConfig}>
-      <div className={`flex flex-1 flex-col overflow-hidden rounded-xl transition-all border ${isFocused? 'border-hover':'border-text'} bg-transparent text-left font-normal leading-5 text-text overflow-hidden`}>
+      <div className={`flex flex-1 flex-col overflow-hidden rounded-xl transition-all border ${isFocused? 'border-hover':'border-shelf'} bg-transparent text-left font-normal leading-5 text-text overflow-hidden`}>
         <ToolbarPlugin />
         
         <div className="flex-1 min-h-0 relative overflow-y-auto rounded-b-lg border-opacity-5 bg-transparent">

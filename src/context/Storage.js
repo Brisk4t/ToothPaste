@@ -19,7 +19,7 @@ function openDB(clientID) {
 }
 
 // Save base64 shared secret under a given key in the store for a specific client
-export async function saveSharedSecretBase64(clientID, key, value) {
+export async function saveBase64(clientID, key, value) {
   const db = await openDB(clientID);
   const tx = db.transaction(clientID, 'readwrite');
   tx.objectStore(clientID).put(value, key);
@@ -30,7 +30,7 @@ export async function saveSharedSecretBase64(clientID, key, value) {
 }
 
 // Load the base64 shared secret for a given client and key
-export async function loadSharedSecretBase64(clientID, key) {
+export async function loadBase64(clientID, key) {
   const db = await openDB(clientID);
   return new Promise((resolve, reject) => {
     const tx = db.transaction(clientID, 'readonly');
@@ -38,4 +38,18 @@ export async function loadSharedSecretBase64(clientID, key) {
     req.onsuccess = () => resolve(req.result ?? null);
     req.onerror = () => reject(req.error);
   });
+}
+
+export async function keyExists(clientID) {
+    try {
+      const selfPublicKey = await loadBase64(clientID, 'SelfPublicKey');
+      const selfPrivateKey = await loadBase64(clientID, 'SelfPrivateKey');
+      const peerPublicKey = await loadBase64(clientID, 'PeerPublicKey');
+
+      return !!(selfPublicKey && selfPrivateKey && peerPublicKey);
+    }
+    catch (error) {
+      console.error("Error retreiving keys in ECDH context", error);
+      return false;
+    }
 }

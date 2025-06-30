@@ -21,34 +21,13 @@ const decompressCompressedKey = (compressedBytes) => {
 };
 
 const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
-    const {generateKeyPair, encryptMessage, decompressKey, importPeerPublicKey, storeSelfKeys } = useContext(ECDHContext);
+    const {generateECDHKeyPair, encryptMessage, decompressKey, importPeerPublicKey, storeSelfKeys, deriveSharedSecret, savePeerPublicKey} = useContext(ECDHContext);
     const [inputKey, setInputKey] = useState('');
     const [sharedSecret, setSharedSecret] = useState(null);
     const [error, setError] = useState(null);
     const [pkey, setpkey] = useState(null);
-    const {characteristic, status} = useContext(BLEContext);
+    const {device, characteristic, status} = useContext(BLEContext);
     
-
-    async function compressKey(pkey) {
-    // Export raw uncompressed key (65 bytes): 0x04 || X (32 bytes) || Y (32 bytes)
-    const rawKey = new Uint8Array(await crypto.subtle.exportKey('raw', pkey));
-
-    if (rawKey[0] !== 0x04 || rawKey.length !== 65) {
-        throw new Error("Unexpected raw public key format");
-    }
-
-    const x = rawKey.slice(1, 33);       // bytes 1–32
-    const y = rawKey.slice(33, 65);      // bytes 33–64
-
-    const prefix = (y[y.length - 1] % 2 === 0) ? 0x02 : 0x03; // LSB of Y
-
-    const compressed = new Uint8Array(33);
-    compressed[0] = prefix;
-    compressed.set(x, 1);
-
-    return compressed;
-}
-
     const sendPublicKey = async () => {
         if (!characteristic || !pkey) return;
 
@@ -64,49 +43,53 @@ const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
         }
     };   
 
-    const generateECDHKeyPair = async () => {
-        return await crypto.subtle.generateKey(
-            {
-                name: 'ECDH',
-                namedCurve: 'P-256',
-            },
-            true,
-            ['deriveKey', 'deriveBits']
-        );
-    };
-
-    const deriveSharedSecret = async (privateKey, publicKey) => {
-        return await crypto.subtle.deriveBits(
-            {
-                name: 'ECDH',
-                public: publicKey,
-            },
-            privateKey,
-            256
-        );
-    };
-
     const handleSubmit = async () => {
         try {
             setError(null);
-            const compressedBytes = Uint8Array.from(atob(inputKey.trim()), c => c.charCodeAt(0));
-
+            const compressedBytes = Uint8Array.from(atob(inputKey.trim()), c => c.charCodeAt(0)); // Parse the Base64 compressed public key input into a Uint8Array
+            
+            // If the compressed key is not 33 bytes, throw an error
             if (compressedBytes.length !== 33) {
                 throw new Error('Compressed public key must be 33 bytes');
             }
+            
+            // Peer functions
+            const rawUncompressed = decompressKey(compressedBytes);  // Decompress the compressed public key to get the raw uncompressed key (65 bytes)
+            const peerPublicKeyObject = await importPeerPublicKey(rawUncompressed); // Create a CryptoKey object from the uncompressed public key
 
-            const rawUncompressed = decompressKey(compressedBytes); // Decompress the base64 compressed key to a raw uncompressed key (65 bytes)
-            const peerPublicKey = await importPeerPublicKey(rawUncompressed); // Import the key into a CryptoKey object
-            const { privateKey, publicKey } = await generateECDHKeyPair().then(keys => storeSelfKeys(keys)); // Generate and save our ECDH key pair
+            // Self functions
+            const keys = await generateECDHKeyPair(); // Generate ECDH key pair
+            const {privateKey, publicKey} = keys;
+
+            // Save the uncompressed public key of the peer in the database as base64
+            await crypto.subtle.exportKey('raw', peerPublicKeyObject).then((rawKey) => {
+                   savePeerPublicKey(rawKey, device.id);
+            });
+
 
             // Compress our public key and turn in into Base64 to send to the peer
-            await crypto.subtle.exportKey('raw', publicKey).then((rawKey) => {
-                    const b64Uncompressed = arrayBufferToBase64(rawKey);
-                    setpkey(b64Uncompressed);
-            });
+            // Compress our public key and turn it into Base64 to send to the peer
+            const rawPublicKey = await crypto.subtle.exportKey('raw', publicKey);
+            console.log("Raw public key:", rawPublicKey);
+
+            const b64Uncompressed = arrayBufferToBase64(rawPublicKey);
+            console.log("Uncompressed public key:", b64Uncompressed);
+
+
+            const rawPrivateKey = await crypto.subtle.exportKey('pkcs8', privateKey);
+            console.log("Raw private key:", rawPrivateKey);
+
+            const b64PrivateKey = arrayBufferToBase64(rawPrivateKey);
+            console.log("Private key:", b64PrivateKey);
+
+            await storeSelfKeys(b64Uncompressed, b64PrivateKey, device.id); // Store in DB
+            setpkey(b64Uncompressed);
+
             
-            const secretBuffer = await deriveSharedSecret(privateKey, peerPublicKey); // Derive the shared secret using our private key and the peer's public key
+            
+            const secretBuffer = await deriveSharedSecret(privateKey, peerPublicKeyObject); // Derive the shared secret using our private key and the peer's public key
             setSharedSecret(secretBuffer);
+            console.log("Shared secret derived:", secretBuffer);
             
         } catch (e) {
             setError('Error: ' + e.message);
@@ -154,10 +137,10 @@ const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
                 <h2>ECDH Shared Secret (Compressed Public Key)</h2>
                 <input
                     type="text"
-                    placeholder="Enter compressed public key (hex)"
+                    placeholder="Enter compressed public key (base64)"
                     value={inputKey}
                     onChange={(e) => setInputKey(e.target.value)}
-                    className='w-100 h-10 opacity-0'
+                    className='w-full h-10 opacity-1 color-text bg-shelf rounded-md p-2 my-4 focus:outline-none focus:border-primary-hover focus:ring-1 focus:ring-primary-hover'
                 />
                 <Button 
                     onClick={handleSubmit} 

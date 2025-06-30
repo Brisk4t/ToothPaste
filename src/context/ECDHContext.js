@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
-import { saveSharedSecretBase64, loadSharedSecretBase64 } from './Storage';
+import { saveBase64, loadBase64 } from './Storage';
 import { ec as EC } from 'elliptic';
 
 const ec = new EC('p256');
@@ -26,18 +26,18 @@ export const ECDHProvider = ({ children }) => {
     return pair;
   };
 
-  // Store self public and private keys
-  const storeSelfKeys = async (keys, clientID) => {
-    if (!keys || !keys.publicKey || !keys.privateKey) {
+  // Store self base64 public and private keys
+  const storeSelfKeys = async (publicKey, privateKey, clientID) => {
+    if (!publicKey || !privateKey) {
       throw new Error("Invalid key pair provided");
     }
 
-    const SelfPublicKeyBase64 = await arrayBufferToBase64(keys.publicKey);
-    const SelfPrivateKeyBase64 = await arrayBufferToBase64(keys.privateKey);
+    await saveBase64(clientID, 'SelfPublicKey', publicKey);
+    await saveBase64(clientID, 'SelfPrivateKey', privateKey);
 
-    await saveSharedSecretBase64(clientID, 'SelfPublicKey', SelfPublicKeyBase64);
-    await saveSharedSecretBase64(clientID, 'SelfPrivateKey', SelfPrivateKeyBase64);
 
+    console.log("Self public key saved:", publicKey);
+    console.log("Self private key saved:", privateKey);
     return;
   };
 
@@ -87,7 +87,8 @@ export const ECDHProvider = ({ children }) => {
     }
 
     const PeerPublicKeyBase64 = await arrayBufferToBase64(peerPublicKey);
-    await saveSharedSecretBase64(clientID, 'PeerPublicKey', PeerPublicKeyBase64);
+    await saveBase64(clientID, 'PeerPublicKey', PeerPublicKeyBase64);
+    console.log("Peer public key saved:", PeerPublicKeyBase64);
   };
 
   // Derive shared secret using ECDH
@@ -111,7 +112,6 @@ export const ECDHProvider = ({ children }) => {
 
   
 
-
   return (
     <ECDHContext.Provider
       value={{
@@ -124,6 +124,7 @@ export const ECDHProvider = ({ children }) => {
         deriveSharedSecret,
         publicKeyUncompressed,
         setPublicKeyUncompressed,
+        savePeerPublicKey,
         sharedSecret,
       }}
     >
