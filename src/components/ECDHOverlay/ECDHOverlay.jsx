@@ -1,5 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { ec as EC } from 'elliptic';
+import { ECDHContext, arrayBufferToBase64 } from '../../context/ECDHContext';
 import { Button, Typography } from "@material-tailwind/react";
 import { KeyIcon} from '@heroicons/react/24/outline';
 import { BLEContext } from '../../context/BLEContext';
@@ -20,6 +21,7 @@ const decompressCompressedKey = (compressedBytes) => {
 };
 
 const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
+    const {generateKeyPair, encryptMessage, decompressKey, importPeerPublicKey, storeSelfKeys } = useContext(ECDHContext);
     const [inputKey, setInputKey] = useState('');
     const [sharedSecret, setSharedSecret] = useState(null);
     const [error, setError] = useState(null);
@@ -73,19 +75,6 @@ const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
         );
     };
 
-    const importPeerPublicKey = async (rawKeyBuffer) => {
-        return await crypto.subtle.importKey(
-            'raw',
-            rawKeyBuffer,
-            {
-                name: 'ECDH',
-                namedCurve: 'P-256',
-            },
-            true,
-            []
-        );
-    };
-
     const deriveSharedSecret = async (privateKey, publicKey) => {
         return await crypto.subtle.deriveBits(
             {
@@ -106,27 +95,19 @@ const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
                 throw new Error('Compressed public key must be 33 bytes');
             }
 
-            const rawUncompressed = decompressCompressedKey(compressedBytes);
+            const rawUncompressed = decompressKey(compressedBytes); // Decompress the base64 compressed key to a raw uncompressed key (65 bytes)
+            const peerPublicKey = await importPeerPublicKey(rawUncompressed); // Import the key into a CryptoKey object
+            const { privateKey, publicKey } = await generateECDHKeyPair().then(keys => storeSelfKeys(keys)); // Generate and save our ECDH key pair
 
-            const peerPublicKey = await importPeerPublicKey(rawUncompressed); // Get the peer's public key
-
-            const { privateKey, publicKey } = await generateECDHKeyPair();// Generate our ECDH key pair
-            
             // Compress our public key and turn in into Base64 to send to the peer
             await crypto.subtle.exportKey('raw', publicKey).then((rawKey) => {
-                 const rawBytes = new Uint8Array(rawKey);
-                    const binaryString = Array.from(rawBytes, b => String.fromCharCode(b)).join('');
-                    const b64Uncompressed = btoa(binaryString);
+                    const b64Uncompressed = arrayBufferToBase64(rawKey);
                     setpkey(b64Uncompressed);
             });
             
             const secretBuffer = await deriveSharedSecret(privateKey, peerPublicKey); // Derive the shared secret using our private key and the peer's public key
-
-            const secretHex = Array.from(new Uint8Array(secretBuffer))
-                .map((b) => b.toString(16).padStart(2, '0'))
-                .join('');
-
-            setSharedSecret(secretHex);
+            setSharedSecret(secretBuffer);
+            
         } catch (e) {
             setError('Error: ' + e.message);
             setSharedSecret(null);
@@ -176,7 +157,7 @@ const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
                     placeholder="Enter compressed public key (hex)"
                     value={inputKey}
                     onChange={(e) => setInputKey(e.target.value)}
-                    style={{ width: '100%', marginBottom: 10, color:'white', background:'var(--color-hover)'}}
+                    className='w-100 h-10 opacity-0'
                 />
                 <Button 
                     onClick={handleSubmit} 

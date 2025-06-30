@@ -5,6 +5,7 @@ import {Sidebar, SidebarWithLogo} from './components/Sidebar/Sidebar';
 import BulkSend from './views/BulkSend';
 import { BLEProvider } from './context/BLEContext';
 import ECDHOverlay from './components/ECDHOverlay/ECDHOverlay';
+import { ECDHContext, ECDHProvider } from './context/ECDHContext';
 
 
 function App() {
@@ -12,11 +13,13 @@ function App() {
 
   return (
       <BLEProvider>
-        <div className="flex flex-1 min-h-screen max-h-screen">
-          <SidebarWithLogo onOpenPairing={() => setShowOverlay(true)}/>
-          <BulkSend />
-          <ECDHOverlay showOverlay={showOverlay} setShowOverlay={setShowOverlay} />
-        </div>
+        <ECDHProvider>
+          <div className="flex flex-1 min-h-screen max-h-screen">
+            <SidebarWithLogo onOpenPairing={() => setShowOverlay(true)}/>
+            <BulkSend />
+            <ECDHOverlay showOverlay={showOverlay} setShowOverlay={setShowOverlay} />
+          </div>
+        </ECDHProvider>
       </BLEProvider>
   );
 }
