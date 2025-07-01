@@ -4,7 +4,6 @@
 #include <BLEUtils.h>
 #include <BLE2902.h>
 #include <esp_timer.h>
-#include <nvs_flash.h>
 
 // ClipBoard libraries
 #include "espHID.h"
@@ -13,7 +12,7 @@
 
 SecureSession sec;
 
-// Send the public key over hid
+// Send the public key over hid and wait for ble peer public key
 void sendPublicKey(void* arg) {
   const char* pubKey = static_cast<const char*>(arg);
   Serial0.println("Sending public key: ");
@@ -27,24 +26,10 @@ void sendPublicKey(void* arg) {
 }
 
 
-void nvsinit(){
-  esp_err_t err = nvs_flash_init();
-  if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-    // NVS partition was truncated or version mismatch, so erase and retry
-    nvs_flash_erase();
-    err = nvs_flash_init();
-  }
-
-  if (err != ESP_OK) {
-    Serial0.printf("NVS init failed: %s\n", esp_err_to_name(err));
-  } else {
-    Serial0.println("NVS initialized");
-  }
-}
-
 // Enter pairing mode, generate a keypair, and send the public key to the transmitter
 void enterPairingMode() { 
   //disconnect(); // Disconnect any existing BLE connection
+
   Serial0.println("Entering pairing mode...");
   led.blinkStart(1000, Colors::Purple); // Blinking Purple
 
@@ -52,15 +37,21 @@ void enterPairingMode() {
   size_t pubLen;
   
   int ret = sec.generateKeypair(pubKey, pubLen); // Generate the public key in pairing mode
-
-  if (!ret) { // Successful keygen returns 0
+  
+  // Successful keygen returns 0
+  if (!ret) { 
 
     // Base64 encode the public key for transmission
     size_t olen = 0;
     static char base64pubKey[50]; // Buffer to hold the Base64 encoded public key
-    mbedtls_base64_encode((unsigned char *)base64pubKey, sizeof(base64pubKey), &olen, pubKey, SecureSession::PUBKEY_SIZE); // turn the 
+    mbedtls_base64_encode((unsigned char *)base64pubKey, sizeof(base64pubKey), &olen, pubKey, SecureSession::PUBKEY_SIZE);
     base64pubKey[olen] = '\0';  // Null-terminate the public key string
     
+    // Print Public Key to Serial
+    Serial0.println("Public Key Generated: ");
+    Serial0.println(base64pubKey);
+    Serial0.println();
+
     // Create a one-shot timer to send the public key after 5 seconds
     esp_timer_create_args_t timer_args = {
       .callback = &sendPublicKey,
@@ -68,7 +59,6 @@ void enterPairingMode() {
       .dispatch_method = ESP_TIMER_TASK,
       .name = "delayedFn"
     };
-
     esp_timer_handle_t oneShotTimer;
     esp_timer_create(&timer_args, &oneShotTimer);
     esp_timer_start_once(oneShotTimer, 5000000); // 5 seconds
@@ -88,7 +78,6 @@ void setup() {
   Serial0.begin(115200); // Initialize Serial for debugging
   hidSetup(); // Initialize the HID device
   bleSetup(&sec); // Initialize the BLE device with the secure session
-  nvsinit();
   sec.init(); // Initialize the secure session
 
   // Intialize the RMT LED Driver

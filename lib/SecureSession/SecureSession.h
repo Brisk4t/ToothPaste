@@ -24,6 +24,7 @@ public:
     static constexpr size_t IV_SIZE = 12;        // Recommended IV size for AES-GCM
     static constexpr size_t TAG_SIZE = 16;       // AES-GCM authentication tag size
     uint8_t sharedSecret[KEY_SIZE];
+    uint8_t globalAESKey[33];
 
     struct rawDataPacket {
         //int packetId; // Unique ID for type of packet (0 = RESERVED, 1 = DATA, 2 = ACK, 3 = HANDSHAKE, 4=KEEPALIVE)
@@ -76,7 +77,11 @@ public:
 
     // Derive AES key from shared secret using KDF and store it in preferences
     int deriveAESKeyFromSharedSecret();
-
+    void printBase64(const uint8_t * data, size_t dataLen);
+    int hkdf_sha256(const uint8_t *salt, size_t salt_len,
+                const uint8_t *ikm, size_t ikm_len,
+                const uint8_t *info, size_t info_len,
+                uint8_t *okm, size_t okm_len);
 
 private:
     mbedtls_ecdh_context ecdh;

@@ -15,13 +15,35 @@ void decryptAndSend(void * sessionParams) {  //SecureSession* session, SecureSes
   SecureSession* session = params->session;
   std::string* rawValue = params->rawValue;
 
+  const uint8_t* raw = reinterpret_cast<const uint8_t*>(rawValue->data());
+  size_t offset = 0;
 
   SecureSession::rawDataPacket packet;
-  
-  const uint8_t* raw = reinterpret_cast<const uint8_t*>(rawValue->data()); // Gets the raw data pointer from the std::string
-  
-  memcpy(&packet, rawValue->data(), sizeof(SecureSession::rawDataPacket));
+ 
+  // Extract dataLen (uint32_t, big-endian or little-endian depending on your format)
+  packet.dataLen = (raw[offset] << 24) | (raw[offset + 1] << 16) |
+                     (raw[offset + 2] << 8) | raw[offset + 3];
+  offset += 4;      
 
+  Serial0.println("DataLen: ");
+  Serial0.print(packet.dataLen);
+  if (packet.dataLen > MAX_DATA_LEN) {
+        Serial0.println("Invalid packet length");
+        return;
+  }
+  
+  //memcpy(&packet, rawValue->data(), sizeof(SecureSession::rawDataPacket));
+  // Copy IV
+  memcpy(packet.IV, raw + offset, SecureSession::IV_SIZE);
+  offset += SecureSession::IV_SIZE;
+
+  // Copy ciphertext
+  memcpy(packet.data, raw + offset, packet.dataLen);
+  offset += packet.dataLen;
+
+  // Copy tag
+  memcpy(packet.TAG, raw + offset, SecureSession::TAG_SIZE);
+  offset += SecureSession::TAG_SIZE;
 
   uint8_t plaintext[PACKET_DATA_SIZE];
   int ret = session->decrypt(&packet, plaintext);
@@ -35,6 +57,10 @@ void decryptAndSend(void * sessionParams) {  //SecureSession* session, SecureSes
         Serial0.print("Decryption failed with error code: ");
         Serial0.println(ret);
     }
+
+  delete rawValue;
+  delete params;
+  vTaskDelete(nullptr);
 }
 
 
@@ -75,17 +101,16 @@ class MyCharacteristicCallbacks : public BLECharacteristicCallbacks {
         const size_t IV_SIZE = 12;
         const size_t TAG_SIZE = 16;
 
-        // Handle bad packets
-        if (rawValue.length() < IV_SIZE + TAG_SIZE) {
-          Serial.println("Characteristic too short!");
-          return;
-        }
+        // // Handle bad packets
+        // if (rawValue.length() < IV_SIZE + TAG_SIZE) {
+        //   Serial.println("Characteristic too short!");
+        //   return;
+        // }
 
         // Interpret data as peer public key when in pairing mode
         if(pairingMode) {
-          Serial0.println("Pairing mode active, waiting for peer to send public key...");
-
-          //const uint8_t* raw = reinterpret_cast<const uint8_t*>(rawValue.data()); // Gets the raw data pointer from the std::string
+          Serial0.println("Pairing mode active, uncompressed peer public key received \n");
+          
           auto* rawCopy = new std::string(rawValue);  // allocate a heap copy of the received packet
           auto* taskParams = new SharedSecretTaskParams{session, rawCopy};
         
@@ -186,21 +211,31 @@ void enablePairingMode() {
     Serial0.println("Pairing mode enabled. Waiting for peer public key...");
 }
 
+// RTOS task to run once peer public key is received
 void generateSharedSecret(void* sessionParams){
-    auto* params = static_cast<SharedSecretTaskParams*>(sessionParams);
+    auto* params = static_cast<SharedSecretTaskParams*>(sessionParams); // Cast the parameters back
     SecureSession* session = params->session;
     std::string* rawValue = params->rawValue;
 
     // Print the received data for debugging
+    Serial0.println("Data Len: " + String(rawValue->length())); // Print the received peer public key length 
     Serial0.println("Received data:");
-    Serial0.println(rawValue->c_str()); 
+    Serial0.println(rawValue->c_str()); // Print the received peer public key to serial
     Serial0.println(); 
-    Serial0.println("Data Len: " + String(rawValue->length()));
 
     // Convert the received Base64 peer public key to a byte array
     uint8_t peerKey[66];
     size_t peerKeyLen = 0;
+    
+    // Decode Base64 peer public key
+    const char* base64Input = rawValue->c_str();
+    size_t base64InputLen = strlen(base64Input);  // safer than rawValue->length() if input comes from external source
+
     int ret = mbedtls_base64_decode(peerKey, 66, &peerKeyLen, (const unsigned char *)rawValue->data(), rawValue->length()); // Decode the base64 public key
+
+    Serial0.println("Decoded ByteData Len: " + String(peerKeyLen)); // Print the received peer public key length 
+    Serial0.println();
+
 
     if(ret != 0){
       delay(5000);
@@ -219,14 +254,11 @@ void generateSharedSecret(void* sessionParams){
 
 
     if (!ret) {
-      Serial0.println("Shared secret computed successfully");
-
       ret = session->deriveAESKeyFromSharedSecret(); // Derive AES key from shared secret and save it
 
       if(!ret){
         Serial0.println("AES key derived successfully");
-        led.setColor(Colors::Cyan);
-
+        led.set(Colors::Cyan);
       }
       else {
         char retchar[12];
