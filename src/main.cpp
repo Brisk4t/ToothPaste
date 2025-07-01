@@ -33,17 +33,16 @@ void enterPairingMode() {
   Serial0.println("Entering pairing mode...");
   led.blinkStart(1000, Colors::Purple); // Blinking Purple
 
-  uint8_t pubKey[SecureSession::PUBKEY_SIZE];
+  uint8_t pubKey[SecureSession::PUBKEY_SIZE]; 
   size_t pubLen;
   
-  int ret = sec.generateKeypair(pubKey, pubLen); // Generate the public key in pairing mode
+  int ret = sec.generateKeypair(pubKey, pubLen); // Generate the compressed public key in pairing mode
   
   // Successful keygen returns 0
   if (!ret) { 
-
     // Base64 encode the public key for transmission
     size_t olen = 0;
-    static char base64pubKey[50]; // Buffer to hold the Base64 encoded public key
+    static char base64pubKey[45]; // Buffer to hold the Base64 encoded public key (44 base64 chars + 1 null)
     mbedtls_base64_encode((unsigned char *)base64pubKey, sizeof(base64pubKey), &olen, pubKey, SecureSession::PUBKEY_SIZE);
     base64pubKey[olen] = '\0';  // Null-terminate the public key string
     
@@ -82,9 +81,10 @@ void setup() {
 
   // Intialize the RMT LED Driver
   led.begin();
-  led.set(Colors::Orange); // Set the LED to Orange on startup
+  led.set(Colors::Orange); // Set the LED to Orange on startup (TODO: Change this to query state - paired / not)
 }
 
+// The loop is only used for gpio polling
 void loop() {
   led.blinkUpdate(); // The blink state is updated in the loop and notifies the RMT thread
   
@@ -93,6 +93,8 @@ void loop() {
   if (buttonEvent == 1) { // Single click event
     sendString("Button clicked!");
   } 
+
+
   else if (buttonEvent == 2) { // Hold event
     Serial0.println("Button held!");
     enterPairingMode(); // Enter pairing mode on hold
