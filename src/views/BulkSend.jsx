@@ -9,7 +9,7 @@ import { ECDHContext } from '../context/ECDHContext';
 
 
 export default function BulkSend() {
-    const {encryptText} = useContext(ECDHContext);
+    const {encryptText, createEncryptedPackets} = useContext(ECDHContext);
     const [input, setInput] = useState('');
     const {characteristic, status} = useContext(BLEContext);
     const editorRef = useRef(null);
@@ -17,15 +17,25 @@ export default function BulkSend() {
     const sendString = async () => {
         if (!characteristic || !input) return; 
 
-        try {
-            const encrypted = await encryptText(input); // First 12 bytes are IV
-            
-            //console.log("Data sent", encrypted);
-            //const encoder = new TextEncoder();
-            //const data = encoder.encode(encrypted);
-            await characteristic.writeValue(encrypted);
-        } 
+        // try {
+        //     const encrypted = await encryptText(input); // First 12 bytes are IV
+        //     //console.log("Data sent", encrypted);
+        //     //const encoder = new TextEncoder();
+        //     //const data = encoder.encode(encrypted);
+        //     await characteristic.writeValue(encrypted);
+        // } 
         
+        try{
+            console.log("Send starting....")
+            console.log(input);
+
+            for await(const packet of createEncryptedPackets(0, input)){
+                console.log("Sending packet...");
+                await characteristic.writeValueWithoutResponse(packet.serialize());
+                await new Promise(r => setTimeout(r, 2000));
+            }
+        }
+
         catch (error) {
             console.error(error);
         }

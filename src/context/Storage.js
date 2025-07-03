@@ -1,5 +1,5 @@
 const DB_NAME = 'ToothPasteDB';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 // Open or upgrade the database to include any needed object store
 function openDB(clientID) {

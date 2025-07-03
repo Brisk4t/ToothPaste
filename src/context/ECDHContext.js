@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useRef } from 'react';
 import { saveBase64, loadBase64 } from './Storage';
 import { ec as EC } from 'elliptic';
+import {Packet} from './PacketFunctions'
 
 const ec = new EC('p256');
 
@@ -147,14 +148,17 @@ export const ECDHProvider = ({ children }) => {
     };
 
     // Encrypt plaintext using AES-GCM with shared secret key
-    const encryptText = async (plaintext) => {
+    const encryptText = async (plaintext, aad) => {
         const iv = crypto.getRandomValues(new Uint8Array(12)); // 12 byte IV
         const encoder = new TextEncoder();
-        const data = encoder.encode(plaintext);
+        const data = (plaintext instanceof Uint8Array) ? plaintext : encoder.encode(plaintext);
 
         // Encrypt the data with the AES key from storage
         const encrypted = await crypto.subtle.encrypt(
-            { name: 'AES-GCM', iv },
+            {   name: 'AES-GCM', 
+                iv, 
+                //additionalData: aad // extra data that is not encrypted but authenticated by TAG for integrity
+            },
             aesKey.current,
             data
         );
@@ -162,17 +166,20 @@ export const ECDHProvider = ({ children }) => {
         const encryptedBytes = new Uint8Array(encrypted); // encryptedBytes contains data + 16 byte tag
         
         // Return base64 string with IV prepended (IV + ciphertext)
-        const combined = new Uint8Array(4 + iv.length + encryptedBytes.length);        
+        //const combined = new Uint8Array(4 + iv.length + encryptedBytes.length);        
+        const combined = new Uint8Array(iv.length + encryptedBytes.length);        
 
         // First 4 bytes are the length of the data
-        combined[0] = (data.length >> 24) & 0xff;
-        combined[1] = (data.length >> 16) & 0xff;
-        combined[2] = (data.length >> 8) & 0xff;
-        combined[3] = data.length & 0xff;
+        // combined[0] = (data.length >> 24) & 0xff;
+        // combined[1] = (data.length >> 16) & 0xff;
+        // combined[2] = (data.length >> 8) & 0xff;
+        // combined[3] = data.length & 0xff;
 
         
-        combined.set(iv, 4); // The iv is byte 5+12 bytes
-        combined.set(encryptedBytes, 4 + iv.length); // The rest of the packet
+        // combined.set(iv, 4); // The iv is byte 5+12 bytes
+        // combined.set(encryptedBytes, 4 + iv.length); // The rest of the packet
+        combined.set(iv);
+        combined.set(encryptedBytes, iv.length);
         return combined;
     }
 
@@ -190,6 +197,30 @@ export const ECDHProvider = ({ children }) => {
         return decoder.decode(decrypted);
     }
 
+    // create and encrypt packet -> returns an iterator of one or more packets where payload size < max_data_size
+    const createEncryptedPackets = async function *(id, payload, slowMode=false){
+        const encoder = new TextEncoder();
+        const data = (payload instanceof Uint8Array) ? payload : encoder.encode(payload);
+        const totalChunks = Math.ceil(data.length / Packet.MAX_DATA_SIZE);
+        
+        console.log(payload);
+        console.log(data.length);
+        console.log(totalChunks);   
+        // TODO: Raise here if too much data is given
+        if(totalChunks > 254)
+            return;
+
+        for (let chunkNumber = 0; chunkNumber < totalChunks; chunkNumber++){
+            const chunkData = data.slice(chunkNumber * Packet.MAX_DATA_SIZE, (chunkNumber+1) * Packet.MAX_DATA_SIZE);
+            const nullTerminated = new Uint8Array(chunkData.length + 1);
+            nullTerminated.set(chunkData);
+            const aad = new Uint8Array([chunkNumber, totalChunks]);
+
+            const encrypted = await encryptText(nullTerminated, aad);
+            yield new Packet(id, encrypted, chunkNumber, totalChunks, slowMode);
+        }
+    }
+    
     // Context Provider return
     return (
         <ECDHContext.Provider
@@ -203,7 +234,8 @@ export const ECDHProvider = ({ children }) => {
                 deriveKey,
                 savePeerPublicKey,
                 encryptText,
-                decryptText
+                decryptText,
+                createEncryptedPackets
             }}
         >
             {children}
