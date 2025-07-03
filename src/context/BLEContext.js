@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useRef } from "react";
 import { keyExists } from './Storage';
 
 
@@ -9,10 +9,34 @@ export function BLEProvider({ children }) {
     const [status, setStatus] = React.useState(0); // 0 = disconnected, 1 = connected & paired, 2 = connected & not paired
     const [device, setDevice] = useState(null);
     const [server, setServer] = useState(null);
-    const [characteristic, setCharacteristic] = useState(null);
+    const [pktCharacteristic, setpktCharacteristic] = useState(null);
+    const readyToReceive = useRef({ promise: null, resolve: null });
 
     const serviceUUID = '19b10000-e8f2-537e-4f6c-d104768a1214'; // ClipBoard service UUID from example
-    const characteristicUUID = '6856e119-2c7b-455a-bf42-cf7ddd2c5907'; // String characteristic UUID from example
+    const packetCharacteristicUUID = '6856e119-2c7b-455a-bf42-cf7ddd2c5907'; // String pktCharacteristic UUID 
+    const hidSemaphorepktCharacteristicUUID = '6856e119-2c7b-455a-bf42-cf7ddd2c5908'; // String pktCharacteristic UUID 
+
+    // Subscribe to the semaphore notification and attach its event listener
+    const subscribeToSemaphore = async (semChar) => {
+        try {
+            await semChar.startNotifications();
+            semChar.addEventListener('characteristicvaluechanged', (event) => {
+                const value = event.target.value;
+                // Convert value (DataView) to string or bytes
+                const decoder = new TextDecoder();
+                console.log('Received notification:', decoder.decode(value));
+
+                // If there is a promise to be resolved, resolve it
+                if (readyToReceive.current.resolve) {
+                    readyToReceive.current.resolve();                // Signal the next packet can send
+                    readyToReceive.current.promise = null;           // Reset
+                    readyToReceive.current.resolve = null;
+                }
+            });
+        } catch (err) {
+            console.error("Failed to subscribe to semaphore notifications:", err);
+        }
+    }
 
     // Connecting to a clipboard device using WEB BLE
     const connectToDevice = async () => {
@@ -36,13 +60,14 @@ export function BLEProvider({ children }) {
 
             // Get device info
             const service = await getServiceWithRetry(server, serviceUUID);
-            const char = await service.getCharacteristic(characteristicUUID);
+            const pktChar = await service.getCharacteristic(packetCharacteristicUUID);
+            const semChar = await service.getCharacteristic(hidSemaphorepktCharacteristicUUID);
 
             setServer(server);
-            setCharacteristic(char);
+            setpktCharacteristic(pktChar);
             setDevice(device);
 
-
+            await subscribeToSemaphore(semChar); // Subscribe to the BLE characteristic that notifies when a HID message has finished sending
 
             // If we don't know the public key of the device, we need to pair before sending
             if (!await keyExists(device.id)) {
@@ -87,11 +112,11 @@ export function BLEProvider({ children }) {
     return (
         <BLEContext.Provider value={{
             device,
-            setDevice,
             server,
-            characteristic,
+            pktCharacteristic,
             status,
-            connectToDevice
+            connectToDevice,
+            readyToReceive,
         }}>
 
             {children}

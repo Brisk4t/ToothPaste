@@ -9,21 +9,21 @@ const ec = new EC('p256'); // secp256r1
 
 
 const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
-    const { generateECDHKeyPair, decompressKey, importPeerPublicKey, saveSelfKeys, deriveKey, savePeerPublicKey } = useContext(ECDHContext);
+    const {generateECDHKeyPair, decompressKey, importPeerPublicKey, saveSelfKeys, deriveKey, savePeerPublicKey } = useContext(ECDHContext);
     const [inputKey, setInputKey] = useState('');
     const [sharedSecret, setSharedSecret] = useState(null);
     const [error, setError] = useState(null);
     const [pkey, setpkey] = useState(null);
-    const { device, characteristic, status } = useContext(BLEContext);
+    const {device, pktCharacteristic, status } = useContext(BLEContext);
 
     const sendPublicKey = async () => {
-        if (!characteristic || !pkey) return;
+        if (!pktCharacteristic || !pkey) return;
 
         try {
             console.log("Public key", pkey)
             const encoder = new TextEncoder();
             const data = encoder.encode(pkey);
-            await characteristic.writeValue(data);
+            await pktCharacteristic.writeValue(data);
         }
 
         catch (error) {

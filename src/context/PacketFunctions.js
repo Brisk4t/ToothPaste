@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState } from "react";
 
 // Base class for all packets (optional, for shared logic)
 export class Packet {
-    static MAX_DATA_SIZE = 180; // Safe estimate for max gATT payload size - 38[IV+TAG] - 4[header] - protocol overhead
+    static MAX_DATA_SIZE =  199; // Safe estimate for max gATT payload size - 38[IV+TAG] - 4[header] - protocol overhead
 
     constructor(id, payload, chunkNumber = 0, totalChunks = 1, slowMode = false) {
         this.id = id; // string or enum to identify packet type (0 = RESERVED, 1 = DATA, 2 = ACK, 3 = HANDSHAKE, 4=KEEPALIVE)
