@@ -167,7 +167,7 @@ int SecureSession::deriveAESKeyFromSharedSecret(const char *base64Input)
     {
         String hashedBase64 = hashKey(base64Input);
         preferences.putBytes(hashedBase64.c_str(), aesKey, sizeof(aesKey)); // Store the key in preferences for debugging
-        Serial0.println("AES Key saved successfully");
+        Serial0.printf("AES Key stored as %s\n", hashedBase64);
     };
 
     preferences.end(); // Close the write session

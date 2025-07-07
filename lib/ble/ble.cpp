@@ -177,7 +177,7 @@ void generateSharedSecret(void *sessionParams)
   auto *params = static_cast<SharedSecretTaskParams *>(sessionParams); // Cast the parameters back
   SecureSession *session = params->session;
   std::string *rawValue = params->rawValue;
-
+  
   // Print the received data for debugging
   Serial0.println("Data Len: " + String(rawValue->length())); // Print the received peer public key length
   Serial0.println("Received data: ");
@@ -299,7 +299,7 @@ void decryptAndSend(void *sessionParams)
   // If the packet is an AUTH packet, the data is the pubKey of the client
   // TODO: Severe refactoring needed
   if(packet.packetId == 1){
-    clientPubKey = (const char*) packet.data;
+    clientPubKey = (const char*) rawValue->data() + 4;
     
     //led.set(Colors::White);
 
