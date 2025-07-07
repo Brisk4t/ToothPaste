@@ -6,7 +6,7 @@ export const theme = {
             color: "primary",
         },
         valid: {
-            colors: ["primary", "secondary", "accent", "background", "shelf", "hover"],
+            colors: ["primary", "secondary", "accent", "background", "shelf", "hover", "orange"],
         },
         styles:{
             base: {},
@@ -14,6 +14,7 @@ export const theme = {
             colors: {
                 primary: {background: "bg-primary",color: "text-white"},
                 secondary: {background: "bg-secondary",color: "text-white"},
+                orange: {background: "bg-orange",color: "text-white"},
                 accent: {background: "bg-accent",color: "text-white"},
                 background: {background: "bg-background",color: "text-white"},
                 shelf: {background: "bg-shelf",color: "text-white"},

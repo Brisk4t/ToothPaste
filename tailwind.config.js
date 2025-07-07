@@ -19,6 +19,7 @@ module.exports = withMT({
       'text': '#FFFFFF',
       'shelf': '#111111',
       'hover': '#222222',
+      'orange': '#DE6240'
       },
     },  
   },

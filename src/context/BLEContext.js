@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useRef } from "react";
 import { keyExists, loadBase64 } from './Storage';
 import { ECDHContext } from "./ECDHContext";
+import { Packet } from "./PacketFunctions";
 
 
 export const BLEContext = createContext();
@@ -19,20 +20,21 @@ export function BLEProvider({ children }) {
     const packetCharacteristicUUID = '6856e119-2c7b-455a-bf42-cf7ddd2c5907'; // String pktCharacteristic UUID 
     const hidSemaphorepktCharacteristicUUID = '6856e119-2c7b-455a-bf42-cf7ddd2c5908'; // String pktCharacteristic UUID 
 
-    const sendAuth = async () => {
-        if (!pktCharacteristic) return;
+    const sendAuth = async (pktChar, device) => {
+        console.log("SendAuth entered")
+        if (!pktChar) return;
 
         try {
-            loadBase64()
+            const selfpkey = await loadBase64(device.id, 'SelfPublicKey')
             console.log("Send starting....")
-            console.log(input);
+            console.log(selfpkey);
 
-            for await (const packet of createEncryptedPackets(0, input)) {
-                console.log("Sending packet...");
-                await pktCharacteristic.writeValueWithoutResponse(packet.serialize());
-                
-                waitForReady(); // Attach a promise to the ref
-                await readyToReceive.current.promise; // Wait in this iteration of the loop till the promise is consumed
+            // If the public key is found send it to verify auth
+            if(selfpkey){
+                const encoder = new TextEncoder();
+                const data = (selfpkey instanceof Uint8Array) ? selfpkey : encoder.encode(selfpkey);
+                const packet = new Packet(1, data, 0, 1, 0)
+                pktChar.writeValueWithoutResponse(packet.serialize());
             }
         }
 
@@ -46,10 +48,22 @@ export function BLEProvider({ children }) {
         try {
             await semChar.startNotifications();
             semChar.addEventListener('characteristicvaluechanged', (event) => {
-                const value = event.target.value;
+                const dataView = event.target.value;
+                const packed = dataView.getUint8(0);
                 // Convert value (DataView) to string or bytes
-                const decoder = new TextDecoder();
-                console.log('Received notification:', decoder.decode(value));
+                const packetType = (packed >> 4) & 0x0F;     // upper 4 bits
+                const authStatus = packed & 0x0F;            // lower 4 bits
+
+
+                console.log("AuthStatus:", authStatus);
+                console.log("PacketType:", packetType);
+
+                if(authStatus === 0){
+                    setStatus(2);
+                }
+                else if(authStatus === 1){
+                    setStatus(1);
+                }
 
                 // If there is a promise to be resolved, resolve it
                 if (readyToReceive.current.resolve) {
@@ -102,8 +116,8 @@ export function BLEProvider({ children }) {
 
             // Else we can send
             else {
-                loadKeys(device.id);
-                setStatus(1);
+                await loadKeys(device.id);
+                await sendAuth(pktChar, device);
             }
         }
 

@@ -83,7 +83,7 @@ export default function BulkSend() {
                 <RichTextArea onChange={(text) => setInput(text)} />
                 <Button
                     onClick={sendString}
-                    disabled={!status}
+                    disabled={status !== 1}
                     className='my-4 bg-primary text-text hover:bg-primary-hover focus:bg-primary-focus active:bg-primary-active flex items-center justify-center size-lg disabled:bg-hover'>
 
                     <ClipboardIcon className="h-7 w-7 mr-2" />

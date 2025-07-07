@@ -39,11 +39,17 @@ import { useBLEContext } from "../../context/BLEContext";
 function ConnectionButton({connected }) {
   const { connectToDevice, status, device } = useBLEContext();
 
+  const borderClass = {
+    0: "border-secondary",
+    1: "border-primary",
+    2: "border-orange", // make sure you defined `border-tertiary` in Tailwind config
+  }[status] || "border-orange"; // fallback if undefined
+
   return (
     <div className="flex justify-left w-full">
       {/* <Badge color={status ? "primary" : "secondary"} onClick={connectToDevice}>
       </Badge> */}
-      <Button className={`flex items-center justify-between w-full p-4 border-2 ${status ? 'border-primary' : 'border-secondary'} bg-transparent hover:border-text `} onClick={connectToDevice}>
+      <Button className={`flex items-center justify-between w-full p-4 border-2 ${borderClass} bg-transparent hover:border-text `} onClick={connectToDevice}>
           <Typography variant="h6" color="text" className="text-lg font-sans font-medium normal-case ">
               {device ? device.name : "Connect to Device"}
           </Typography>
