@@ -165,7 +165,8 @@ int SecureSession::deriveAESKeyFromSharedSecret(const char *base64Input)
     // If a key was successfully generated, store it
     if (!ret)
     {
-        preferences.putBytes(base64Input, aesKey, sizeof(aesKey)); // Store the key in preferences for debugging
+        const char *hashedBase64 = hashKey(base64Input).c_str();
+        preferences.putBytes(hashedBase64, aesKey, sizeof(aesKey)); // Store the key in preferences for debugging
         Serial0.println("AES Key saved successfully");
     };
 
@@ -221,9 +222,9 @@ int SecureSession::decrypt(
     uint8_t* plaintext_out,
     const char* base64pubKey)
 {
-
+    const char* hashedKey = hashKey(base64pubKey).c_str();
     preferences.begin("security", true); // Open storage session in read only mode
-    if (!preferences.isKey(base64pubKey))
+    if (!preferences.isKey(hashedKey))
     {
         Serial0.println("aesKey not found in preferences storage");
         return 1;
@@ -231,7 +232,7 @@ int SecureSession::decrypt(
 
     uint8_t aesKey[ENC_KEYSIZE];
     // set the generated AES key in the GCM context
-    preferences.getBytes(base64pubKey, aesKey, ENC_KEYSIZE); // Get the AES key from preferences (for debugging)
+    preferences.getBytes(hashedKey, aesKey, ENC_KEYSIZE); // Get the AES key from preferences (for debugging)
 
     Serial0.println("AES KEY FROM PERFERENCES: ");
     printBase64(aesKey, ENC_KEYSIZE);
@@ -276,7 +277,8 @@ int SecureSession::decrypt(struct rawDataPacket* packet, uint8_t* plaintext_out,
 
 bool SecureSession::isEnrolled(const char* key){
     preferences.begin("security", true); // Open storage session in read only mode
-    bool ret = preferences.isKey(key); // Check if the AES key for the given public key exists
+    const char* hashedKey = hashKey(key).c_str();
+    bool ret = preferences.isKey(hashedKey); // Check if the AES key for the given public key exists
     preferences.end();
     return ret;
 }
@@ -364,4 +366,19 @@ int SecureSession::hkdf_sha256(const uint8_t* salt, size_t salt_len,
     }
 
     return 0;
+}
+
+String SecureSession::hashKey(const char* longKey) {
+  const mbedtls_md_info_t* mdInfo = mbedtls_md_info_from_type(MBEDTLS_MD_MD5);
+  if (!mdInfo) return "";
+
+  unsigned char hash[16]; // 128-bit MD5 digest
+  int ret = mbedtls_md(mdInfo, (const unsigned char*)longKey, strlen(longKey), hash);
+  if (ret != 0) return "";
+
+  char hex[33]; // 32 hex chars + null terminator
+  for (int i = 0; i < 16; ++i) {
+    sprintf(hex + i * 2, "%02x", hash[i]);
+  }
+  return String(hex).substring(0, 12); // Use 12-char hash for Preferences key
 }

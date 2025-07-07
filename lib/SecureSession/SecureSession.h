@@ -90,7 +90,8 @@ private:
     mbedtls_ctr_drbg_context ctr_drbg;
     mbedtls_entropy_context entropy;
     mbedtls_gcm_context gcm;
-
+    
+    String hashKey(const char* longKey);
     bool sharedReady;
 
 };
