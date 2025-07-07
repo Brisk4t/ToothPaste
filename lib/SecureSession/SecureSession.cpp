@@ -165,8 +165,8 @@ int SecureSession::deriveAESKeyFromSharedSecret(const char *base64Input)
     // If a key was successfully generated, store it
     if (!ret)
     {
-        const char *hashedBase64 = hashKey(base64Input).c_str();
-        preferences.putBytes(hashedBase64, aesKey, sizeof(aesKey)); // Store the key in preferences for debugging
+        String hashedBase64 = hashKey(base64Input);
+        preferences.putBytes(hashedBase64.c_str(), aesKey, sizeof(aesKey)); // Store the key in preferences for debugging
         Serial0.println("AES Key saved successfully");
     };
 
@@ -222,9 +222,9 @@ int SecureSession::decrypt(
     uint8_t* plaintext_out,
     const char* base64pubKey)
 {
-    const char* hashedKey = hashKey(base64pubKey).c_str();
+    String hashedKey = hashKey(base64pubKey);
     preferences.begin("security", true); // Open storage session in read only mode
-    if (!preferences.isKey(hashedKey))
+    if (!preferences.isKey(hashedKey.c_str()))
     {
         Serial0.println("aesKey not found in preferences storage");
         return 1;
@@ -232,7 +232,7 @@ int SecureSession::decrypt(
 
     uint8_t aesKey[ENC_KEYSIZE];
     // set the generated AES key in the GCM context
-    preferences.getBytes(hashedKey, aesKey, ENC_KEYSIZE); // Get the AES key from preferences (for debugging)
+    preferences.getBytes(hashedKey.c_str(), aesKey, ENC_KEYSIZE); // Get the AES key from preferences (for debugging)
 
     Serial0.println("AES KEY FROM PERFERENCES: ");
     printBase64(aesKey, ENC_KEYSIZE);
@@ -277,8 +277,8 @@ int SecureSession::decrypt(struct rawDataPacket* packet, uint8_t* plaintext_out,
 
 bool SecureSession::isEnrolled(const char* key){
     preferences.begin("security", true); // Open storage session in read only mode
-    const char* hashedKey = hashKey(key).c_str();
-    bool ret = preferences.isKey(hashedKey); // Check if the AES key for the given public key exists
+    String hashedKey = hashKey(key);
+    bool ret = preferences.isKey(hashedKey.c_str()); // Check if the AES key for the given public key exists
     preferences.end();
     return ret;
 }
@@ -368,6 +368,8 @@ int SecureSession::hkdf_sha256(const uint8_t* salt, size_t salt_len,
     return 0;
 }
 
+
+// Hash a public key using MD5 
 String SecureSession::hashKey(const char* longKey) {
   const mbedtls_md_info_t* mdInfo = mbedtls_md_info_from_type(MBEDTLS_MD_MD5);
   if (!mdInfo) return "";

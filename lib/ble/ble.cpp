@@ -9,6 +9,8 @@ bool manualDisconnect = false; // Flag to indicate if the user manually disconne
 bool pairingMode = false;      // Flag to indicate if we are in pairing mode
 const char* clientPubKey;
 
+NotificationPacket notificationPacket = {0}; // Initialize the persistent notification packet to 0
+
 // Handle Connect
 void DeviceServerCallbacks::onConnect(BLEServer *bluServer)
 { 
@@ -88,6 +90,7 @@ void InputCharacteristicCallbacks::onWrite(BLECharacteristic *inputCharacteristi
       // Handle bad packets
       if (rawValue.length() < SecureSession::IV_SIZE + SecureSession::TAG_SIZE + SecureSession::HEADER_SIZE) {
         Serial.println("Characteristic too short!");
+        led.blinkStart(500, Colors::Blue);
         return;
       }
       // Decrypt the received packet in a new RTOS task, the task then calls HID functions if applicable
@@ -155,8 +158,9 @@ void disconnect()
 }
 
 // Notify the input characteristic
-void notifyClient(){
-  semaphoreCharacteristic->notify();
+void notifyClient(const uint8_t data){
+  semaphoreCharacteristic->setValue((uint8_t*)&data, 1);  // Set the data to be notified
+  semaphoreCharacteristic->notify();                      // Notify the semaphor characteristic
 }
 
 // Interpret the next write event as a pairing packet
@@ -295,16 +299,36 @@ void decryptAndSend(void *sessionParams)
   // If the packet is an AUTH packet, the data is the pubKey of the client
   // TODO: Severe refactoring needed
   if(packet.packetId == 1){
-    clientPubKey = rawValue->c_str();
+    clientPubKey = (const char*) packet.data;
     
-    // If we don't know the AES key for the given public key, display 'unpaired' status led
-    if(!session->isEnrolled(clientPubKey))
-      led.set(Colors::Orange);
-    
-    else
-      led.set(Colors::Cyan);
+    //led.set(Colors::White);
 
+    // If we don't know the AES key for the given public key, display 'unpaired' status led
+    if(!session->isEnrolled(clientPubKey)){
+      // Lower bits of notification are auth status to tell if we recognize the pubkey of the sender
+      // Upper bits are the notification itself ([0] = KeepAlive, [1] = Ready to Receive, [2] = Not ready to receive )
+      notificationPacket.packetType = 2;
+      notificationPacket.authStatus = 0;
+      uint8_t packed = ((notificationPacket.packetType & 0x0F) << 4) | (notificationPacket.authStatus & 0x0F);
+      notifyClient(packed);
+
+      led.set(Colors::Orange);
+    }
+
+    else{
+      notificationPacket.packetType = 0;
+      notificationPacket.authStatus = 1;
+      uint8_t packed = ((notificationPacket.packetType & 0x0F) << 4) | (notificationPacket.authStatus & 0x0F);
+      notifyClient(packed);
+      led.set(Colors::White);
+    }
+    
+    // Clean up RTOS task
+    delete rawValue;
+    delete params;
+    vTaskDelete(nullptr);
     return;
+
   }
 
   // Allocate plaintext buffer and decrypt
@@ -316,6 +340,9 @@ void decryptAndSend(void *sessionParams)
   {
     Serial0.println("Decryption successful");
     Serial0.println((const char *)plaintext);
+
+
+    
 
     switch(packet.packetId){
       case 0:
@@ -340,8 +367,10 @@ void decryptAndSend(void *sessionParams)
     led.blinkStart(300, Colors::Blue);
   }
 
-  notifyClient(); // Once a HID report has been sent, notify that we are ready to receive another
-  led.blinkEnd();
+  notificationPacket.packetType = 1;
+  uint8_t packed = ((notificationPacket.packetType & 0x0F) << 4) | (notificationPacket.authStatus & 0x0F);
+  notifyClient(packed); // Once a HID report has been sent, notify that we are ready to receive another
+  //led.blinkEnd();
 
   // Free task memory
   delete rawValue;
