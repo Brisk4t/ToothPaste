@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useRef } from "react";
-import { keyExists } from './Storage';
+import { keyExists, loadBase64 } from './Storage';
 import { ECDHContext } from "./ECDHContext";
 
 
@@ -18,6 +18,28 @@ export function BLEProvider({ children }) {
     const serviceUUID = '19b10000-e8f2-537e-4f6c-d104768a1214'; // ClipBoard service UUID from example
     const packetCharacteristicUUID = '6856e119-2c7b-455a-bf42-cf7ddd2c5907'; // String pktCharacteristic UUID 
     const hidSemaphorepktCharacteristicUUID = '6856e119-2c7b-455a-bf42-cf7ddd2c5908'; // String pktCharacteristic UUID 
+
+    const sendAuth = async () => {
+        if (!pktCharacteristic) return;
+
+        try {
+            loadBase64()
+            console.log("Send starting....")
+            console.log(input);
+
+            for await (const packet of createEncryptedPackets(0, input)) {
+                console.log("Sending packet...");
+                await pktCharacteristic.writeValueWithoutResponse(packet.serialize());
+                
+                waitForReady(); // Attach a promise to the ref
+                await readyToReceive.current.promise; // Wait in this iteration of the loop till the promise is consumed
+            }
+        }
+
+        catch (error) {
+            console.error(error);
+        }
+    }
 
     // Subscribe to the semaphore notification and attach its event listener
     const subscribeToSemaphore = async (semChar) => {

@@ -1,6 +1,6 @@
 const DB_NAME = 'ToothPasteDB';
 const STORE_NAME = 'deviceKeys'
-const DB_VERSION = 3;
+const DB_VERSION = 1;
 
 // Open or create a new DB store and set the primary key to clientID
 function openDB() {
@@ -78,3 +78,4 @@ export async function keyExists(clientID) {
       return false;
     }
 }
+
