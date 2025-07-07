@@ -34,7 +34,7 @@ export function BLEProvider({ children }) {
                 const encoder = new TextEncoder();
                 const data = (selfpkey instanceof Uint8Array) ? selfpkey : encoder.encode(selfpkey);
                 const packet = new Packet(1, data, 0, 1, 0)
-                pktChar.writeValueWithoutResponse(packet.serialize());
+                await pktChar.writeValueWithoutResponse(packet.serialize());
             }
         }
 
