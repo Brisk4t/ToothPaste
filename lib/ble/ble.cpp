@@ -341,12 +341,11 @@ void decryptAndSend(void *sessionParams)
   }
 
   notifyClient(); // Once a HID report has been sent, notify that we are ready to receive another
+  led.blinkEnd();
 
   // Free task memory
   delete rawValue;
   delete params;
   vTaskDelete(nullptr);
-  led.blinkEnd();
-
 }
 
