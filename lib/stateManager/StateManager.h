@@ -1,5 +1,5 @@
 #ifndef STATEMANAGER_H
-#define STATEMANGER_H
+#define STATEMANAGER_H
 
 #include <Arduino.h>
 #include <vector>
@@ -20,7 +20,6 @@ enum DeviceState {
 
 using StateCallback = std::function<void(DeviceState)>; // Define StateCallback as an alias for the callback function 
 
-static void changeLed(DeviceState state);
 
 class StateManager {
 public:

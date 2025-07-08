@@ -1,6 +1,7 @@
 #include "StateManager.h"
 #include "NeoPixelRMT.h"
 
+static void changeLed(DeviceState state); // Forward declaration
 StateManager stateManager;
 
 // On instantiation register the led driver as a callback
