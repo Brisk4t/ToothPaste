@@ -4,6 +4,7 @@ import { ECDHContext, arrayBufferToBase64 } from '../../context/ECDHContext';
 import { Button, Typography } from "@material-tailwind/react";
 import { KeyIcon } from '@heroicons/react/24/outline';
 import { BLEContext } from '../../context/BLEContext';
+import { Packet } from "../../context/PacketFunctions";
 
 const ec = new EC('p256'); // secp256r1
 
@@ -22,8 +23,16 @@ const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
         try {
             console.log("Public key", pkey)
             const encoder = new TextEncoder();
-            const data = encoder.encode(pkey);
-            await pktCharacteristic.writeValue(data);
+
+            const textData = encoder.encode(pkey);
+            const dataIV = new Uint8Array(16+12+textData.length); // Offset the data by IV length [TODO: Refactor this to make a consistent AUTH packet constructor]
+            dataIV.set(textData,12);
+
+            const packet = new Packet(1, dataIV, 0, 1, 0);
+            const packetData = packet.serialize();
+            console.log("Send pairing AUTH packet of size: ", packetData.length)
+
+            await pktCharacteristic.writeValueWithoutResponse(packetData);
         }
 
         catch (error) {

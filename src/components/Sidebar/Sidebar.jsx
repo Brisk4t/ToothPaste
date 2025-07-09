@@ -59,7 +59,7 @@ function ConnectionButton({connected }) {
   );
 }
 
-export function SidebarWithLogo({ onOpenPairing }) {
+export function SidebarWithLogo({ onOpenPairing, onNavigate}) {
   const [open, setOpen] = React.useState(0);
   const [openAlert, setOpenAlert] = React.useState(true);
   const { status, device } = useBLEContext();
@@ -106,7 +106,8 @@ export function SidebarWithLogo({ onOpenPairing }) {
         <Typography variant="h4" className="mb-0 px-1 text-text">
           Actions
         </Typography>
-        <ListItem className="ml-1">
+
+        <ListItem className="ml-1" onClick={() => onNavigate('paste')}>
           <ListItemPrefix>
             <ClipboardIcon className="h-5 w-5" />
           </ListItemPrefix>
@@ -114,18 +115,21 @@ export function SidebarWithLogo({ onOpenPairing }) {
           <ListItemSuffix>
           </ListItemSuffix>
         </ListItem>
-        <ListItem className="ml-1">
+
+        <ListItem className="ml-1" onClick={() => onNavigate('live')}>
           <ListItemPrefix>
             <PlayIcon className="h-5 w-5" />
           </ListItemPrefix>
           Live Capture
         </ListItem>
+
         <ListItem className="ml-1" onClick={onOpenPairing}>
           <ListItemPrefix>
             <PlayIcon className="h-5 w-5" />
           </ListItemPrefix>
           Pair Device
         </ListItem>
+
       </List>
     </Card>
   );
