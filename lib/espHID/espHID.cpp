@@ -53,3 +53,21 @@ void sendString(void *arg, bool slowMode)
   sendString(str, slowMode);
 }
 
+// Timer callback must match `void (*)(void *)`
+void sendStringCallback(void *arg)
+{
+  const char *str = static_cast<const char *>(arg);
+  sendString(str, false);  // Or true if you want slowMode
+}
+
+void sendString(void *arg, bool slowMode, int delay){
+  esp_timer_create_args_t timer_args = {
+      .callback = &sendStringCallback,
+      .arg = arg,
+      .dispatch_method = ESP_TIMER_TASK,
+      .name = "delayedFn"
+    };
+    esp_timer_handle_t oneShotTimer;
+    esp_timer_create(&timer_args, &oneShotTimer);
+    esp_timer_start_once(oneShotTimer, delay*1000); // 5 seconds
+}

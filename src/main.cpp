@@ -76,6 +76,8 @@ void setup() {
   Serial0.begin(115200); // Initialize Serial for debugging
   
   led.begin();    // Intialize the RMT LED Driver
+
+  //Initialize the global device state manager
   stateManager = new StateManager();
   stateManager->registerLedCallbacks();
   stateManager->setState(NOT_CONNECTED);
@@ -83,8 +85,6 @@ void setup() {
   hidSetup(); // Initialize the HID device
   bleSetup(&sec); // Initialize the BLE device with the secure session
   sec.init(); // Initialize the secure session
-
-
 }
 
 // The loop is only used for gpio polling

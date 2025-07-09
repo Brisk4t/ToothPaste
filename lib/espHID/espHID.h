@@ -8,5 +8,6 @@
 void hidSetup();
 void sendString(const char* str, bool slowMode = false);
 void sendString(void* arg, bool slowMode = false);
+void sendString(void *arg, bool slowMode, int delay);
 
 #endif

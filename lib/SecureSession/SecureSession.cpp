@@ -51,7 +51,7 @@ int SecureSession::init()
 int SecureSession::generateKeypair(uint8_t outPublicKey[PUBKEY_SIZE], size_t& outPubLen)
 {
 
-    // Try generating the keypair (TODO: store into memory to persist after 1 pairing)
+    // Try generating the keypair
     int ret = mbedtls_ecdh_gen_public(
         &ecdh_ctx.grp, // Curve group (e.g., SECP256R1)
         &ecdh_ctx.d,   // private key
@@ -80,12 +80,13 @@ int SecureSession::generateKeypair(uint8_t outPublicKey[PUBKEY_SIZE], size_t& ou
 
     if (olen != PUBKEY_SIZE)
         return -1; // unexpected size
+
     return 0;
 }
 
-// The Peer public key is an uncompressed ECDH point of Len = COMPRESSED_LEN*2
+// Compute shared secret given the peer's public key
 int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE * 2], size_t peerPubLen)
-{ // Compute shared secret given the peer's public key
+{ 
     if (peerPubLen < 65)
         return -1;
 
@@ -135,6 +136,7 @@ int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE *
     return 0;
 }
 
+// Called after computeSharedSecret succeeds to compute a symmetric AES key 
 int SecureSession::deriveAESKeyFromSharedSecret(const char *base64Input)
 {
     // Return if a shared secret was never generated
@@ -158,9 +160,9 @@ int SecureSession::deriveAESKeyFromSharedSecret(const char *base64Input)
     );
 
     // Debugging
-    Serial0.println("AES Key: ");
-    printBase64(aesKey, sizeof(aesKey));
-    Serial0.println();
+    // Serial0.println("AES Key: ");
+    // printBase64(aesKey, sizeof(aesKey));
+    // Serial0.println();
 
     // If a key was successfully generated, store it
     if (!ret)
@@ -180,12 +182,18 @@ int SecureSession::encrypt(
     size_t plaintext_len,     // Len of plaintext
     uint8_t* ciphertext,      // Pointer to store the encrypted data
     uint8_t iv[IV_SIZE],      // prng initialization vector
-    uint8_t tag[TAG_SIZE])    // Tag for GCM to ensure data integrity
+    uint8_t tag[TAG_SIZE],    // Tag for GCM to ensure data integrity
+    const char* base64pubKey)    
 
 {
 
-    if (!sharedReady)
-        return -1;
+    String hashedKey = hashKey(base64pubKey);
+    preferences.begin("security", true); // Open storage session in read only mode
+    if (!preferences.isKey(hashedKey.c_str()))
+    {
+        Serial0.println("aesKey not found in preferences storage");
+        return 1;
+    }
 
     // Generate random initialization vector (vector of prng)
     int ret = mbedtls_ctr_drbg_random(&ctr_drbg, iv, IV_SIZE);
@@ -193,8 +201,9 @@ int SecureSession::encrypt(
         return ret;
 
     uint8_t aesKey[ENC_KEYSIZE];
-    // set the generated AES key in the GCM context
-    preferences.getBytes("aesKey", aesKey, ENC_KEYSIZE); // Get the AES key from preferences (for debugging)
+    preferences.getBytes(hashedKey.c_str(), aesKey, ENC_KEYSIZE); // Get the AES key from preferences (for debugging)
+    
+    // Import the bytearray AES key into the mbedtls context
     mbedtls_gcm_init(&gcm);
     ret = mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES, aesKey, ENC_KEYSIZE * 8);
     if (ret != 0)
@@ -234,9 +243,9 @@ int SecureSession::decrypt(
     // set the generated AES key in the GCM context
     preferences.getBytes(hashedKey.c_str(), aesKey, ENC_KEYSIZE); // Get the AES key from preferences (for debugging)
 
-    Serial0.println("AES KEY FROM PERFERENCES: ");
-    printBase64(aesKey, ENC_KEYSIZE);
-    Serial0.println();
+    // Serial0.println("AES KEY FROM PERFERENCES: ");
+    // printBase64(aesKey, ENC_KEYSIZE);
+    // Serial0.println();
 
     // Import the bytearray AES key into the mbedtls context
     mbedtls_gcm_init(&gcm);
@@ -275,6 +284,7 @@ int SecureSession::decrypt(struct rawDataPacket* packet, uint8_t* plaintext_out,
     return ret;
 }
 
+// Check if a key exists in preferences storage
 bool SecureSession::isEnrolled(const char* key){
     preferences.begin("security", true); // Open storage session in read only mode
     String hashedKey = hashKey(key);
@@ -367,7 +377,6 @@ int SecureSession::hkdf_sha256(const uint8_t* salt, size_t salt_len,
 
     return 0;
 }
-
 
 // Hash a public key using MD5 
 String SecureSession::hashKey(const char* longKey) {

@@ -41,9 +41,10 @@ class InputCharacteristicCallbacks : public BLECharacteristicCallbacks{
 };
 
 void bleSetup(SecureSession* session);
-void generateSharedSecret(void* sessionParams);
+void generateSharedSecret(SecureSession::rawDataPacket* packet, SecureSession* session);
 void disconnect();
 void enablePairingMode();
 void packetTask(void *sessionParams);
+void notifyClient(const uint8_t data);
 
 #endif // BLE_H

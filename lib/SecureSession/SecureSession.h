@@ -57,7 +57,8 @@ public:
         const uint8_t* plaintext, size_t plaintext_len,
         uint8_t* ciphertext,
         uint8_t IV[IV_SIZE],
-        uint8_t TAG[TAG_SIZE]);
+        uint8_t TAG[TAG_SIZE],
+        const char* base64pubKey);
 
     // Decrypt ciphertext buffer using IV and auth tag
     int decrypt(
