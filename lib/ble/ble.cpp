@@ -251,23 +251,17 @@ void generateSharedSecret(void *sessionParams)
   vTaskDelete(nullptr);
 }
 
-
-
-// TODO: Refactor
-// RTOS task to decrpyt a packet and type its contents over HID
-void decryptAndSend(void *sessionParams)
-{
-  // Unpack the parameter pointer into the SecureSession and Packet
-  auto *params = static_cast<SharedSecretTaskParams *>(sessionParams);
-  SecureSession *session = params->session;
-  std::string *rawValue = params->rawValue;
-  //const char* base64PubKey = params->base64pubKey;
-
+// Turns a BLE callback bytestring into a ClipBoard packet
+SecureSession::rawDataPacket unpack(void *rawPacketBytes){
+  std::string *rawValue = reinterpret_cast<std::string*>(rawPacketBytes);
   const uint8_t *raw = reinterpret_cast<const uint8_t *>(rawValue->data()); // Pointer to the heap copy of the received data
+
+  Serial0.printf("rawValue Length: %d\n\r", rawValue->length());
+  //Serial0.printf("raw Length: %d\n\r", rawValue->length());
 
   SecureSession::rawDataPacket packet; // Packet instance inside RTOS task
   size_t offset = 0;
-  
+
   // Unpack the first 4 bytes (header) into packet vars
   packet.packetId = raw[0];      // Unique ID for type of packet (0 = DATA, 1 = HANDSHAKE)
   packet.slowmode = raw[1];      // When enabled reduces the wpm and slows down HID timing to enable legacy text input compatibility (notepad)
@@ -289,8 +283,23 @@ void decryptAndSend(void *sessionParams)
   memcpy(packet.TAG, raw + offset, SecureSession::TAG_SIZE);
   offset += SecureSession::TAG_SIZE;
 
+  return packet;
+}
+
+// TODO: Refactor
+// RTOS task to decrpyt a packet and type its contents over HID
+void decryptAndSend(void *sessionParams)
+{
+  // Unpack the parameter pointer into the SecureSession and Packet
+  auto *params = static_cast<SharedSecretTaskParams *>(sessionParams);
+  SecureSession *session = params->session;
+  std::string *rawValue = params->rawValue;
+
+  // Decode the byte array into a rawDataPacket object
+  SecureSession::rawDataPacket packet = unpack(rawValue);
+  
   // Debugging data
-  Serial0.printf("Data length: %d\r\n", dataLength);
+  Serial0.printf("Data length: %d\r\n", packet.dataLen);
   Serial0.printf("ID: %d\r\nSlowMode: %d\r\nPacket Number: %d\r\nTotal Packets: %d\r\n",
     packet.packetId, 
     packet.slowmode, 
@@ -301,7 +310,7 @@ void decryptAndSend(void *sessionParams)
   // If the packet is an AUTH packet, the data is the pubKey of the client
   // TODO: Severe refactoring needed
   if(packet.packetId == 1){
-    clientPubKey = (const char*) rawValue->data() + 4;
+    clientPubKey = (const char*) packet.data;
     
     // If we don't know the AES key for the given public key, display 'unpaired' status led
     if(!session->isEnrolled(clientPubKey)){

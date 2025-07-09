@@ -30,8 +30,6 @@ void sendPublicKey(void* arg) {
 
 // Enter pairing mode, generate a keypair, and send the public key to the transmitter
 void enterPairingMode() { 
-  //disconnect(); // Disconnect any existing BLE connection
-
   Serial0.println("Entering pairing mode...");
   stateManager->setState(PAIRING);
 
