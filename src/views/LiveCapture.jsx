@@ -35,12 +35,17 @@ function createAsyncQueue() {
 }
 
 export default function LiveCapture() {
-  const [buffer, setBuffer] = useState(""); // Displayed buffer of typed chars
+  const [buffer, setBuffer] = useState("");              // what user is typing  
+  const lastSentBuffer = useRef("");                     // tracks last sent buffer
+  const bufferRef = useRef("");
+  const debounceTimeout = useRef(null);
   const queueRef = useRef(createAsyncQueue());
   const processingRef = useRef(false);
   const { pktCharacteristic, status, readyToReceive } = useContext(BLEContext);
   const { createEncryptedPackets } = useContext(ECDHContext);
   const inputRef = useRef(null);
+  
+  const DEBOUNCE_INTERVAL_MS = 50;
 
   const waitForReady = useCallback(() => {
     if (!readyToReceive.current.promise) {
@@ -51,49 +56,67 @@ export default function LiveCapture() {
     return readyToReceive.current.promise;
   }, [readyToReceive]);
 
-  useEffect(() => {
-    const processQueue = async () => {
-      console.log("Starting to process queue...");
-      for await (const char of queueRef.current.iterator) {
-        console.log("Got char from queue:", char);
-        for await (const packet of createEncryptedPackets(0, char)) {
-          console.log("Sending packet:", char);
-          await pktCharacteristic.writeValueWithoutResponse(packet.serialize());
+  // Polling logic: send latest buffer every N ms if changed
+   const sendDiff = useCallback(async () => {
+    const current = bufferRef.current;
+    const previous = lastSentBuffer.current;
 
-          waitForReady();
-          await readyToReceive.current.promise;
-        }
-      }
-    };
+    if (current === previous) return;
 
-    if (!processingRef.current) {
-      processingRef.current = true;
-      processQueue();
+    let payload = "";
+    if (current.length > previous.length) {
+      // New characters appended
+      payload = current.slice(previous.length);
+    } else {
+      // Characters deleted, send backspaces
+      const numDeleted = previous.length - current.length;
+      payload = "\b".repeat(numDeleted);
     }
-  }, [pktCharacteristic, waitForReady, readyToReceive]);
 
-  const handleKeyDown = (e) => {
+    // Update lastSentBuffer early to avoid duplicate sends
+    lastSentBuffer.current = current;
+
+    for await (const packet of createEncryptedPackets(0, payload)) {
+      await pktCharacteristic.writeValueWithoutResponse(packet.serialize());
+
+      waitForReady();
+      await readyToReceive.current.promise;
+    }
+  }, [createEncryptedPackets, pktCharacteristic, waitForReady, readyToReceive]);
+
+   const scheduleSend = useCallback(() => {
+    if (debounceTimeout.current) {
+      clearTimeout(debounceTimeout.current);
+    }
+    debounceTimeout.current = setTimeout(() => {
+      sendDiff();
+    }, DEBOUNCE_INTERVAL_MS);
+  }, [sendDiff]);
+
+   const handleKeyDown = (e) => {
     e.preventDefault();
 
-    let char = "";
+    let newBuffer = bufferRef.current;
 
     if (e.key === "Backspace") {
-      setBuffer((prev) => prev.slice(0, -1));
-      char = "\b";
-    } else if (e.key === "Enter") {
-      setBuffer((prev) => prev + "\n");
-      char = "\n";
+      // Remove last char if any
+      newBuffer = newBuffer.slice(0, -1);
     } else if (e.key.length === 1) {
-      setBuffer((prev) => prev + e.key);
-      char = e.key;
+      // Append regular character keys (length 1)
+      newBuffer += e.key;
+    } else if (e.key === "Enter") {
+      // Example: send newline char if needed, or skip
+      newBuffer += "\n";
     } else {
-      // ignore Shift, Alt, Arrow keys, etc.
+      // Ignore other keys (arrows, shift, etc)
       return;
     }
 
-    if (queueRef.current && char) {
-      queueRef.current.push(char);
-    }
+    bufferRef.current = newBuffer;
+    setBuffer(newBuffer);
+
+    // Schedule sending after debounce
+    scheduleSend();
   };
 
   useEffect(() => {

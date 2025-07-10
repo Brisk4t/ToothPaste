@@ -70,7 +70,6 @@ export function BLEProvider({ children }) {
                 else if(authStatus === 1){
                     setStatus(1);
                 }
-
                 // If there is a promise to be resolved, resolve it
                 if (readyToReceive.current.resolve) {
                     readyToReceive.current.resolve();                // Signal the next packet can send
