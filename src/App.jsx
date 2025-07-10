@@ -28,7 +28,7 @@ function App() {
     <ECDHProvider>
       <BLEProvider>
           <div className="flex flex-1 min-h-screen max-h-screen">
-            <SidebarWithLogo onOpenPairing={() => setShowOverlay(true)} onNavigate={setActiveView}/>
+            <SidebarWithLogo onOpenPairing={() => setShowOverlay(true)} onNavigate={setActiveView} activeView={activeView}/>
             {renderView()}
             <ECDHOverlay showOverlay={showOverlay} setShowOverlay={setShowOverlay} />
           </div>

@@ -1,6 +1,10 @@
 import React, { useEffect, useRef, useState, useContext, useCallback } from "react";
+import { Button, Typography } from "@material-tailwind/react";
+
 import { ECDHContext } from "../context/ECDHContext";
+
 import { BLEContext } from "../context/BLEContext";
+import "../components/CustomTyping/CustomTyping.css"; // We'll define animations here
 
 // Async queue utility
 function createAsyncQueue() {
@@ -44,7 +48,7 @@ export default function LiveCapture() {
   const { pktCharacteristic, status, readyToReceive } = useContext(BLEContext);
   const { createEncryptedPackets } = useContext(ECDHContext);
   const inputRef = useRef(null);
-  
+
   const DEBOUNCE_INTERVAL_MS = 50;
 
   const waitForReady = useCallback(() => {
@@ -57,7 +61,7 @@ export default function LiveCapture() {
   }, [readyToReceive]);
 
   // Polling logic: send latest buffer every N ms if changed
-   const sendDiff = useCallback(async () => {
+  const sendDiff = useCallback(async () => {
     const current = bufferRef.current;
     const previous = lastSentBuffer.current;
 
@@ -84,7 +88,7 @@ export default function LiveCapture() {
     }
   }, [createEncryptedPackets, pktCharacteristic, waitForReady, readyToReceive]);
 
-   const scheduleSend = useCallback(() => {
+  const scheduleSend = useCallback(() => {
     if (debounceTimeout.current) {
       clearTimeout(debounceTimeout.current);
     }
@@ -93,7 +97,7 @@ export default function LiveCapture() {
     }, DEBOUNCE_INTERVAL_MS);
   }, [sendDiff]);
 
-   const handleKeyDown = (e) => {
+  const handleKeyDown = (e) => {
     e.preventDefault();
 
     let newBuffer = bufferRef.current;
@@ -124,17 +128,28 @@ export default function LiveCapture() {
   }, []);
 
   return (
-    <div className="p-4">
-      <label className="block text-sm font-medium text-gray-200 mb-1">
-        Type to Send:
-      </label>
-      <div
-        ref={inputRef}
-        tabIndex={0}
-        onKeyDown={handleKeyDown}
-        className="w-full min-h-[48px] p-2 rounded bg-gray-800 text-white border border-gray-600 focus:outline-none"
-      >
-        {buffer || <span className="text-gray-500">Start typing...</span>}
+    <div className="flex flex-col max-h-screen w-full p-6 bg-background text-text">
+      <Typography variant="h2" className="text-text">
+        Start Typing
+      </Typography>
+
+      <Typography variant="h5" className="text-hover">
+        It just works.....
+      </Typography>
+
+      <div className="flex flex-col flex-1 mt-5 min-h-0">
+        <div
+          ref={inputRef}
+          tabIndex={0}
+          onKeyDown={handleKeyDown}
+          className="w-full h-full min-h-[48px] p-4 rounded-xl transition-all border border-hover focus:border-shelf 
+          bg-transparent text-text text-4xl outline-none focus:outline-none whitespace-pre-wrap font-sans overflow-y-auto"
+        >
+          {buffer.split("").map((char, i) => (
+            <span key={i}>{char}</span>
+          ))}
+          <span className="custom-caret" />
+        </div>
       </div>
     </div>
   );

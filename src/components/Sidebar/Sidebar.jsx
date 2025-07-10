@@ -15,19 +15,12 @@ import {
   Alert,
   Button,
 } from "@material-tailwind/react";
-import { 
-  PresentationChartBarIcon,
-  UserCircleIcon,
-  Cog6ToothIcon,
-  InboxIcon,
-  PowerIcon,
-} from "@heroicons/react/24/solid";
 import {
   HomeIcon ,
   ChevronRightIcon,
   ClipboardIcon,
   PlayIcon,
-  WifiIcon,
+  LinkIcon,
   ArrowPathIcon
 } from "@heroicons/react/24/outline";
   
@@ -59,7 +52,7 @@ function ConnectionButton({connected }) {
   );
 }
 
-export function SidebarWithLogo({ onOpenPairing, onNavigate}) {
+export function SidebarWithLogo({ onOpenPairing, onNavigate, activeView}) {
   const [open, setOpen] = React.useState(0);
   const [openAlert, setOpenAlert] = React.useState(true);
   const { status, device } = useBLEContext();
@@ -107,7 +100,7 @@ export function SidebarWithLogo({ onOpenPairing, onNavigate}) {
           Actions
         </Typography>
 
-        <ListItem className="ml-1" onClick={() => onNavigate('paste')}>
+        <ListItem className={`ml-1 ${activeView === 'paste' ? 'outline-text' : ''}`} onClick={() => onNavigate('paste')}>
           <ListItemPrefix>
             <ClipboardIcon className="h-5 w-5" />
           </ListItemPrefix>
@@ -116,16 +109,17 @@ export function SidebarWithLogo({ onOpenPairing, onNavigate}) {
           </ListItemSuffix>
         </ListItem>
 
-        <ListItem className="ml-1" onClick={() => onNavigate('live')}>
+        <ListItem className={`ml-1 ${activeView === 'live' ? 'outline-text' : ''}`} onClick={() => onNavigate('live')}>
           <ListItemPrefix>
             <PlayIcon className="h-5 w-5" />
           </ListItemPrefix>
           Live Capture
         </ListItem>
 
+
         <ListItem className="ml-1" onClick={onOpenPairing}>
           <ListItemPrefix>
-            <PlayIcon className="h-5 w-5" />
+            <LinkIcon className="h-5 w-5" />
           </ListItemPrefix>
           Pair Device
         </ListItem>

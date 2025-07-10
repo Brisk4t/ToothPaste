@@ -31,6 +31,7 @@
   height: 1em;
   background-color: currentColor;
   display: inline-block;
+  vertical-align: text-bottom; /* or use middle or bottom as needed */
   animation: blink 1.5s ease-in infinite;
 }
 
