@@ -98,6 +98,8 @@ void InputCharacteristicCallbacks::onWrite(BLECharacteristic* inputCharacteristi
         }
 
   }
+
+  // TODO: If there is space in the queue notify that we are ready for another packet else notify inside task when space is ready (packets can be streamed faster instead of waiting for HID)
 }
 
 // Create the BLE Device
