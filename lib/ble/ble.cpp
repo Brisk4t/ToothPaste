@@ -7,8 +7,6 @@ BLECharacteristic* inputCharacteristic = NULL;    // Characteristic for sensor d
 BLECharacteristic* semaphoreCharacteristic = NULL; // Characteristic for LED control
 
 QueueHandle_t packetQueue = xQueueCreate(50, sizeof(SharedSecretTaskParams*)); // Queue to manage RTOS task parameters
-bool notified = false;
-
 
 bool manualDisconnect = false; // Flag to indicate if the user manually disconnected
 std::string clientPubKey;  // safer than char*
@@ -100,7 +98,6 @@ void InputCharacteristicCallbacks::onWrite(BLECharacteristic* inputCharacteristi
         }
 
   }
-
 }
 
 // Create the BLE Device
@@ -281,7 +278,7 @@ void decryptSendString(SecureSession::rawDataPacket* packet, SecureSession* sess
     sendString((const char*)plaintext, packet->slowmode); // Send the decrypted data over HID
 
     // Set the ready confirmation notification
-    //notificationPacket.packetType = 1;
+    notificationPacket.packetType = 1;
   }
   // If the decryption fails
   else
@@ -331,13 +328,6 @@ void packetTask(void* params)
     while (true) {
         SharedSecretTaskParams* taskParams = nullptr; // The queue fills in this pointer as packets become available
 
-        // If the client has not been notified and there is space in the queue
-        if(notified == false && uxQueueSpacesAvailable(packetQueue) == 0){
-          notificationPacket.packetType = 1;
-          notifyClient();
-          notified = true;
-        }
-
         // Wait indefinitely for next packet pointer
         if (xQueueReceive(packetQueue, &taskParams, portMAX_DELAY) == pdTRUE) {
             if (taskParams) {
@@ -368,6 +358,7 @@ void packetTask(void* params)
                     }
                 }
 
+                notifyClient();
 
                 delete taskParams; // Free the parameter struct
             }
