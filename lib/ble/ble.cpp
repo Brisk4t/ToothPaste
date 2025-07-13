@@ -99,7 +99,7 @@ void InputCharacteristicCallbacks::onWrite(BLECharacteristic* inputCharacteristi
 
   }
 
-  // TODO: If there is space in the queue notify that we are ready for another packet else notify inside task when space is ready (packets can be streamed faster instead of waiting for HID)
+  queuenotify(); // Immediately notify if the queue has space for more tasks
 }
 
 // Create the BLE Device
@@ -165,6 +165,19 @@ void notifyClient() {
 
   semaphoreCharacteristic->setValue((uint8_t*)&packed, 1);  // Set the data to be notified
   semaphoreCharacteristic->notify();                      // Notify the semaphor characteristic
+}
+
+void queuenotify(){
+  if (uxQueueSpacesAvailable(packetQueue) == 0) {
+    Serial0.println("Queue is full!");
+    return;
+  } 
+  
+  else {
+    notificationPacket.packetType = 1;
+    notifyClient();
+    printf("Queue has space: %lu\n", uxQueueSpacesAvailable(packetQueue));
+  }
 }
 
 // Use the AUTH packet and peer public key to derive a new ecdh shared secret and AES key
@@ -280,7 +293,6 @@ void decryptSendString(SecureSession::rawDataPacket* packet, SecureSession* sess
     sendString((const char*)plaintext, packet->slowmode); // Send the decrypted data over HID
 
     // Set the ready confirmation notification
-    notificationPacket.packetType = 1;
   }
   // If the decryption fails
   else
@@ -360,7 +372,7 @@ void packetTask(void* params)
                     }
                 }
 
-                notifyClient();
+                queuenotify();
 
                 delete taskParams; // Free the parameter struct
             }
