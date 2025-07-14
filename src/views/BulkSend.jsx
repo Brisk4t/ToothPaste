@@ -36,7 +36,7 @@ export default function BulkSend() {
                 console.log("Sending packet...");
                 await pktCharacteristic.writeValueWithoutResponse(packet.serialize());
                 
-                waitForReady(); // Attach a promise to the ref
+                await waitForReady(); // Attach a promise to the ref
                 await readyToReceive.current.promise; // Wait in this iteration of the loop till the promise is consumed
             }
         }
