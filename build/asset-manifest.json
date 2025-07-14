@@ -1,16 +1,16 @@
 {
   "files": {
-    "main.css": "/static/css/main.e86a1f9d.css",
-    "main.js": "/static/js/main.7b63d0b5.js",
-    "static/js/453.f49e73c0.chunk.js": "/static/js/453.f49e73c0.chunk.js",
-    "static/media/ToothPaste.png": "/static/media/ToothPaste.b25d935e801d165e44df.png",
-    "index.html": "/index.html",
-    "main.e86a1f9d.css.map": "/static/css/main.e86a1f9d.css.map",
-    "main.7b63d0b5.js.map": "/static/js/main.7b63d0b5.js.map",
-    "453.f49e73c0.chunk.js.map": "/static/js/453.f49e73c0.chunk.js.map"
+    "main.css": "/ClipBoardWeb/static/css/main.e86a1f9d.css",
+    "main.js": "/ClipBoardWeb/static/js/main.e2a41d13.js",
+    "static/js/453.f49e73c0.chunk.js": "/ClipBoardWeb/static/js/453.f49e73c0.chunk.js",
+    "static/media/ToothPaste.png": "/ClipBoardWeb/static/media/ToothPaste.b25d935e801d165e44df.png",
+    "index.html": "/ClipBoardWeb/index.html",
+    "main.e86a1f9d.css.map": "/ClipBoardWeb/static/css/main.e86a1f9d.css.map",
+    "main.e2a41d13.js.map": "/ClipBoardWeb/static/js/main.e2a41d13.js.map",
+    "453.f49e73c0.chunk.js.map": "/ClipBoardWeb/static/js/453.f49e73c0.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.e86a1f9d.css",
-    "static/js/main.7b63d0b5.js"
+    "static/js/main.e2a41d13.js"
   ]
 }
