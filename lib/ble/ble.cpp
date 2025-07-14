@@ -12,8 +12,11 @@ bool manualDisconnect = false; // Flag to indicate if the user manually disconne
 std::string clientPubKey;  // safer than char*
 int count = 1;
 
-NotificationPacket notificationPacket = { 0 }; // Initialize the persistent notification packet to 0
-
+// Always completely intantiate notificationPacket
+NotificationPacket notificationPacket = {
+    KEEPALIVE,
+    AUTH_FAILED
+};
 // Create the persistent RTOS packet handler task
 void createPacketTask(SecureSession* sec){
   // Start the persistent RTOS task
@@ -169,7 +172,7 @@ void queuenotify(){
   } 
   
   else {
-    notificationPacket.packetType = 1;
+    notificationPacket.packetType = RECV_READY;
     notifyClient();
     printf("Queue has space: %lu\n", uxQueueSpacesAvailable(packetQueue));
   }
@@ -214,7 +217,7 @@ void generateSharedSecret(SecureSession::rawDataPacket* packet, SecureSession* s
       stateManager->setState(READY);
 
       // Notify once pairing is successful
-      notificationPacket.authStatus = 1;
+      notificationPacket.authStatus = AUTH_SUCCESS;
       uint8_t packed = ((notificationPacket.packetType & 0x0F) << 4) | (notificationPacket.authStatus & 0x0F);
       notifyClient(packed);
     }
@@ -289,6 +292,7 @@ void decryptSendString(SecureSession::rawDataPacket* packet, SecureSession* sess
     
     sendString(textString.c_str(), packet->slowmode); // Send the decrypted data over HID
     
+    notificationPacket.packetType = RECV_READY;
   }
   // If the decryption fails
   else
@@ -314,8 +318,8 @@ void authenticateClient(SecureSession::rawDataPacket* packet, SecureSession* ses
     Serial0.println("Client is not enrolled");
     // Lower bits of notification are auth status to tell if we recognize the pubkey of the sender
     // Upper bits are the notification itself ([0] = KeepAlive, [1] = Ready to Receive, [2] = Not ready to receive )
-    notificationPacket.packetType = 2;
-    notificationPacket.authStatus = 0;
+    notificationPacket.packetType = RECV_NOT_READY;
+    notificationPacket.authStatus = AUTH_FAILED;
     stateManager->setState(UNPAIRED); // Set the device to the unpaired state
   }
 
@@ -323,8 +327,8 @@ void authenticateClient(SecureSession::rawDataPacket* packet, SecureSession* ses
   else {
     Serial0.println("Client is enrolled");
 
-    notificationPacket.packetType = 1;
-    notificationPacket.authStatus = 1;
+    notificationPacket.packetType = RECV_READY;
+    notificationPacket.authStatus = AUTH_SUCCESS;
     stateManager->setState(READY);
   }
 }

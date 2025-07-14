@@ -13,9 +13,20 @@
 #define HID_SEMAPHORE_CHARCTERISTIC "6856e119-2c7b-455a-bf42-cf7ddd2c5908"
 #define LED_CHARACTERISTIC_UUID "19b10002-e8f2-537e-4f6c-d104768a1214"
 
+enum NotificationType : uint8_t {
+    KEEPALIVE,
+    RECV_READY,
+    RECV_NOT_READY
+};
+
+enum AuthStatus : uint8_t {
+    AUTH_FAILED,
+    AUTH_SUCCESS
+};
+
 struct NotificationPacket {
-    uint8_t packetType; // [0] = KeepAlive, [1] = Ready to Receive, [2] = Not ready to receive 
-    uint8_t authStatus; // [0] = Failed, [1] = Succeeded
+    NotificationType packetType;
+    AuthStatus authStatus; // [0] = Failed, [1] = Succeeded
 };
 
 struct SharedSecretTaskParams {
