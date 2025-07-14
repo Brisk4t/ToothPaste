@@ -89,15 +89,17 @@ void InputCharacteristicCallbacks::onWrite(BLECharacteristic* inputCharacteristi
       return;
     }
 
-    // Queue the received packet params in the task queue
+    // Queue the received packet params in the task queue (should never failed due to BLE notification semaphore blocking, failure indicates sender is forcing data)
     if (xQueueSend(packetQueue, &taskParams, 0) != pdTRUE) {
             // Queue full, drop packet or handle error
             Serial.println("Packet queue full! Dropping packet.");
+            led.blinkStart(500, Colors::Blue);
             delete taskParams->rawValue;
             delete taskParams;
-        }
-
+    }
   }
+
+  queuenotify(); // Immediately notify the semaphore if the queue has space for more tasks
 }
 
 // Create the BLE Device
@@ -145,12 +147,6 @@ void bleSetup(SecureSession* session)
   BLEDevice::startAdvertising();
 }
 
-// Manually disconnect BLE
-void disconnect()
-{
-  manualDisconnect = true; // Set the flag to indicate manual disconnection
-}
-
 // Notify the semaphore characteristic
 void notifyClient(const uint8_t data) {
   semaphoreCharacteristic->setValue((uint8_t*)&data, 1);  // Set the data to be notified
@@ -163,6 +159,20 @@ void notifyClient() {
 
   semaphoreCharacteristic->setValue((uint8_t*)&packed, 1);  // Set the data to be notified
   semaphoreCharacteristic->notify();                      // Notify the semaphor characteristic
+}
+
+// Notify the semaphore characteristic if the RTOS task queue is not full
+void queuenotify(){
+  if (uxQueueSpacesAvailable(packetQueue) == 0) {
+    Serial0.println("Queue is full!");
+    return;
+  } 
+  
+  else {
+    notificationPacket.packetType = 1;
+    notifyClient();
+    printf("Queue has space: %lu\n", uxQueueSpacesAvailable(packetQueue));
+  }
 }
 
 // Use the AUTH packet and peer public key to derive a new ecdh shared secret and AES key
@@ -274,11 +284,11 @@ void decryptSendString(SecureSession::rawDataPacket* packet, SecureSession* sess
   // If the decryption succeeds type the plaintext over HID    
   if (ret == 0)
   {
-    Serial0.printf("Decryption successful: %s\n\r\n\r", plaintext);
-    sendString((const char*)plaintext, packet->slowmode); // Send the decrypted data over HID
-
-    // Set the ready confirmation notification
-    notificationPacket.packetType = 1;
+    std::string textString((const char*)plaintext, packet->dataLen);
+    Serial0.printf("Decryption successful: %s\n\r\n\r", textString);
+    
+    sendString(textString.c_str(), packet->slowmode); // Send the decrypted data over HID
+    
   }
   // If the decryption fails
   else
@@ -290,7 +300,7 @@ void decryptSendString(SecureSession::rawDataPacket* packet, SecureSession* sess
     //stateManager->setState(ERROR);
   }
   
-  delete[] plaintext;  // Free heap memory
+  delete[] plaintext;
 }
 
 // Read an AUTH packet and check if the client public key and AES key are known
@@ -358,10 +368,11 @@ void packetTask(void* params)
                     }
                 }
 
-                notifyClient();
-
                 delete taskParams; // Free the parameter struct
             }
+          
+          queuenotify(); // Trigger the notification now that a spot in the queue is freed
+
         }
     }
 }
