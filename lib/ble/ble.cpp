@@ -6,7 +6,7 @@ BLEServer* bluServer = NULL;                      // Pointer to the BLE Server i
 BLECharacteristic* inputCharacteristic = NULL;    // Characteristic for sensor data
 BLECharacteristic* semaphoreCharacteristic = NULL; // Characteristic for LED control
 
-QueueHandle_t packetQueue = xQueueCreate(10, sizeof(SharedSecretTaskParams*)); // Queue to manage RTOS task parameters
+QueueHandle_t packetQueue = xQueueCreate(50, sizeof(SharedSecretTaskParams*)); // Queue to manage RTOS task parameters
 
 bool manualDisconnect = false; // Flag to indicate if the user manually disconnected
 std::string clientPubKey;  // safer than char*
@@ -89,17 +89,17 @@ void InputCharacteristicCallbacks::onWrite(BLECharacteristic* inputCharacteristi
       return;
     }
 
-    // Queue the received packet params in the task queue
+    // Queue the received packet params in the task queue (should never failed due to BLE notification semaphore blocking, failure indicates sender is forcing data)
     if (xQueueSend(packetQueue, &taskParams, 0) != pdTRUE) {
             // Queue full, drop packet or handle error
             Serial.println("Packet queue full! Dropping packet.");
+            led.blinkStart(500, Colors::Blue);
             delete taskParams->rawValue;
             delete taskParams;
-        }
-
+    }
   }
 
-  queuenotify(); // Immediately notify if the queue has space for more tasks
+  queuenotify(); // Immediately notify the semaphore if the queue has space for more tasks
 }
 
 // Create the BLE Device
@@ -147,12 +147,6 @@ void bleSetup(SecureSession* session)
   BLEDevice::startAdvertising();
 }
 
-// Manually disconnect BLE
-void disconnect()
-{
-  manualDisconnect = true; // Set the flag to indicate manual disconnection
-}
-
 // Notify the semaphore characteristic
 void notifyClient(const uint8_t data) {
   semaphoreCharacteristic->setValue((uint8_t*)&data, 1);  // Set the data to be notified
@@ -167,6 +161,7 @@ void notifyClient() {
   semaphoreCharacteristic->notify();                      // Notify the semaphor characteristic
 }
 
+// Notify the semaphore characteristic if the RTOS task queue is not full
 void queuenotify(){
   if (uxQueueSpacesAvailable(packetQueue) == 0) {
     Serial0.println("Queue is full!");
@@ -373,10 +368,11 @@ void packetTask(void* params)
                     }
                 }
 
-                queuenotify();
-
                 delete taskParams; // Free the parameter struct
             }
+          
+          queuenotify(); // Trigger the notification now that a spot in the queue is freed
+
         }
     }
 }
