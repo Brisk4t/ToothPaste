@@ -117,12 +117,14 @@ export function SidebarWithLogo({ onOpenPairing, onNavigate, activeView}) {
         </ListItem>
 
 
-        <ListItem className="ml-1" onClick={onOpenPairing}>
-          <ListItemPrefix>
-            <LinkIcon className="h-5 w-5" />
-          </ListItemPrefix>
-          Pair Device
-        </ListItem>
+        {device && (
+          <ListItem className="ml-1" onClick={onOpenPairing}>
+            <ListItemPrefix>
+              <LinkIcon className="h-5 w-5" />
+            </ListItemPrefix>
+            Pair Device
+          </ListItem>
+        )}
 
       </List>
     </Card>

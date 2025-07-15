@@ -14,8 +14,10 @@ export function BLEProvider({ children, showOverlay, setShowOverlay }) {
 
     const showOverlayRef = useRef(showOverlay);
     const {loadKeys, createEncryptedPackets} = useContext(ECDHContext);
-    const [pktCharacteristic, setpktCharacteristic] = useState(null);
     
+    const [pktCharacteristic, setpktCharacteristic] = useState(null);
+    const pktCharRef = useRef(null);
+
     const readyToReceive = useRef({ promise: null, resolve: null });
 
     const serviceUUID = '19b10000-e8f2-537e-4f6c-d104768a1214'; // ClipBoard service UUID from example
@@ -52,7 +54,7 @@ export function BLEProvider({ children, showOverlay, setShowOverlay }) {
             const packetData = packet.serialize();
             console.log("Send pairing AUTH packet of size: ", packetData.length)
 
-            await pktCharacteristic.writeValueWithoutResponse(packetData);
+            await pktCharRef.current.writeValueWithoutResponse(packetData);
         }
 
         catch (error) {
@@ -83,9 +85,9 @@ export function BLEProvider({ children, showOverlay, setShowOverlay }) {
     };
 
     // Try to load the self public key from storage and send it unencrypted
-    const sendAuth = async (pktChar, device) => {
+    const sendAuth = async (device) => {
         console.log("SendAuth entered")
-        if (!pktChar) return;
+        if (!pktCharRef.current) return;
 
         try {
             const selfpkey = await loadBase64(device.id, 'SelfPublicKey')
@@ -162,11 +164,11 @@ export function BLEProvider({ children, showOverlay, setShowOverlay }) {
 
             // Get device info
             const service = await getServiceWithRetry(server, serviceUUID);
-            const pktChar = await service.getCharacteristic(packetCharacteristicUUID);
+            pktCharRef.current = await service.getCharacteristic(packetCharacteristicUUID);
             const semChar = await service.getCharacteristic(hidSemaphorepktCharacteristicUUID);
 
             setServer(server);
-            setpktCharacteristic(pktChar);
+            setpktCharacteristic(pktCharRef.current);
             setDevice(device);
 
             await subscribeToSemaphore(semChar); // Subscribe to the BLE characteristic that notifies when a HID message has finished sending
@@ -180,7 +182,7 @@ export function BLEProvider({ children, showOverlay, setShowOverlay }) {
             // Else we can send
             else {
                 await loadKeys(device.id);
-                await sendAuth(pktChar, device);
+                await sendAuth(device);
             }
         }
 
