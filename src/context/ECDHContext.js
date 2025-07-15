@@ -69,7 +69,7 @@ export const ECDHProvider = ({ children }) => {
         return uncompressed.buffer;
     };
 
-    // Import Peer public key from Uint8Array(66 bytes)
+    // Import Peer public key as a cryptoKey object from Uint8Array(66 bytes)
     const importPeerPublicKey = async (rawKeyBuffer) => {
         return await crypto.subtle.importKey(
             'raw',
@@ -80,6 +80,7 @@ export const ECDHProvider = ({ children }) => {
         );
     };
 
+    // Import the keyBuffer as a cryptoKey object
     const importSelfPrivateKey = async (rawKeyBuffer) => {
       return await crypto.subtle.importKey(
         "pkcs8",               // Private key format

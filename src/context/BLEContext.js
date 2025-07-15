@@ -11,7 +11,7 @@ export function BLEProvider({ children }) {
     const [status, setStatus] = React.useState(0); // 0 = disconnected, 1 = connected & paired, 2 = connected & not paired
     const [device, setDevice] = useState(null);
     const [server, setServer] = useState(null);
-    const {loadKeys} = useContext(ECDHContext);
+    const {loadKeys, createEncryptedPackets} = useContext(ECDHContext);
     const [pktCharacteristic, setpktCharacteristic] = useState(null);
     
     const readyToReceive = useRef({ promise: null, resolve: null });
@@ -20,6 +20,62 @@ export function BLEProvider({ children }) {
     const packetCharacteristicUUID = '6856e119-2c7b-455a-bf42-cf7ddd2c5907'; // String pktCharacteristic UUID 
     const hidSemaphorepktCharacteristicUUID = '6856e119-2c7b-455a-bf42-cf7ddd2c5908'; // String pktCharacteristic UUID 
 
+    // Attach a promise to the readyToReceive ref, this acts as the send semaphore
+    const waitForReady = () => {
+        
+        // If the ref currently doesn't have a promise, create one
+        if (!readyToReceive.current.promise) {
+            readyToReceive.current.promise = new Promise((resolve) => {
+                readyToReceive.current.resolve = resolve; // The promise resolver is in the 'resolve' key of the ref
+            });
+        }
+        return readyToReceive.current.promise;
+    };
+
+    // Send a text string as a byte array without encrypting it padded with 0 where necessary
+    const sendUnencrypted = async (inputString) => {
+        try{
+            const encoder = new TextEncoder();
+            const textData = encoder.encode(inputString); // Encode the input string into a byte array 
+
+            const dataPadded = new Uint8Array(16+12+textData.length); // Offset the data by IV length
+            dataPadded.set(textData,12);
+
+            const packet = new Packet(1, dataPadded, 0, 1, 1);
+            const packetData = packet.serialize();
+            console.log("Send pairing AUTH packet of size: ", packetData.length)
+
+            await pktCharacteristic.writeValueWithoutResponse(packetData);
+        }
+
+        catch (error) {
+            console.error("Error sending AUTH packet", error);
+        }
+    };
+
+    // Send an encrypted send string as a byte array with a random IV and GCM tag
+    const sendEncrypted = async (inputString) => {
+        if (!pktCharacteristic) return;
+
+        try {
+            console.log("Send starting....")
+            console.log(inputString);
+
+            for await (const packet of createEncryptedPackets(0, inputString)) {
+                console.log("Sending packet...");
+                await pktCharacteristic.writeValueWithoutResponse(packet.serialize());
+                
+                await waitForReady(); // Attach a promise to the ref
+                await readyToReceive.current.promise; // Wait in this iteration of the loop till the promise is consumed
+            }
+        }
+
+        catch (error) {
+            console.error(error);
+        }
+    };
+
+    // Try to load the self public key from storage and send it unencrypted
     const sendAuth = async (pktChar, device) => {
         console.log("SendAuth entered")
         if (!pktChar) return;
@@ -31,23 +87,14 @@ export function BLEProvider({ children }) {
 
             // If the public key is found send it to verify auth
             if(selfpkey){
-                const encoder = new TextEncoder();
-                const textData = (selfpkey instanceof Uint8Array) ? selfpkey : encoder.encode(selfpkey);
-                
-                const dataIV = new Uint8Array(16+12+textData.length); // Offset the data by IV length [TODO: Refactor this to make a consistent AUTH packet constructor]
-                dataIV.set(textData,12);
-                
-                const packet = new Packet(1, dataIV, 0, 1, 1);
-                const packetData = packet.serialize();
-                console.log("Send AUTH packet of size: ", packetData.length)
-                await pktChar.writeValueWithoutResponse(packetData);
+               sendUnencrypted(selfpkey);
             }
         }
 
         catch (error) {
             console.error(error);
         }
-    }
+    };
 
     // Subscribe to the semaphore notification and attach its event listener
     const subscribeToSemaphore = async (semChar) => {
@@ -80,7 +127,7 @@ export function BLEProvider({ children }) {
         } catch (err) {
             console.error("Failed to subscribe to semaphore notifications:", err);
         }
-    }
+    };
 
     // Connecting to a clipboard device using WEB BLE
     const connectToDevice = async () => {
@@ -152,7 +199,7 @@ export function BLEProvider({ children }) {
                 }
             }
         }
-    }
+    };
 
     return (
         <BLEContext.Provider value={{
@@ -162,6 +209,8 @@ export function BLEProvider({ children }) {
             status,
             connectToDevice,
             readyToReceive,
+            sendEncrypted,
+            sendUnencrypted,
         }}>
 
             {children}

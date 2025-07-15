@@ -53,21 +53,12 @@ export default function LiveCapture() {
 
     const queueRef = useRef(createAsyncQueue());
     const processingRef = useRef(false);
-    const { pktCharacteristic, status, readyToReceive } =
+    const { pktCharacteristic, status, readyToReceive, sendEncrypted } =
         useContext(BLEContext);
     const { createEncryptedPackets } = useContext(ECDHContext);
     const inputRef = useRef(null);
 
     const DEBOUNCE_INTERVAL_MS = 50;
-
-    const waitForReady = useCallback(() => {
-        if (!readyToReceive.current.promise) {
-            readyToReceive.current.promise = new Promise((resolve) => {
-                readyToReceive.current.resolve = resolve;
-            });
-        }
-        return readyToReceive.current.promise;
-    }, [readyToReceive]);
 
     // Polling logic: send latest buffer every N ms if changed
     const sendDiff = useCallback(async () => {
@@ -121,18 +112,10 @@ export default function LiveCapture() {
         // Update lastSentBuffer early to avoid duplicate sends
         lastSentBuffer.current = current;
 
-        for await (const packet of createEncryptedPackets(0, payload)) {
-            await pktCharacteristic.writeValueWithoutResponse(
-                packet.serialize()
-            );
-
-            waitForReady();
-            await readyToReceive.current.promise;
-        }
+        sendEncrypted(payload);
     }, [
         createEncryptedPackets,
         pktCharacteristic,
-        waitForReady,
         readyToReceive,
     ]);
 

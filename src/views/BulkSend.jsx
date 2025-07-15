@@ -9,40 +9,19 @@ import { ECDHContext } from '../context/ECDHContext';
 
 
 export default function BulkSend() {
-    const { encryptText, createEncryptedPackets } = useContext(ECDHContext);
+    //const { encryptText, createEncryptedPackets } = useContext(ECDHContext);
     const [input, setInput] = useState('');
-    const { pktCharacteristic, status, readyToReceive } = useContext(BLEContext);
+    const { pktCharacteristic, status, readyToReceive, sendEncrypted } = useContext(BLEContext);
     const editorRef = useRef(null);
 
 
-    const waitForReady = () => {
-        // If the ref currently doesn't have a promise, create one
-        if (!readyToReceive.current.promise) {
-            readyToReceive.current.promise = new Promise((resolve) => {
-                readyToReceive.current.resolve = resolve; // The promise resolver is in the 'resolve' key of the ref
-            });
-        }
-        return readyToReceive.current.promise;
-    };
-
     const sendString = async () => {
-        if (!pktCharacteristic || !input) return;
+        if (!input) return;
 
         try {
-            console.log("Send starting....")
-            console.log(input);
-
-            for await (const packet of createEncryptedPackets(0, input)) {
-                console.log("Sending packet...");
-                await pktCharacteristic.writeValueWithoutResponse(packet.serialize());
-                
-                await waitForReady(); // Attach a promise to the ref
-                await readyToReceive.current.promise; // Wait in this iteration of the loop till the promise is consumed
-            }
-        }
-
-        catch (error) {
-            console.error(error);
+            sendEncrypted(input);
+        } catch (error) { 
+            console.error(error); 
         }
     };
 
