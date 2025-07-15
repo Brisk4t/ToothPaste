@@ -16,16 +16,9 @@ const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
     const [pkey, setpkey] = useState(null);
     const { device, pktCharacteristic, status, sendUnencrypted } = useContext(BLEContext);
 
-    // Send the pkey variable as an unencrypted string over BLE
-    const sendPublicKey = async () => {
-        if (!pktCharacteristic || !pkey) return;
-
-        try {
-            sendUnencrypted(pkey);
-        } catch (error) {
-            console.error(error);
-        }
-    };
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
 
     const handleEnter =  (event) =>{
         if(keyInput.trim() === "")
@@ -70,6 +63,8 @@ const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
 
 
             await deriveKey(privateKey, peerPublicKeyObject); // Derive the shared secret using our private key and the peer's public key
+            await sleep(5000); // Wait for 1 second after generating the shared secret
+            await sendUnencrypted(b64SelfPublic);
 
         } catch (e) {
             setError('Error: ' + e.message);
@@ -85,9 +80,12 @@ const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
             top: 0, left: 0,
             width: '100vw', height: '100vh',
             backgroundColor: 'rgba(0,0,0,0.5)',
+            
             display: 'flex',
+            flexDirection:"column",
             justifyContent: 'center',
-            alignItems: 'center',
+            alignItems:'center',
+
             zIndex: 9999,
         }}>
             <div style={{
@@ -96,9 +94,16 @@ const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
                 borderRadius: 8,
                 width: '90%',
                 maxWidth: 500,
+                
+                display: 'flex',
+                flexDirection:"column",
+
+                justifyContent: 'center',
+                alignItems:'center',
                 boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
                 position: 'relative'
             }}>
+                {/* Close Button*/}
                 <button
                     onClick={() => setShowOverlay(false)}
                     style={{
@@ -109,54 +114,45 @@ const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
                         border: 'none',
                         fontSize: 20,
                         cursor: 'pointer'
-                    }}
-                >
-                    ×
+                    }}>
+                ×
                 </button>
 
-                <h2>Pair Device</h2>
+                <Typography variant="h4" className="text-text font-sans normal-case font-semibold">
+                    <span className="text-hover">Pair Device - </span>
+                    <span className="text-text">{device.name}</span>
+                </Typography>
+                            
                 <input
                     type="text"
                     placeholder="Enter compressed public key (base64)"
                     value={keyInput}
                     onChange={(e) => setkeyInput(e.target.value)}
                     onKeyDown={handleEnter}
-                    className='w-full h-10 opacity-1 color-text bg-shelf rounded-md p-2 my-4 focus:outline-none focus:border-primary-hover focus:ring-1 focus:ring-primary-hover'
+                    className='w-full h-10 opacity-1 color-text bg-shelf border border-hover rounded-md p-2 my-4 focus:outline-none focus:border-primary-hover focus:ring-1 focus:ring-primary-hover'
                 />
+
                 <Button
                     onClick={computeSecret}
                     disabled={keyInput.trim().length < 44 || !pktCharacteristic}
-                    className='my-4 bg-primary text-text hover:bg-primary-hover focus:bg-primary-focus active:bg-primary-active flex items-center justify-center size-sm disabled:bg-hover'>
+                    className='w-full h-10 my-4 bg-primary text-text hover:bg-primary-hover focus:bg-primary-focus active:bg-primary-active flex items-center justify-center size-sm disabled:bg-hover'>
 
                     <KeyIcon className="h-7 w-7 mr-2" />
 
                     {/* Paste to Device */}
-                    <Typography variant="h6" className="text-text font-sans normal-case font-semibold">Generate Shared Secret</Typography>
+                    <Typography variant="h6" className="text-text font-sans normal-case font-semibold">Pair</Typography>
                 </Button>
-                <Button
+                
+                {/* <Button
                     onClick={sendPublicKey}
                     disabled={pkey === null}
                     className='my-4 bg-primary text-text hover:bg-primary-hover focus:bg-primary-focus active:bg-primary-active flex items-center justify-center size-sm disabled:bg-hover'>
 
                     <KeyIcon className="h-7 w-7 mr-2" />
 
-                    {/* Paste to Device */}
                     <Typography variant="h6" className="text-text font-sans normal-case font-semibold">Send Public Key</Typography>
-                </Button>
+                </Button> */}
 
-                {sharedSecret && (
-                    <div style={{ marginTop: 20 }}>
-                        <strong>Shared Secret:</strong>
-                        <pre>{sharedSecret}</pre>
-                    </div>
-                )}
-
-                {pkey && (
-                    <div style={{ marginTop: 20 }}>
-                        <strong>Public Key:</strong>
-                        <pre>{pkey}</pre>
-                    </div>
-                )}
                 {error && (
                     <div style={{ marginTop: 20, color: 'red' }}>
                         {error}

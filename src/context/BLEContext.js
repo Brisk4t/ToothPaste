@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useRef } from "react";
+import React, { createContext, useContext, useState, useRef, useEffect } from "react";
 import { keyExists, loadBase64 } from './Storage';
 import { ECDHContext } from "./ECDHContext";
 import { Packet } from "./PacketFunctions";
@@ -7,10 +7,12 @@ import { Packet } from "./PacketFunctions";
 export const BLEContext = createContext();
 export const useBLEContext = () => useContext(BLEContext);
 
-export function BLEProvider({ children }) {
+export function BLEProvider({ children, showOverlay, setShowOverlay }) {
     const [status, setStatus] = React.useState(0); // 0 = disconnected, 1 = connected & paired, 2 = connected & not paired
     const [device, setDevice] = useState(null);
     const [server, setServer] = useState(null);
+
+    const showOverlayRef = useRef(showOverlay);
     const {loadKeys, createEncryptedPackets} = useContext(ECDHContext);
     const [pktCharacteristic, setpktCharacteristic] = useState(null);
     
@@ -19,6 +21,11 @@ export function BLEProvider({ children }) {
     const serviceUUID = '19b10000-e8f2-537e-4f6c-d104768a1214'; // ClipBoard service UUID from example
     const packetCharacteristicUUID = '6856e119-2c7b-455a-bf42-cf7ddd2c5907'; // String pktCharacteristic UUID 
     const hidSemaphorepktCharacteristicUUID = '6856e119-2c7b-455a-bf42-cf7ddd2c5908'; // String pktCharacteristic UUID 
+
+    // Keep track of the overlay visibility
+    useEffect(() => {
+        showOverlayRef.current = showOverlay;
+    }, [showOverlay]);
 
     // Attach a promise to the readyToReceive ref, this acts as the send semaphore
     const waitForReady = () => {
@@ -114,7 +121,11 @@ export function BLEProvider({ children }) {
                 if(authStatus === 0){
                     setStatus(2);
                 }
+                
                 else if(authStatus === 1){
+                    if (showOverlayRef.current){
+                        setShowOverlay(false);
+                    }
                     setStatus(1);
                 }
                 // If there is a promise to be resolved, resolve it

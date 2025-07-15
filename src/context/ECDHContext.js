@@ -9,9 +9,9 @@ export const ECDHContext = createContext(); // Shared context for ECDH operation
 
 
 export const ECDHProvider = ({ children }) => {
-    const [keyPair, setKeyPair] = useState(null); // { privateKey, publicKey }
+    //const [keyPair, setKeyPair] = useState(null); // { privateKey, publicKey }
     const aesKey = useRef(null); // Shared secret derived from ECDH
-
+    const keyPair = useRef(null);
     // Generate ECDH keypair
     const generateECDHKeyPair = async () => {
         const pair = await crypto.subtle.generateKey(
@@ -22,20 +22,23 @@ export const ECDHProvider = ({ children }) => {
             true,
             ['deriveKey', 'deriveBits']
         );
-        setKeyPair(pair); // Store the key pair in state
+        keyPair.current = pair; // Store the key pair in state
         return pair;
     };
 
     // Save self base64 uncompressed public and private keys
     const saveSelfKeys = async (clientID) => {
-        if(!keyPair) {
+        if(!keyPair.current) {
             console.log("No keypair generated before saveSelfKeys was called");
             return;
         }
 
-        var publicKey = await crypto.subtle.exportKey('raw', keyPair.publicKey);
-        var privateKey = await crypto.subtle.exportKey('pkcs8', keyPair.privateKey);
+        var rawPublicKey = await crypto.subtle.exportKey('raw', keyPair.current.publicKey);
+        var rawPrivateKey = await crypto.subtle.exportKey('pkcs8', keyPair.current.privateKey);
         
+        var publicKey = arrayBufferToBase64(rawPublicKey);
+        var privateKey = arrayBufferToBase64(rawPrivateKey);
+
         if (!publicKey || !privateKey) {
             throw new Error("Invalid key pair provided");
         }
@@ -232,9 +235,11 @@ export const ECDHProvider = ({ children }) => {
     
     const loadKeys = async(clientID) => {
       const peerPubKey = await loadBase64(clientID, 'PeerPublicKey');
+      console.log("Peer pubkey: ", peerPubKey)
       const pubKeyObject = await importPeerPublicKey(base64ToArrayBuffer(peerPubKey));
 
       const sprivKey = await loadBase64(clientID, 'SelfPrivateKey');
+      console.log("Self private key: ", sprivKey)
       const privKeyObject =  await importSelfPrivateKey(base64ToArrayBuffer(sprivKey));
 
       await deriveKey(privKeyObject, pubKeyObject);
