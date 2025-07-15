@@ -10,7 +10,7 @@ const ec = new EC('p256'); // secp256r1
 
 const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
     const { generateECDHKeyPair, decompressKey, importPeerPublicKey, saveSelfKeys, deriveKey, savePeerPublicKey } = useContext(ECDHContext);
-    const [inputKey, setInputKey] = useState('');
+    const [keyInput, setkeyInput] = useState("");
     const [sharedSecret, setSharedSecret] = useState(null);
     const [error, setError] = useState(null);
     const [pkey, setpkey] = useState(null);
@@ -27,13 +27,21 @@ const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
         }
     };
 
+    const handleEnter =  (event) =>{
+        if(keyInput.trim() === "")
+            return;
 
+        if (event.key === 'Enter'){
+            computeSecret();
+        }   
+    }
     const computeSecret = async () => {
         try {
             setError(null);
-            //const compressedBytes = Uint8Array.from(atob(inputKey.trim()), c => c.charCodeAt(0)); // Parse the Base64 compressed public key input into a Uint8Array
-
-            const compressedBytes = new Uint8Array(base64ToArrayBuffer(inputKey.trim()));
+             
+            // Parse the Base64 compressed public key input into a Uint8Array
+            const compressedBytes = new Uint8Array(base64ToArrayBuffer(keyInput.trim()));
+            
             // If the compressed key is not 33 bytes, throw an error
             if (compressedBytes.length !== 33) {
                 throw new Error('Compressed public key must be 33 bytes');
@@ -52,18 +60,13 @@ const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
                 savePeerPublicKey(rawKey, device.id);
             });
 
-
             // Compress our public key and turn it into Base64 to send to the peer
             const rawPublicKey = await crypto.subtle.exportKey('raw', publicKey);
             const b64SelfPublic = arrayBufferToBase64(rawPublicKey);
 
-
-            const rawPrivateKey = await crypto.subtle.exportKey('pkcs8', privateKey);
-            const b64PrivateKey = arrayBufferToBase64(rawPrivateKey);
-
-            await saveSelfKeys(b64SelfPublic, b64PrivateKey, device.id); // Store in DB
+            // Store all keys in DB under WEB BLE device.id
+            await saveSelfKeys(device.id); 
             setpkey(b64SelfPublic);
-
 
 
             await deriveKey(privateKey, peerPublicKeyObject); // Derive the shared secret using our private key and the peer's public key
@@ -115,13 +118,14 @@ const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
                 <input
                     type="text"
                     placeholder="Enter compressed public key (base64)"
-                    value={inputKey}
-                    onChange={(e) => setInputKey(e.target.value)}
+                    value={keyInput}
+                    onChange={(e) => setkeyInput(e.target.value)}
+                    onKeyDown={handleEnter}
                     className='w-full h-10 opacity-1 color-text bg-shelf rounded-md p-2 my-4 focus:outline-none focus:border-primary-hover focus:ring-1 focus:ring-primary-hover'
                 />
                 <Button
                     onClick={computeSecret}
-                    disabled={null}
+                    disabled={keyInput.trim().length < 44 || !pktCharacteristic}
                     className='my-4 bg-primary text-text hover:bg-primary-hover focus:bg-primary-focus active:bg-primary-active flex items-center justify-center size-sm disabled:bg-hover'>
 
                     <KeyIcon className="h-7 w-7 mr-2" />

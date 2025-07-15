@@ -27,7 +27,15 @@ export const ECDHProvider = ({ children }) => {
     };
 
     // Save self base64 uncompressed public and private keys
-    const saveSelfKeys = async (publicKey, privateKey, clientID) => {
+    const saveSelfKeys = async (clientID) => {
+        if(!keyPair) {
+            console.log("No keypair generated before saveSelfKeys was called");
+            return;
+        }
+
+        var publicKey = await crypto.subtle.exportKey('raw', keyPair.publicKey);
+        var privateKey = await crypto.subtle.exportKey('pkcs8', keyPair.privateKey);
+        
         if (!publicKey || !privateKey) {
             throw new Error("Invalid key pair provided");
         }
