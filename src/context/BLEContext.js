@@ -155,6 +155,11 @@ export function BLEProvider({ children, showOverlay, setShowOverlay }) {
 
             // Set an on disconnect listener
             device.addEventListener("gattserverdisconnected", () => {
+                
+                // If the device disconnects while the pairing overlay is open, close the overlay
+                if (showOverlayRef.current){    
+                    setShowOverlay(false);
+                }
                 setStatus(0);
                 console.log("Clipboard Disconnected");
             });
