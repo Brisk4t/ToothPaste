@@ -263,7 +263,7 @@ export function arrayBufferToBase64(buffer) {
 }
 
 // Convert Base64 string to byte array
-function base64ToArrayBuffer(base64) {
+export function base64ToArrayBuffer(base64) {
     const binaryString = atob(base64);
     const len = binaryString.length;
     const bytes = new Uint8Array(len);

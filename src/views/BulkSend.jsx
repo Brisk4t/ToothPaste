@@ -5,13 +5,12 @@ import { BLEContext } from '../context/BLEContext';
 import { HomeIcon, PaperAirplaneIcon, ClipboardIcon } from "@heroicons/react/24/outline";
 import CustomTyping from '../components/CustomTyping/CustomTyping';
 import RichTextArea from '../components/CustomTextArea/RichTextArea';
-import { ECDHContext } from '../context/ECDHContext';
 
 
 export default function BulkSend() {
     //const { encryptText, createEncryptedPackets } = useContext(ECDHContext);
     const [input, setInput] = useState('');
-    const { pktCharacteristic, status, readyToReceive, sendEncrypted } = useContext(BLEContext);
+    const {status, sendEncrypted } = useContext(BLEContext);
     const editorRef = useRef(null);
 
 

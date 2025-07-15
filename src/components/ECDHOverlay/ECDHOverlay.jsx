@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { ec as EC } from 'elliptic';
-import { ECDHContext, arrayBufferToBase64 } from '../../context/ECDHContext';
+import { ECDHContext, arrayBufferToBase64, base64ToArrayBuffer } from '../../context/ECDHContext';
 import { Button, Typography } from "@material-tailwind/react";
 import { KeyIcon } from '@heroicons/react/24/outline';
 import { BLEContext } from '../../context/BLEContext';
@@ -9,36 +9,37 @@ const ec = new EC('p256'); // secp256r1
 
 
 const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
-    const {generateECDHKeyPair, decompressKey, importPeerPublicKey, saveSelfKeys, deriveKey, savePeerPublicKey } = useContext(ECDHContext);
+    const { generateECDHKeyPair, decompressKey, importPeerPublicKey, saveSelfKeys, deriveKey, savePeerPublicKey } = useContext(ECDHContext);
     const [inputKey, setInputKey] = useState('');
     const [sharedSecret, setSharedSecret] = useState(null);
     const [error, setError] = useState(null);
     const [pkey, setpkey] = useState(null);
-    const {device, pktCharacteristic, status, sendUnencrypted} = useContext(BLEContext);
+    const { device, pktCharacteristic, status, sendUnencrypted } = useContext(BLEContext);
 
+    // Send the pkey variable as an unencrypted string over BLE
     const sendPublicKey = async () => {
         if (!pktCharacteristic || !pkey) return;
 
         try {
             sendUnencrypted(pkey);
-        }
-
-        catch (error) {
+        } catch (error) {
             console.error(error);
         }
     };
 
+
     const computeSecret = async () => {
         try {
             setError(null);
-            const compressedBytes = Uint8Array.from(atob(inputKey.trim()), c => c.charCodeAt(0)); // Parse the Base64 compressed public key input into a Uint8Array
+            //const compressedBytes = Uint8Array.from(atob(inputKey.trim()), c => c.charCodeAt(0)); // Parse the Base64 compressed public key input into a Uint8Array
 
+            const compressedBytes = new Uint8Array(base64ToArrayBuffer(inputKey.trim()));
             // If the compressed key is not 33 bytes, throw an error
             if (compressedBytes.length !== 33) {
                 throw new Error('Compressed public key must be 33 bytes');
             }
 
-            // Peer functions
+            // Peer key functions
             const rawUncompressed = decompressKey(compressedBytes);  // Decompress the compressed public key to get the raw uncompressed key (65 bytes)
             const peerPublicKeyObject = await importPeerPublicKey(rawUncompressed); // Create a CryptoKey object from the uncompressed public key
 
@@ -66,7 +67,6 @@ const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
 
 
             await deriveKey(privateKey, peerPublicKeyObject); // Derive the shared secret using our private key and the peer's public key
-
 
         } catch (e) {
             setError('Error: ' + e.message);
@@ -111,7 +111,7 @@ const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
                     ×
                 </button>
 
-                <h2>ECDH Shared Secret (Compressed Public Key)</h2>
+                <h2>Pair Device</h2>
                 <input
                     type="text"
                     placeholder="Enter compressed public key (base64)"

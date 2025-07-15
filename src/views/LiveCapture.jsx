@@ -51,10 +51,7 @@ export default function LiveCapture() {
     const debounceTimeout = useRef(null);
     const specialEvents = useRef([]); // store special keys pressed but not modifying buffer
 
-    const queueRef = useRef(createAsyncQueue());
-    const processingRef = useRef(false);
-    const { pktCharacteristic, status, readyToReceive, sendEncrypted } =
-        useContext(BLEContext);
+    const { pktCharacteristic, status, readyToReceive, sendEncrypted } = useContext(BLEContext);
     const { createEncryptedPackets } = useContext(ECDHContext);
     const inputRef = useRef(null);
 
