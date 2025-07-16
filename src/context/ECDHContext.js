@@ -212,7 +212,18 @@ export const ECDHProvider = ({ children }) => {
     // create and encrypt packet -> returns an iterator of one or more packets where payload size < max_data_size
     const createEncryptedPackets = async function *(id, payload, slowMode=true){
         const encoder = new TextEncoder();
-        const data = (payload instanceof Uint8Array) ? payload : encoder.encode(payload);
+        
+        const data = (payload instanceof Uint8Array)
+            ? payload
+            : (() => {
+                const encoded = encoder.encode(payload);
+                const withZeroPrefix = new Uint8Array(encoded.length + 1);
+                withZeroPrefix[0] = 0;
+                withZeroPrefix.set(encoded, 1);
+                return withZeroPrefix;
+            })();
+        
+        
         const totalChunks = Math.ceil(data.length / Packet.MAX_DATA_SIZE);
         
         // console.log(payload);

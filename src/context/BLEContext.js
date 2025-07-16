@@ -52,7 +52,6 @@ export function BLEProvider({ children, showOverlay, setShowOverlay }) {
 
             const packet = new Packet(1, dataPadded, 0, 1, 1);
             const packetData = packet.serialize();
-            console.log("Send pairing AUTH packet of size: ", packetData.length)
 
             await pktCharRef.current.writeValueWithoutResponse(packetData);
         }
@@ -83,6 +82,7 @@ export function BLEProvider({ children, showOverlay, setShowOverlay }) {
             console.error(error);
         }
     };
+
 
     // Try to load the self public key from storage and send it unencrypted
     const sendAuth = async (device) => {

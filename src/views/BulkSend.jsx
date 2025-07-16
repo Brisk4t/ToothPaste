@@ -41,7 +41,14 @@ export default function BulkSend() {
             console.log("Shortcut detected: Ctrl + Alt + A");
             event.preventDefault();
             event.stopPropagation(); // stop bubbling to native input handlers
-            sendEncrypted(String.fromCharCode(1));
+            
+            var keycode = new Uint8Array(7); // Payload = DATA_TYPE+[KEYCODES(6)]
+            keycode[0] = 1;   // Byte 0
+            keycode[1] = 0x80;  // Byte 1
+            keycode[2] = 0x04;  // Byte 2
+            keycode[3] = 0;    // Byte 3
+
+            sendEncrypted(keycode);
         }
     }, [sendString]);
 
