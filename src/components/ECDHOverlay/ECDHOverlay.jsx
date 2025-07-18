@@ -16,11 +16,13 @@ const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
     const [pkey, setpkey] = useState(null);
     const { device, pktCharacteristic, status, sendUnencrypted } = useContext(BLEContext);
 
+    const [isLoading, setisLoading] = useState(false);
+
     function sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    const handleEnter =  (event) =>{
+    const handleSubmit =  (event) =>{
         if(keyInput.trim() === "")
             return;
 
@@ -31,7 +33,7 @@ const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
     const computeSecret = async () => {
         try {
             setError(null);
-             
+            setisLoading(true);
             // Parse the Base64 compressed public key input into a Uint8Array
             const compressedBytes = new Uint8Array(base64ToArrayBuffer(keyInput.trim()));
             
@@ -63,8 +65,9 @@ const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
 
 
             await deriveKey(privateKey, peerPublicKeyObject); // Derive the shared secret using our private key and the peer's public key
-            await sleep(5000); // Wait for 1 second after generating the shared secret
+            await sleep(2000); // Wait for 2 second after generating the shared secret
             await sendUnencrypted(b64SelfPublic);
+            setisLoading(false);
 
         } catch (e) {
             setError('Error: ' + e.message);
@@ -128,19 +131,20 @@ const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
                     placeholder="Enter compressed public key (base64)"
                     value={keyInput}
                     onChange={(e) => setkeyInput(e.target.value)}
-                    onKeyDown={handleEnter}
+                    onKeyDown={handleSubmit}
                     className='w-full h-10 opacity-1 color-text bg-shelf border border-hover rounded-md p-2 my-4 focus:outline-none focus:border-primary-hover focus:ring-1 focus:ring-primary-hover'
                 />
 
                 <Button
-                    onClick={computeSecret}
-                    disabled={keyInput.trim().length < 44 || !pktCharacteristic}
+                    onClick={handleSubmit}
+                    loading={isLoading}
+                    disabled={keyInput.trim().length < 44 || !pktCharacteristic || isLoading}
                     className='w-full h-10 my-4 bg-primary text-text hover:bg-primary-hover focus:bg-primary-focus active:bg-primary-active flex items-center justify-center size-sm disabled:bg-hover'>
 
-                    <KeyIcon className="h-7 w-7 mr-2" />
+                    <KeyIcon className={`h-7 w-7 mr-2  ${isLoading? "hidden":""}`} />
 
                     {/* Paste to Device */}
-                    <Typography variant="h6" className="text-text font-sans normal-case font-semibold">Pair</Typography>
+                    <Typography variant="h6" className={`text-text font-sans normal-case font-semibold ${isLoading? "hidden":""}`}>Pair</Typography>
                 </Button>
                 
                 {/* <Button

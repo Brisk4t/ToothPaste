@@ -224,7 +224,6 @@ export const ECDHProvider = ({ children }) => {
             }
 
             const aad = new Uint8Array([chunkNumber, totalChunks]);
-
             const encrypted = await encryptText(outputArray, aad);
             yield new Packet(id, encrypted, chunkNumber, totalChunks, slowMode);
         }
