@@ -1,33 +1,43 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Button } from "@material-tailwind/react";
 const keys = [
+    [ // Row 0
+        { eventCode: "ESCAPE", label: "ESC", width: "w-14" },
+        { eventCode: "F1" }, { eventCode: "F2" }, { eventCode: "F3" },
+        { eventCode: "F4" }, { eventCode: "F5" }, { eventCode: "F6" }, { eventCode: "F7" },
+        { eventCode: "F8" }, { eventCode: "F9" }, { eventCode: "F10" }, { eventCode: "F11" },
+        { eventCode: "F12" }, { eventCode:"BACKSPACE", label: "←", width: "w-20 mr-20" } // Backspace
+    ],
     [ // Row 1
-        { label: "ESC" },
-        { label: "~" }, { label: "1" }, { label: "2" }, { label: "3" },
-        { label: "4" }, { label: "5" }, { label: "6" }, { label: "7" },
-        { label: "8" }, { label: "9" }, { label: "0" }, { label: "-" },
-        { label: "=" }, { label: "←", width: "w-16" } // Backspace
+        { eventCode: "~" }, { eventCode: "1" }, { eventCode: "2" }, { eventCode: "3" },
+        { eventCode: "4" }, { eventCode: "5" }, { eventCode: "6" }, { eventCode: "7" },
+        { eventCode: "8" }, { eventCode: "9" }, { eventCode: "0" }, { eventCode: "-" },
+        { eventCode: "=" }, { eventCode:"BACKSPACE", label: "←", width: "w-20 mr-20" } // Backspace
     ],
     [ // Row 2
-        { label: "Tab", width: "w-16" }, { label: "Q" }, { label: "W" },
-        { label: "E" }, { label: "R" }, { label: "T" }, { label: "Y" },
-        { label: "U" }, { label: "I" }, { label: "O" }, { label: "P" },
-        { label: "[" }, { label: "]" }, { label: "\\", width: "w-16" } // Backslash
+        { eventCode: "Tab", width: "w-16" }, { eventCode: "Q" }, { eventCode: "W" },
+        { eventCode: "E" }, { eventCode: "R" }, { eventCode: "T" }, { eventCode: "Y" },
+        { eventCode: "U" }, { eventCode: "I" }, { eventCode: "O" }, { eventCode: "P" },
+        { eventCode: "[" }, { eventCode: "]" }, { eventCode: "\\", width: "w-16 mr-20" } // Backslash
     ],
     [ // Row 3
-        { label: "A" }, { label: "S" }, { label: "D" }, { label: "F" },
-        { label: "G" }, { label: "H" }, { label: "J" }, { label: "K" },
-        { label: "L" }, { label: ";" }, { label: "'" }, { label: "↩", width: "w-20" } // Enter
+        { eventCode: "CAPSLOCK", label: "Caps", width: "w-24" },
+        { eventCode: "A" }, { eventCode: "S" }, { eventCode: "D" }, { eventCode: "F" },
+        { eventCode: "G" }, { eventCode: "H" }, { eventCode: "J" }, { eventCode: "K" },
+        { eventCode: "L" }, { eventCode: ";" }, { eventCode: "'" }, { eventCode: "↩", width: "w-24 mr-20" } // Enter
     ],
     [ // Row 4
-        { label: "SHIFT", width: "w-20" }, { label: "Z" }, { label: "X" },
-        { label: "C" }, { label: "V" }, { label: "B" }, { label: "N" }, { label: "M" },
-        { label: "," }, { label: "." }, { label: "/" }, { label: "SHIFT", width: "w-20" }
+        { eventCode: "SHIFT", width: "w-32" }, { eventCode: "Z" }, { eventCode: "X" },
+        { eventCode: "C" }, { eventCode: "V" }, { eventCode: "B" }, { eventCode: "N" }, { eventCode: "M" },
+        { eventCode: "," }, { eventCode: "." }, { eventCode: "/" }, { eventCode: "SHIFT", width: "w-32 mr-24" },
+        { eventCode: "ARROWUP", label: "↑", width: "w-20" },
     ],
     [ // Row 5
-        { label: "CONTROL", width: "w-32" }, { label: "WIN" }, { label: "ALT" },
-        { label: "SPACE", width: "w-80" },
-        { label: "ALT" }, { label: "WIN" }, { label: "CONTROL", width: "w-32" },
+        { eventCode: "CONTROL", label:"CTRL", width: "w-20 ml-5" }, { eventCode: "WIN", width: "w-20" }, { eventCode: "ALT", width: "w-20" },
+        { eventCode: "SPACE", width: "w-[300px]" },
+        { eventCode: "ALT", width: "w-20" }, { eventCode: "META", label: "WIN", width: "w-20" }, { eventCode: "CONTROL", label:"CTRL", width: "w-20 mr-20" },
+        { eventCode: "ARROWLEFT", label: "←", width: "w-20" }, { eventCode: "ARROWDOWN", label: "↓", width: "w-20" }, { eventCode: "ARROWRIGHT", label:"→", width: "w-20" },
+
     ],
 
 ];
@@ -223,7 +233,7 @@ const Keyboard = ({ listenerRef, deviceStatus}) => {
         };
     }, [listenerRef]);
 
-    const isKeyActive = (label) => activeKeys.has(label);
+    const isKeyActive = (eventCode) => activeKeys.has(eventCode);
 
     return (
         <div className="bg-black text-white flex flex-col items-center justify-center space-y-6">
@@ -234,15 +244,15 @@ const Keyboard = ({ listenerRef, deviceStatus}) => {
                 {/* Keyboard Rows */}
                 <div className={`flex flex-col space-y-2 ${showKeyboard? "":"hidden"}`}>
                     {keys.map((row, rowIndex) => (
-                        <div key={rowIndex} className="flex space-x-2">
-                            {row.map(({ label, width }) => (
+                        <div key={rowIndex} className="flex justify-center">
+                            {row.map(({ eventCode, width, label }) => (
                                 <div
-                                    key={label}
-                                    className={`${width ?? "w-12"} h-12 border-2 border-hover flex items-center justify-center text-lg rounded-lg 
-                                        ${isKeyActive(label.toUpperCase()) ? backgroundColor : "bg-black"
+                                    key={eventCode}
+                                    className={`${width ?? "w-12"} h-12 mx-1 border-2 border-hover flex items-center justify-center text-lg rounded-lg ${rowIndex === 0?"mb-5":""}
+                                        ${isKeyActive(eventCode.toUpperCase()) ? backgroundColor : "bg-black"
                                     }`}
                                 >
-                                    {label}
+                                    {label? label : eventCode}
                                 </div>
                             ))}
                         </div>
