@@ -203,7 +203,7 @@ export default function LiveCapture() {
             <Typography variant="h5" className="text-hover">
                 It just works.....
             </Typography>
-            <Keyboard></Keyboard>
+            <Keyboard listenerRef={inputRef}></Keyboard>
 
 
             <div className="flex flex-col flex-1 mt-5 min-h-0">

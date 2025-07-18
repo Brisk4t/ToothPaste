@@ -1,3 +1,4 @@
+import { list } from "@material-tailwind/react";
 import React, { useEffect, useState, useRef } from "react";
 
 const keys = [
@@ -9,9 +10,9 @@ const keys = [
         { label: "=" }, { label: "←", width: "w-16" } // Backspace
     ],
     [ // Row 2
-        { label: "Tab", width: "w-16" }, { label: "Q" }, { label: "W" }, 
-        { label: "E" }, { label: "R" }, { label: "T" }, { label: "Y" }, 
-        { label: "U" }, { label: "I" }, { label: "O" }, { label: "P" }, 
+        { label: "Tab", width: "w-16" }, { label: "Q" }, { label: "W" },
+        { label: "E" }, { label: "R" }, { label: "T" }, { label: "Y" },
+        { label: "U" }, { label: "I" }, { label: "O" }, { label: "P" },
         { label: "[" }, { label: "]" }, { label: "\\", width: "w-16" } // Backslash
     ],
     [ // Row 3
@@ -21,73 +22,171 @@ const keys = [
     ],
     [ // Row 4
         { label: "SHIFT", width: "w-20" }, { label: "Z" }, { label: "X" },
-        { label: "C" }, { label: "V" }, { label: "B" }, { label: "N" }, { label: "M" }, 
+        { label: "C" }, { label: "V" }, { label: "B" }, { label: "N" }, { label: "M" },
         { label: "," }, { label: "." }, { label: "/" }, { label: "SHIFT", width: "w-20" }
     ],
     [ // Row 5
         { label: "CONTROL", width: "w-32" }, { label: "WIN" }, { label: "ALT" },
         { label: "SPACE", width: "w-80" },
-        { label: "ALT"}, { label: "WIN" }, { label: "CONTROL", width: "w-32" },
+        { label: "ALT" }, { label: "WIN" }, { label: "CONTROL", width: "w-32" },
     ],
 
 ];
 
 const MAX_HISTORY_LENGTH = keys[0].length;
 const HISTORY_DURATION = 3000;
+const COMBO_COOLDOWN = 200; // minimum ms before logging same combo again
+const DEBOUNCE_DURATION = 300; // in ms
 
-const Keyboard = () => {
+const Keyboard = ({listenerRef}) => {
     const [activeKeys, setActiveKeys] = useState(new Set());
     const [history, setHistory] = useState([]);
     const timeoutsRef = useRef({});
     const lastComboRef = useRef(null);
 
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            const key = e.key === " " ? "SPACE" : e.key.toUpperCase();
+    const comboTimestamps = useRef({});
+    const activeKeysRef = useRef(new Set());
+    const keyPressTimestamps = useRef({});
+    const debounceTimer = useRef(null);
 
+
+    // Return a list of all keys that have been pressed for >= DEBOUNCE_DURATION
+    const getDebouncedKeys = () => {
+        const now = Date.now();
+        return [...activeKeysRef.current].filter(
+            (k) => now - keyPressTimestamps.current[k] >= DEBOUNCE_DURATION
+        );
+    };
+
+    // Handle keypresses
+    useEffect(() => {
+        
+        // If component is not attached to anything, return
+        const node = listenerRef?.current;
+        if (!node) return;
+
+        const handleKeyDown = (e) => {
+            const key = e.key === " " ? "SPACE" : e.key.toUpperCase(); // Translate " " to "SPACE"
+
+            // Only timestamp if not already held
+            if (!keyPressTimestamps.current[key]) {
+                keyPressTimestamps.current[key] = Date.now();
+            }
+
+            // Add a new key to active keys, ignore duplicates
             setActiveKeys((prevKeys) => {
                 const updated = new Set(prevKeys);
                 updated.add(key);
-                const sortedCombo = Array.from(updated).sort().join("+");
+                activeKeysRef.current = new Set(updated);
+                return updated;
+            });
 
-                if (sortedCombo !== lastComboRef.current) {
-                    lastComboRef.current = sortedCombo;
-                    const newEntry = { key: sortedCombo, id: Date.now() };
-                    setHistory((prev) =>
-                        [...prev, newEntry].slice(-MAX_HISTORY_LENGTH)
-                    );
+            // Short timeout to check for updated combo
+            setTimeout(() => {
+                const now = Date.now(); // Get the current time
+                const validKeys = getDebouncedKeys(); // Get the list of all keys that have been pressed for >= DEBOUNCE_DURATION
+
+                // Include this key if it just passed debounce
+                if (now - keyPressTimestamps.current[key] >= DEBOUNCE_DURATION) {
+                    if (!validKeys.includes(key)) validKeys.push(key);
+                }
+                
+                // If there are no such keys, return
+                if (validKeys.length === 0) return; 
+
+
+                const sortedCombo = validKeys.sort().join("+");
+
+                // Check if a bigger combo including this combo was recently logged
+                const isSubsetOfRecentCombo = Object.keys(comboTimestamps.current).some(combo => {
+                    if (now - comboTimestamps.current[combo] > COMBO_COOLDOWN) return false;
+
+                    const comboKeys = combo.split("+");
+                    
+                    // Check if validKeys is a subset of comboKeys
+                    return validKeys.every(k => comboKeys.includes(k)) && comboKeys.length > validKeys.length;
+                });
+
+                if (isSubsetOfRecentCombo) return; // If we're still holding down other keys this event is not logged
+
+                const lastLogged = comboTimestamps.current[sortedCombo] || 0;
+                
+                // If COMBO_COOLDOWN has elapsed, log this as a new combo event
+                if (now - lastLogged >= COMBO_COOLDOWN) {
+                    comboTimestamps.current[sortedCombo] = now;
+
+                    const newEntry = { key: sortedCombo, id: now };
+                    setHistory((prev) => [...prev, newEntry].slice(-MAX_HISTORY_LENGTH));
 
                     const id = newEntry.id;
                     timeoutsRef.current[id] = setTimeout(() => {
-                        setHistory((prev) =>
-                            prev.filter((entry) => entry.id !== id)
-                        );
+                        setHistory((prev) => prev.filter((entry) => entry.id !== id));
                         delete timeoutsRef.current[id];
                     }, HISTORY_DURATION);
                 }
-
-                return updated;
-            });
+            }, DEBOUNCE_DURATION);
         };
 
         const handleKeyUp = (e) => {
             const key = e.key === " " ? "SPACE" : e.key.toUpperCase();
+            const pressTime = keyPressTimestamps.current[key];
+            const now = Date.now();
+
+            const wasQuickTap = pressTime && (now - pressTime < DEBOUNCE_DURATION);
+
+            delete keyPressTimestamps.current[key];
+
+            // Snapshot active keys *before* deleting the current key
+            const tempActiveKeys = new Set(activeKeysRef.current);
+            tempActiveKeys.delete(key);
+
+            // If it's a quick tap, record the combo using remaining modifiers
+            if (wasQuickTap) {
+                const modifiers = [...tempActiveKeys].filter(k =>
+                    ["SHIFT", "CONTROL", "ALT", "WIN"].includes(k)
+                );
+
+                const comboKeys = [...modifiers, key].sort();
+                const sortedCombo = comboKeys.join("+");
+
+                if (now - (comboTimestamps.current[sortedCombo] || 0) >= COMBO_COOLDOWN) {
+                    comboTimestamps.current[sortedCombo] = now;
+
+                    const newEntry = { key: sortedCombo, id: now };
+                    setHistory((prev) => [...prev, newEntry].slice(-MAX_HISTORY_LENGTH));
+
+                    const id = newEntry.id;
+                    timeoutsRef.current[id] = setTimeout(() => {
+                        setHistory((prev) => prev.filter((entry) => entry.id !== id));
+                        delete timeoutsRef.current[id];
+                    }, HISTORY_DURATION);
+                }
+            }
+
+            // Update the actual state afterward
             setActiveKeys((prevKeys) => {
                 const updated = new Set(prevKeys);
                 updated.delete(key);
-                lastComboRef.current = null;
+                activeKeysRef.current = new Set(updated); // keep ref in sync
                 return updated;
             });
+
+            // Optional: clear stale combo memory if no keys are held
+            if (activeKeysRef.current.size === 0) {
+                lastComboRef.current = null;
+            }
         };
 
-        window.addEventListener("keydown", handleKeyDown);
-        window.addEventListener("keyup", handleKeyUp);
+        node.addEventListener("keydown", handleKeyDown);
+        node.addEventListener("keyup", handleKeyUp);
+
         return () => {
-            window.removeEventListener("keydown", handleKeyDown);
-            window.removeEventListener("keyup", handleKeyUp);
+            node.removeEventListener("keydown", handleKeyDown);
+            node.removeEventListener("keyup", handleKeyUp);
             Object.values(timeoutsRef.current).forEach(clearTimeout);
+            if (debounceTimer.current) clearTimeout(debounceTimer.current);
         };
-    }, []);
+    }, [listenerRef]);
 
     const isKeyActive = (label) => activeKeys.has(label);
 
@@ -112,13 +211,11 @@ const Keyboard = () => {
                     {row.map(({ label, width }) => (
                         <div
                             key={label}
-                            className={`${
-                                width ?? "w-12"
-                            } h-12 border border-2 border-hover flex items-center justify-center text-lg rounded-lg ${
-                                isKeyActive(label.toUpperCase())
+                            className={`${width ?? "w-12"
+                                } h-12 border border-2 border-hover flex items-center justify-center text-lg rounded-lg ${isKeyActive(label.toUpperCase())
                                     ? "bg-primary"
                                     : "bg-black"
-                            }`}
+                                }`}
                         >
                             {label}
                         </div>
