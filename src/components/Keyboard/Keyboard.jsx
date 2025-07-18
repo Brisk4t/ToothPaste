@@ -2,16 +2,17 @@ import React, { useEffect, useState, useRef } from "react";
 
 const keys = [
     [ // Row 1
+        { label: "ESC" },
         { label: "~" }, { label: "1" }, { label: "2" }, { label: "3" },
         { label: "4" }, { label: "5" }, { label: "6" }, { label: "7" },
         { label: "8" }, { label: "9" }, { label: "0" }, { label: "-" },
         { label: "=" }, { label: "←", width: "w-16" } // Backspace
     ],
     [ // Row 2
-        { label: "Tab", width: "w-16" }, { label: "Q" }, { label: "W" }, { label: "E" },
-        { label: "R" }, { label: "T" }, { label: "Y" }, { label: "U" },
-        { label: "I" }, { label: "O" }, { label: "P" }, { label: "[" },
-        { label: "]" }, { label: "\\", width: "w-16" } // Backslash
+        { label: "Tab", width: "w-16" }, { label: "Q" }, { label: "W" }, 
+        { label: "E" }, { label: "R" }, { label: "T" }, { label: "Y" }, 
+        { label: "U" }, { label: "I" }, { label: "O" }, { label: "P" }, 
+        { label: "[" }, { label: "]" }, { label: "\\", width: "w-16" } // Backslash
     ],
     [ // Row 3
         { label: "A" }, { label: "S" }, { label: "D" }, { label: "F" },
@@ -20,8 +21,8 @@ const keys = [
     ],
     [ // Row 4
         { label: "SHIFT", width: "w-20" }, { label: "Z" }, { label: "X" },
-        { label: "C" }, { label: "V" }, { label: "B" }, { label: "N" },
-        { label: "M" }, { label: "," }, { label: "." }, { label: "/" }, { label: "SHIFT", width: "w-20" }
+        { label: "C" }, { label: "V" }, { label: "B" }, { label: "N" }, { label: "M" }, 
+        { label: "," }, { label: "." }, { label: "/" }, { label: "SHIFT", width: "w-20" }
     ],
     [ // Row 5
         { label: "CONTROL", width: "w-32" }, { label: "WIN" }, { label: "ALT" },
