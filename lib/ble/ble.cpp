@@ -290,6 +290,7 @@ void decryptSendString(SecureSession::rawDataPacket* packet, SecureSession* sess
   {
     // The first byte indicates the keys are pressed sequentially
     if(plaintext[0] == 0){
+      // Need to create an object on the heap since TinyUSB queues data and the calling function might return before the queue is emptied
       std::string textString((const char*)plaintext+1, (packet->dataLen)-1);
       Serial0.printf("Decryption successful: %s\n\r\n\r", textString);
       
