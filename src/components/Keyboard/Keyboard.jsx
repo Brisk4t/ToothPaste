@@ -1,10 +1,28 @@
 import React, { useEffect, useState, useRef } from "react";
 
 const keys = [
-  ["~", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "←"],
-  ["Tab", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]", "\\" ],
-  ["A", "S", "D", "F", "G", "H", "J", "K", "L", ";", "'", "↩"],
-  ["Shift", "Z", "X", "C", "V", "B", "N", "M", ",", ".", "/",],
+  [ // Row 1
+    { label: "~" }, { label: "1" }, { label: "2" }, { label: "3" },
+    { label: "4" }, { label: "5" }, { label: "6" }, { label: "7" },
+    { label: "8" }, { label: "9" }, { label: "0" }, { label: "-" },
+    { label: "=" }, { label: "←", width: "w-16" } // Backspace
+  ],
+  [ // Row 2
+    { label: "Tab", width: "w-16" }, { label: "Q" }, { label: "W" }, { label: "E" },
+    { label: "R" }, { label: "T" }, { label: "Y" }, { label: "U" },
+    { label: "I" }, { label: "O" }, { label: "P" }, { label: "[" },
+    { label: "]" }, { label: "\\", width: "w-16" } // Backslash
+  ],
+  [ // Row 3
+    { label: "A" }, { label: "S" }, { label: "D" }, { label: "F" },
+    { label: "G" }, { label: "H" }, { label: "J" }, { label: "K" },
+    { label: "L" }, { label: ";" }, { label: "'" }, { label: "↩", width: "w-20" } // Enter
+  ],
+  [ // Row 4
+    { label: "SHIFT", width: "w-20" }, { label: "Z" }, { label: "X" },
+    { label: "C" }, { label: "V" }, { label: "B" }, { label: "N" },
+    { label: "M" }, { label: "," }, { label: "." }, { label: "/" }
+  ],
 ];
 
 const MAX_HISTORY_LENGTH = keys[0].length;
@@ -25,18 +43,11 @@ const Keyboard = () => {
         updated.add(key);
         const sortedCombo = Array.from(updated).sort().join("+");
 
-        // Only register new combo
         if (sortedCombo !== lastComboRef.current) {
           lastComboRef.current = sortedCombo;
-
-          // Add to history
           const newEntry = { key: sortedCombo, id: Date.now() };
-          setHistory((prev) => {
-            const updatedHistory = [...prev, newEntry].slice(-MAX_HISTORY_LENGTH);
-            return updatedHistory;
-          });
+          setHistory((prev) => [...prev, newEntry].slice(-MAX_HISTORY_LENGTH));
 
-          // Remove from history after delay
           const id = newEntry.id;
           timeoutsRef.current[id] = setTimeout(() => {
             setHistory((prev) => prev.filter((entry) => entry.id !== id));
@@ -53,7 +64,7 @@ const Keyboard = () => {
       setActiveKeys((prevKeys) => {
         const updated = new Set(prevKeys);
         updated.delete(key);
-        lastComboRef.current = null; // Reset combo on key release
+        lastComboRef.current = null;
         return updated;
       });
     };
@@ -67,36 +78,34 @@ const Keyboard = () => {
     };
   }, []);
 
-  const isKeyActive = (key) => activeKeys.has(key);
+  const isKeyActive = (label) => activeKeys.has(label);
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center space-y-6">
-      
-      
+    <div className="bg-black text-white flex flex-col items-center justify-center space-y-6">
       {/* Command History */}
       <div className="flex space-x-2 overflow-hidden">
         {history.map((entry) => (
           <div
             key={entry.id}
-            style={{animationDuration: `${HISTORY_DURATION}ms`}}
-            className="px-2 py-1 flex items-right justify-right text-sm font-bold rounded border border-gray-500 bg-primary animate-fadeout"
+            style={{ animationDuration: `${HISTORY_DURATION}ms` }}
+            className="px-2 py-1 flex items-center justify-center text-sm font-bold rounded border border-gray-500 bg-primary animate-fadeout"
           >
             {entry.key}
           </div>
         ))}
       </div>
 
-      {/* Keyboard */}
+      {/* Keyboard Rows */}
       {keys.map((row, rowIndex) => (
         <div key={rowIndex} className="flex space-x-2">
-          {row.map((key) => (
+          {row.map(({ label, width }) => (
             <div
-              key={key}
-              className={`w-10 h-12 border border-gray-500 flex items-center justify-center text-lg rounded ${
-                isKeyActive(key) ? "bg-primary" : "bg-black"
+              key={label}
+              className={`${width ?? "w-12"} h-12 border border-2 border-hover flex items-center justify-center text-lg rounded-lg ${
+                isKeyActive(label.toUpperCase()) ? "bg-primary" : "bg-black"
               }`}
             >
-              {key}
+              {label}
             </div>
           ))}
         </div>
