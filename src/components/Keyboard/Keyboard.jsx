@@ -47,6 +47,7 @@ const Keyboard = ({ listenerRef, deviceStatus}) => {
     const timeoutsRef = useRef({});
     const lastComboRef = useRef(null);
 
+    const [backgroundColor, setBackgroundColor] = useState("");
     const [showKeyboard, setShowKeyboard] = useState(false);
 
     const comboTimestamps = useRef({});
@@ -54,6 +55,22 @@ const Keyboard = ({ listenerRef, deviceStatus}) => {
     const keyPressTimestamps = useRef({});
     const debounceTimer = useRef(null);
 
+
+    useEffect(() => {
+        switch (deviceStatus) {
+            case 0:
+                setBackgroundColor("bg-secondary");
+                break;
+            case 1:
+                setBackgroundColor("bg-primary");
+                break;
+            case 2:
+                setBackgroundColor("bg-orange");
+                break;
+            default:
+                setBackgroundColor("bg-gray");
+        }
+    }, [deviceStatus]);
 
     function ShowKeyboardButton (){
         const handleToggle = () => setShowKeyboard(prev => !prev)
@@ -221,8 +238,9 @@ const Keyboard = ({ listenerRef, deviceStatus}) => {
                             {row.map(({ label, width }) => (
                                 <div
                                     key={label}
-                                    className={`${width ?? "w-12"} h-12 border-2 border-hover flex items-center justify-center text-lg rounded-lg ${isKeyActive(label.toUpperCase()) ? "bg-primary" : "bg-black"
-                                        }`}
+                                    className={`${width ?? "w-12"} h-12 border-2 border-hover flex items-center justify-center text-lg rounded-lg 
+                                        ${isKeyActive(label.toUpperCase()) ? backgroundColor : "bg-black"
+                                    }`}
                                 >
                                     {label}
                                 </div>
@@ -239,7 +257,7 @@ const Keyboard = ({ listenerRef, deviceStatus}) => {
                         {history.map((entry) => (
                             <div
                                 key={entry.id}
-                                className="px-2 py-1 flex items-center justify-center text-sm font-bold rounded border border-gray-500 bg-primary animate-fadeout"
+                                className={`px-2 py-1 flex items-center justify-center text-sm font-bold rounded ${backgroundColor} animate-fadeout`}
                                 style={{ animationDuration: `${HISTORY_DURATION}ms` }}
                             >
                                 {entry.key}

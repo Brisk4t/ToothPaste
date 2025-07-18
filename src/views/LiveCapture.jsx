@@ -207,7 +207,7 @@ export default function LiveCapture() {
 
 
             
-            <Keyboard listenerRef={inputRef} showKeyboard={false}></Keyboard>
+            <Keyboard listenerRef={inputRef} deviceStatus={status}></Keyboard>
 
 
             <div className="flex flex-col flex-1 min-h-0 my-4">
