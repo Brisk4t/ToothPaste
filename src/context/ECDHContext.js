@@ -195,27 +195,37 @@ export const ECDHProvider = ({ children }) => {
     const createEncryptedPackets = async function* (id, payload, slowMode = true) {
         const encoder = new TextEncoder();
 
-        const data = payload instanceof Uint8Array ? payload : encoder.encode(payload);
+
+        
+        var stringData = false;
+        var data;
+        
+        if(payload instanceof Uint8Array){ // If data is already uint8array, we dont modify it
+            data = payload;
+        }
+
+        else{
+            data = encoder.encode(payload); // If data is a string, every packet is 0 prepended
+            stringData = true;
+        }
 
         const totalChunks = Math.ceil(data.length / Packet.MAX_DATA_SIZE);
-
-        // console.log(payload);
-        // console.log(data.length);
-        // console.log(totalChunks);
-        // TODO: Raise here if too much data is given
         if (totalChunks > 254) return;
 
         for (let chunkNumber = 0; chunkNumber < totalChunks; chunkNumber++) {
             const chunkData = data.slice(chunkNumber * Packet.MAX_DATA_SIZE, (chunkNumber + 1) * Packet.MAX_DATA_SIZE);
 
             // Prepend a 0 byte to ensure all encrypted chunks start with 0
-            const withLeadingZero = new Uint8Array(chunkData.length + 1);
-            withLeadingZero[0] = 0;
-            withLeadingZero.set(chunkData, 1);
+            var outputArray = data;
+            if(stringData){
+                outputArray = new Uint8Array(chunkData.length + 1);
+                outputArray[0] = 0;
+                outputArray.set(chunkData, 1);
+            }
 
             const aad = new Uint8Array([chunkNumber, totalChunks]);
 
-            const encrypted = await encryptText(withLeadingZero, aad);
+            const encrypted = await encryptText(outputArray, aad);
             yield new Packet(id, encrypted, chunkNumber, totalChunks, slowMode);
         }
     };
