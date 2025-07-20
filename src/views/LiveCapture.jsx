@@ -11,10 +11,10 @@ import { ECDHContext } from "../context/ECDHContext";
 import { BLEContext } from "../context/BLEContext";
 import "../components/CustomTyping/CustomTyping.css"; // We'll define animations here
 import Keyboard from "../components/Keyboard/Keyboard";
-import KeyHistory from "../components/Keyboard/KeyHistory";
 
 
 export default function LiveCapture() {
+    const [buffer, setBuffer] = useState(""); // what user is typing
     const lastSentBuffer = useRef(""); // tracks last sent buffer
     const bufferRef = useRef("");
     const debounceTimeout = useRef(null);
@@ -77,7 +77,7 @@ export default function LiveCapture() {
 
             if (keycode[1] !== 0){
                 console.log("Sending keycode")
-                sendEncrypted(keycode);
+                //sendEncrypted(keycode);
                 keycode[1] = 0;    
             }
             specialEvents.current = [];
@@ -124,13 +124,17 @@ export default function LiveCapture() {
             
             console.log("Sending: Ctrl +", keypress);
 
-            var keycode = new Uint8Array(7); // Payload = DATA_TYPE+[KEYCODES(6)]
+            var keycode = new Uint8Array(8); // Payload = DATA_TYPE+[KEYCODES(6)]
             keycode[0] = 1;   // Byte 0
             keycode[1] = 0x80;  // Byte 1
             keycode[2] = keypress.charCodeAt(0);  // Byte 2
-            keycode[3] = 0;    // Byte 3
+            keycode[4] = 0;    // Byte 3
+            keycode[5] = 0;    // Byte 3
+            keycode[6] = 0;    // Byte 3
+            keycode[7] = 0;    // Byte 3
 
             sendEncrypted(keycode);
+            return;
         }
 
         else{
@@ -141,6 +145,7 @@ export default function LiveCapture() {
                 } else {
                     const newBuffer = buffer.slice(0, -1);
                     bufferRef.current = newBuffer;
+                    setBuffer(newBuffer);
                     scheduleSend();
                 }
                 return;
@@ -153,6 +158,7 @@ export default function LiveCapture() {
                 } else {
                     const newBuffer = buffer + "\n";
                     bufferRef.current = newBuffer;
+                    setBuffer(newBuffer);
                     scheduleSend();
                 }
                 return;
@@ -170,6 +176,7 @@ export default function LiveCapture() {
 
                 const newBuffer = bufferRef.current + "\t"; // Tab character is \t
                 bufferRef.current = newBuffer;
+                setBuffer(newBuffer);
 
                 scheduleSend(); // Your existing debounce/send logic
                 return;
@@ -179,6 +186,7 @@ export default function LiveCapture() {
                 // Regular characters
                 const newBuffer = buffer + e.key;
                 bufferRef.current = newBuffer;
+                setBuffer(newBuffer);
                 scheduleSend();
                 return;
             }
@@ -204,7 +212,7 @@ export default function LiveCapture() {
 
             
             <Keyboard listenerRef={inputRef} deviceStatus={status}></Keyboard>
-            {/* <KeyHistory keyhistoryref={bufferRef.current}/> */}
+
 
             <div className="flex flex-col flex-1 min-h-0 my-4">
                 <div

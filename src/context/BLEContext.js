@@ -65,21 +65,22 @@ export function BLEProvider({ children, showOverlay, setShowOverlay }) {
     };
 
     // Send an encrypted send string as a byte array with a random IV and GCM tag
-    const sendEncrypted = async (inputString) => {
+    const sendEncrypted = async (inputArray) => {
         if (!pktCharacteristic) return;
 
         try {
-            console.log("Send starting....");
-            console.log(inputString);
+            var count = 0;
+            console.log("Send starting....", inputArray);
 
-            for await (const packet of createEncryptedPackets(0, inputString)) {
-                console.log("Sending packet...");
+            for await (const packet of createEncryptedPackets(0, inputArray)) {
+                console.log("Sending packet ", count);
                 await pktCharacteristic.writeValueWithoutResponse(
                     packet.serialize()
                 );
 
                 await waitForReady(); // Attach a promise to the ref
                 await readyToReceive.current.promise; // Wait in this iteration of the loop till the promise is consumed
+                count++;
             }
         } catch (error) {
             console.error(error);
