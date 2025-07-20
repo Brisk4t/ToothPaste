@@ -2,10 +2,10 @@ import React, { useEffect, useState, useRef } from "react";
 import { Button } from "@material-tailwind/react";
 const keys = [
   [ // Row 0
-    { eventCode: "Escape", label: "ESC", width: "w-14" },
+    { eventCode: "Escape", label: "ESC", width: "w-12 mr-14" },
     { eventCode: "F1", label: "F1" }, { eventCode: "F2", label: "F2" }, { eventCode: "F3", label: "F3" },
-    { eventCode: "F4", label: "F4" }, { eventCode: "F5", label: "F5" }, { eventCode: "F6", label: "F6" }, { eventCode: "F7", label: "F7" },
-    { eventCode: "F8", label: "F8" }, { eventCode: "F9", label: "F9" }, { eventCode: "F10", label: "F10" }, { eventCode: "F11", label: "F11" },
+    { eventCode: "F4", label: "F4", width: "w-12 mr-8" }, { eventCode: "F5", label: "F5" }, { eventCode: "F6", label: "F6" }, { eventCode: "F7", label: "F7" },
+    { eventCode: "F8", label: "F8", width: "w-12 mr-8" }, { eventCode: "F9", label: "F9" }, { eventCode: "F10", label: "F10" }, { eventCode: "F11", label: "F11" },
     { eventCode: "F12", label: "F12" } // Backspace
   ],
 
@@ -13,7 +13,7 @@ const keys = [
     { eventCode: "Backquote", label: "~" }, { eventCode: "Digit1", label: "1" }, { eventCode: "Digit2", label: "2" }, { eventCode: "Digit3", label: "3" },
     { eventCode: "Digit4", label: "4" }, { eventCode: "Digit5", label: "5" }, { eventCode: "Digit6", label: "6" }, { eventCode: "Digit7", label: "7" },
     { eventCode: "Digit8", label: "8" }, { eventCode: "Digit9", label: "9" }, { eventCode: "Digit0", label: "0" }, { eventCode: "Minus", label: "-" },
-    { eventCode: "Equal", label: "=" }, { eventCode: "Backspace", label: "←", width: "w-20" }, // Backspace
+    { eventCode: "Equal", label: "=" }, { eventCode: "Backspace", label: "↼", width: "w-24" }, // Backspace
   ],
 
   [ // Row 2
@@ -33,13 +33,13 @@ const keys = [
   [ // Row 4
     { eventCode: "ShiftLeft", label: "SHIFT", width: "w-32" }, { eventCode: "KeyZ", label: "Z" }, { eventCode: "KeyX", label: "X" },
     { eventCode: "KeyC", label: "C" }, { eventCode: "KeyV", label: "V" }, { eventCode: "KeyB", label: "B" }, { eventCode: "KeyN", label: "N" }, { eventCode: "KeyM", label: "M" },
-    { eventCode: "Comma", label: "," }, { eventCode: "Period", label: "." }, { eventCode: "Slash", label: "/" }, { eventCode: "ShiftRight", label: "SHIFT", width: "w-32" },
+    { eventCode: "Comma", label: "," }, { eventCode: "Period", label: "." }, { eventCode: "Slash", label: "/" }, { eventCode: "ShiftRight", label: "SHIFT", width: "w-36" },
     // { eventCode: "ArrowUp", label: "↑", width: "w-20" },
   ],
 
   [ // Row 5
     { eventCode: "ControlLeft", label:"CTRL", width: "w-20" }, { eventCode: "MetaLeft", label: "WIN", width: "w-20" }, { eventCode: "AltLeft", label: "ALT", width: "w-20" },
-    { eventCode: "Space", label:"_", width: "w-[300px]" },
+    { eventCode: "Space", label:"_", width: "w-[310px]" },
     { eventCode: "AltRight", label: "ALT", width: "w-20" }, { eventCode: "MetaRight", label: "WIN", width: "w-20" }, { eventCode: "ControlRight", label:"CTRL", width: "w-20" },
     // { eventCode: "ArrowLeft", label: "←", width: "w-20" }, { eventCode: "ArrowDown", label: "↓", width: "w-20" }, { eventCode: "ArrowRight", label:"→", width: "w-20" },
   ],
@@ -47,22 +47,22 @@ const keys = [
 
 const clusterKeys = [
   [ // Navigation block
-    { eventCode: "Insert", label: "Ins", width: "w-20 mt-20" },
-    { eventCode: "Home", label: "Home", width: "w-20 mt-20" },
-    { eventCode: "PageUp", label: "PgUp", width: "w-20 mt-20" },
+    { eventCode: "Insert", label: "Ins", width: "w-16 mt-20" },
+    { eventCode: "Home", label: "Home", width: "w-16 mt-20" },
+    { eventCode: "PageUp", label: "PgUp", width: "w-16 mt-20" },
   ],
   [
-    { eventCode: "Delete", label: "Del", width: "w-20" },
-    { eventCode: "End", label: "End", width: "w-20" },
-    { eventCode: "PageDown", label: "PgDn", width: "w-20" },
+    { eventCode: "Delete", label: "Del", width: "w-16" },
+    { eventCode: "End", label: "End", width: "w-16" },
+    { eventCode: "PageDown", label: "PgDn", width: "w-16" },
   ],
   [
-    { eventCode: "ArrowUp", label: "↑", width: "w-20 mt-12" },
+    { eventCode: "ArrowUp", label: "↑", width: "w-16 mt-12" },
   ],
   [
-    { eventCode: "ArrowLeft", label: "←", width: "w-20" },
-    { eventCode: "ArrowDown", label: "↓", width: "w-20" },
-    { eventCode: "ArrowRight", label: "→", width: "w-20" },
+    { eventCode: "ArrowLeft", label: "←", width: "w-16" },
+    { eventCode: "ArrowDown", label: "↓", width: "w-16" },
+    { eventCode: "ArrowRight", label: "→", width: "w-16" },
   ],
 ];
 
@@ -94,27 +94,29 @@ const numpadKeys = [
   [
     { eventCode: "Numpad0", label: "0"},
     { eventCode: "NumpadDecimal", label: "." },
-    { eventCode: "NumpadAdd", label: "+", width: "w-28" },
+    { eventCode: "NumpadAdd", label: "+", width: "w-[104px]" },
   ],
 ];
 
 
 const modifierKeyCodes = [
-  "ShiftLeft",
-  "ShiftRight",
-  "ControlLeft",
-  "ControlRight",
-  "AltLeft",
-  "AltRight",
-  "MetaLeft",   // Windows key on Windows, Command key on macOS
-  "MetaRight"
+    "ShiftLeft",
+    "ShiftRight",
+    "ControlLeft",
+    "ControlRight",
+    "AltLeft",
+    "AltRight",
+    "MetaLeft", // Windows key on Windows, Command key on macOS
+    "MetaRight",
 ];
 
-
-
 const keyLabelMap = {};
-    keys.flat().forEach(({ eventCode, label }) => {
-    keyLabelMap[eventCode] = label || eventCode;
+[keys, clusterKeys, numpadKeys].forEach((section) => {
+    section.forEach((row) => {
+        row.forEach(({ eventCode, label }) => {
+            keyLabelMap[eventCode] = label || eventCode;
+        });
+    });
 });
 
 const MAX_HISTORY_LENGTH = 23;
@@ -122,11 +124,7 @@ const HISTORY_DURATION = 3000;
 const COMBO_COOLDOWN = 200; // minimum ms before logging same combo again
 const DEBOUNCE_DURATION = 300; // in ms
 
-
-
-
-
-const Keyboard = ({ listenerRef, deviceStatus}) => {
+const Keyboard = ({ listenerRef, deviceStatus }) => {
     const [activeKeys, setActiveKeys] = useState(new Set());
     const [history, setHistory] = useState([]);
     const timeoutsRef = useRef({});
@@ -139,8 +137,6 @@ const Keyboard = ({ listenerRef, deviceStatus}) => {
     const activeKeysRef = useRef(new Set());
     const keyPressTimestamps = useRef({});
     const debounceTimer = useRef(null);
-
-
 
     useEffect(() => {
         switch (deviceStatus) {
@@ -158,36 +154,35 @@ const Keyboard = ({ listenerRef, deviceStatus}) => {
         }
     }, [deviceStatus]);
 
-    function ShowKeyboardButton (){
-        const handleToggle = () => setShowKeyboard(prev => !prev)
-            
-        return(
-                <Button variant="outlined" onClick={handleToggle} className={`p-3 border border-hover text-text 
-                    ${showKeyboard? 
-                    "bg-white text-shelf":
-                    "bg-shelf "}`}
-                >Keyboard</Button>
-        );
+    function ShowKeyboardButton() {
+        const handleToggle = () => setShowKeyboard((prev) => !prev);
 
+        return (
+            <Button
+                variant="outlined"
+                onClick={handleToggle}
+                className={`p-3 border border-hover text-text 
+                    ${showKeyboard ? "bg-white text-shelf" : "bg-shelf "}`}
+            >
+                Keyboard
+            </Button>
+        );
     }
 
     // Return a list of all keys that have been pressed for >= DEBOUNCE_DURATION
     const getDebouncedKeys = () => {
         const now = Date.now();
-        return [...activeKeysRef.current].filter(
-            (k) => now - keyPressTimestamps.current[k] >= DEBOUNCE_DURATION
-        );
+        return [...activeKeysRef.current].filter((k) => now - keyPressTimestamps.current[k] >= DEBOUNCE_DURATION);
     };
 
     // Handle keypresses
     useEffect(() => {
-
         // If component is not attached to anything, return
         const node = listenerRef?.current;
         if (!node) return;
 
         const handleKeyDown = (e) => {
-            const key =  e.code; // Translate " " to "SPACE"
+            const key = e.code; // Translate " " to "SPACE"
 
             // Only timestamp if not already held
             if (!keyPressTimestamps.current[key]) {
@@ -215,18 +210,19 @@ const Keyboard = ({ listenerRef, deviceStatus}) => {
                 // If there are no such keys, return
                 if (validKeys.length === 0) return;
 
+                const sortedCombo = validKeys
+                    .map((code) => keyLabelMap[code] || code)
+                    .sort()
+                    .join("+");
 
-                const sortedCombo = validKeys.map(code => keyLabelMap[code] || code).sort().join("+");
-
-            
                 // Check if a bigger combo including this combo was recently logged
-                const isSubsetOfRecentCombo = Object.keys(comboTimestamps.current).some(combo => {
+                const isSubsetOfRecentCombo = Object.keys(comboTimestamps.current).some((combo) => {
                     if (now - comboTimestamps.current[combo] > COMBO_COOLDOWN) return false;
 
                     const comboKeys = combo.split("+");
 
                     // Check if validKeys is a subset of comboKeys
-                    return validKeys.every(k => comboKeys.includes(k)) && comboKeys.length > validKeys.length;
+                    return validKeys.every((k) => comboKeys.includes(k)) && comboKeys.length > validKeys.length;
                 });
 
                 if (isSubsetOfRecentCombo) return; // If we're still holding down other keys this event is not logged
@@ -254,7 +250,7 @@ const Keyboard = ({ listenerRef, deviceStatus}) => {
             const pressTime = keyPressTimestamps.current[key];
             const now = Date.now();
 
-            const wasQuickTap = pressTime && (now - pressTime < DEBOUNCE_DURATION);
+            const wasQuickTap = pressTime && now - pressTime < DEBOUNCE_DURATION;
 
             delete keyPressTimestamps.current[key];
 
@@ -264,12 +260,10 @@ const Keyboard = ({ listenerRef, deviceStatus}) => {
 
             // If it's a quick tap, record the combo using remaining modifiers
             if (wasQuickTap) {
-                const modifiers = [...tempActiveKeys].filter(k =>
-                    modifierKeyCodes.includes(k)
-                );
+                const modifiers = [...tempActiveKeys].filter((k) => modifierKeyCodes.includes(k));
 
                 const comboKeys = [...modifiers, key].sort();
-                const sortedCombo = comboKeys.map(k => keyLabelMap[k] || k).join("+");
+                const sortedCombo = comboKeys.map((k) => keyLabelMap[k] || k).join("+");
 
                 if (now - (comboTimestamps.current[sortedCombo] || 0) >= COMBO_COOLDOWN) {
                     comboTimestamps.current[sortedCombo] = now;
@@ -314,84 +308,89 @@ const Keyboard = ({ listenerRef, deviceStatus}) => {
 
     return (
         <div className="bg-black text-white flex flex-col items-center justify-center space-y-6">
-  {/* Wrap both history and keyboard in a fixed-width container */}
-  <div className="w-full">
-    {/* Keyboard Layouts */}
-    <div className={`flex flex-row justify-center space-x-8 ${showKeyboard ? "" : "hidden"}`}>
-      
-      {/* TKL keys */}
-      <div className="flex flex-col space-y-2">
-        {keys.map((row, rowIndex) => (
-          <div key={rowIndex} className="flex justify-center">
-            {row.map(({ eventCode, width, label }) => (
-              <div
-                key={eventCode}
-                className={`${width ?? "w-12"} h-12 mx-1 border-2 border-hover flex items-center justify-center text-lg rounded-lg ${
-                  rowIndex === 0 ? "mb-5" : ""
-                } ${isKeyActive(eventCode) ? backgroundColor : "bg-black"}`}
-              >
-                {label}
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
+            {/* Wrap both history and keyboard in a fixed-width container */}
+            <div className="w-full">
+                {/* Keyboard Layouts */}
+                <div className={`flex flex-row justify-center space-x-8 flex-[2] ${showKeyboard ? "" : "hidden"}`}>
+                    {/* TKL keys */}
+                    <div className="flex flex-col space-y-2">
+                        {keys.map((row, rowIndex) => (
+                            <div key={rowIndex} className="flex justify-center">
+                                {row.map(({ eventCode, width, label }) => (
+                                    <div
+                                        key={eventCode}
+                                        className={`${
+                                            width ?? "w-12"
+                                        } h-12 mx-1 border-2 border-hover flex items-center justify-center text-lg rounded-lg ${
+                                            rowIndex === 0 ? "mb-5" : ""
+                                        } ${isKeyActive(eventCode) ? backgroundColor : "bg-black"}`}
+                                    >
+                                        {label}
+                                    </div>
+                                ))}
+                            </div>
+                        ))}
+                    </div>
 
-      {/* Cluster keys */}
-      <div className="flex flex-col space-y-2 hidden lg:block">
-        {clusterKeys.map((row, rowIndex) => (
-          <div key={rowIndex} className="flex justify-center">
-            {row.map(({ eventCode, width, label }) => (
-              <div
-                key={eventCode}
-                className={`${width ?? "w-12"} h-12 mx-1 border-2 border-hover flex items-center justify-center text-lg rounded-lg ${
-                  isKeyActive(eventCode) ? backgroundColor : "bg-black"
-                }`}
-              >
-                {label}
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
+                    {/* Cluster keys */}
+                    <div className="flex flex-col space-y-2 hidden lg:block">
+                        {clusterKeys.map((row, rowIndex) => (
+                            <div key={rowIndex} className="flex justify-center">
+                                {row.map(({ eventCode, width, label }) => (
+                                    <div
+                                        key={eventCode}
+                                        className={`${
+                                            width ?? "w-12"
+                                        } h-12 mx-1 border-2 border-hover flex items-center justify-center text-lg rounded-lg ${
+                                            isKeyActive(eventCode) ? backgroundColor : "bg-black"
+                                        }`}
+                                    >
+                                        {label}
+                                    </div>
+                                ))}
+                            </div>
+                        ))}
+                    </div>
 
-      {/* Numpad keys */}
-      <div className="flex flex-col space-y-2 hidden xl:block">
-        {numpadKeys.map((row, rowIndex) => (
-          <div key={rowIndex} className="flex justify-center">
-            {row.map(({ eventCode, width, label }) => (
-              <div
-                key={eventCode}
-                className={`${width ?? "w-12"} h-12 mx-1 border-2 border-hover flex items-center justify-center text-lg rounded-lg ${
-                  isKeyActive(eventCode) ? backgroundColor : "bg-black"
-                }`}
-              >
-                {label}
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
-    </div>
+                    {/* Numpad keys */}
+                    <div className="flex flex-col space-y-2 hidden xl:block">
+                        {numpadKeys.map((row, rowIndex) => (
+                            <div key={rowIndex} className="flex justify-center">
+                                {row.map(({ eventCode, width, label }) => (
+                                    <div
+                                        key={eventCode}
+                                        className={`${
+                                            width ?? "w-12"
+                                        } h-12 mx-1 border-2 border-hover flex items-center justify-center text-lg rounded-lg ${
+                                            isKeyActive(eventCode) ? backgroundColor : "bg-black"
+                                        }`}
+                                    >
+                                        {label}
+                                    </div>
+                                ))}
+                            </div>
+                        ))}
+                    </div>
+                </div>
 
-    {/* Command History Container Styling */}
-    <div className="rounded-lg bg-shelf px-2 py-2 mt-4 min-h-12 w-full max-w-full overflow-x-hidden">
-      {/* Command History Container Function */}
-      <div className="flex flex-nowrap space-x-2">
-        <ShowKeyboardButton />
-        {history.map((entry) => (
-          <div
-            key={entry.id}
-            className={`px-2 py-1 flex items-center justify-center text-sm font-bold rounded ${backgroundColor} animate-fadeout`}
-            style={{ animationDuration: `${HISTORY_DURATION}ms` }}
-          >
-            {entry.key}
-          </div>
-        ))}
-      </div>
-    </div>
-  </div>
-</div>
+                {/* Command History Container Styling */}
+                <div className="rounded-lg bg-shelf px-2 py-2 mt-4 min-h-12 w-full max-w-full overflow-x-hidden">
+                    {/* Command History Container Function */}
+                    <div className="flex flex-nowrap space-x-2">
+                        <ShowKeyboardButton />
+                        {history.map((entry) => (
+                            <div
+                                key={entry.id}
+                                className={`px-2 py-1 flex items-center justify-center text-sm font-bold rounded ${backgroundColor} animate-fadeout`}
+                                style={{ animationDuration: `${HISTORY_DURATION}ms` }}
+                            >
+                                {entry.key}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
     );
 };
 
