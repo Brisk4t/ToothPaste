@@ -28,9 +28,8 @@ export default function LiveCapture() {
 
     // Send only recent characters while displaying the whole input
     const sendDiff = useCallback(async () => {
-        var keycode = new Uint8Array(7); // Payload = DATA_TYPE+[KEYCODES(6)]
+        var keycode = new Uint8Array(8); // Payload = DATA_TYPE+[KEYCODES(6)]
         keycode[0] = 1;     // Byte 0
-        keycode[1] = 0x00;  // Byte 1
             
         const current = bufferRef.current;
         const previous = lastSentBuffer.current;
@@ -74,10 +73,10 @@ export default function LiveCapture() {
                     // add other special keys as needed
                 }
             }
-
+            // If the payload is not null
             if (keycode[1] !== 0){
                 console.log("Sending keycode")
-                //sendEncrypted(keycode);
+                sendEncrypted(keycode);
                 keycode[1] = 0;    
             }
             specialEvents.current = [];
