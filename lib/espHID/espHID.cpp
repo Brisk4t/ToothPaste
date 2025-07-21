@@ -82,7 +82,7 @@ void moveMouse(int x, int y, bool LClick, bool RClick){
   
 }
 
-void moveMouse(int16_t* mousePacket){
+void moveMouse(int32_t* mousePacket){
   moveMouse(mousePacket[0], mousePacket[1], (bool)mousePacket[2], (bool)mousePacket[3]);
 }
 
