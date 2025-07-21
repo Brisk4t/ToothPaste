@@ -394,6 +394,7 @@ export default function LiveCapture() {
                     onPointerUp={onPointerUp}
                     onPointerCancel={onPointerCancel}
                     onPointerEnter={onPointerEnter}
+                    onBeforeInput={handleTouchInput}
                     onPaste={onPaste}
                     className="flex flex-1 w-full p-4  
                                 bg-transparent text-hover text-4xl outline-none focus:outline-none whitespace-pre-wrap font-sans overflow-y-auto">
