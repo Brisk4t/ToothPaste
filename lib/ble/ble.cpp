@@ -305,6 +305,7 @@ void decryptSendString(SecureSession::rawDataPacket* packet, SecureSession* sess
     
     // The first byte indicates the data is mouse data
     else if(plaintext[0] == 2){
+      Serial0.println("Mouse Packet Detected");
       std::vector<int32_t> keycode(plaintext + 1, plaintext + packet->dataLen);
       moveMouse(keycode.data());
     }
