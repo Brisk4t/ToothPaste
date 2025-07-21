@@ -7,6 +7,7 @@ import React, {
 } from "react";
 
 import { Button, Typography } from "@material-tailwind/react";
+import { CursorArrowRaysIcon } from "@heroicons/react/24/outline";
 import { ECDHContext } from "../context/ECDHContext";
 import { BLEContext } from "../context/BLEContext";
 import "../components/CustomTyping/CustomTyping.css"; // We'll define animations here
@@ -31,6 +32,7 @@ export default function LiveCapture() {
     const ctrlPressed = useRef(false);
     const lastReportTime = useRef(0);
     const REPORT_INTERVAL_MS = 200;
+    const [captureMouse, setCaptureMouse] = useState(false);
 
     // On click logic
     function onPointerDown(e) {
@@ -63,7 +65,7 @@ export default function LiveCapture() {
 
     // When a pointer moves
     function onPointerMove(e) {
-        if (ctrlPressed.current) return;
+        if (!captureMouse) return;
 
         // Get bounding rect once (you can optimize by caching it elsewhere)
         const rect = inputRef.current.getBoundingClientRect();
@@ -75,7 +77,7 @@ export default function LiveCapture() {
             e.clientY >= rect.top &&
             e.clientY <= rect.bottom;
 
-        if (!inside) {
+        if (!inside && ctrlPressed.current) {
             // Pointer outside div but pointer capture means we still get events
             // Stop tracking so next movement inside resets lastPos
             isTracking.current = false;
@@ -201,12 +203,12 @@ export default function LiveCapture() {
 
     // Polling logic: send latest buffer every N ms if changed
     const scheduleSend = useCallback(() => {
+        // If schedulesSend is called while another timeout is running, reset it
         if (debounceTimeout.current) {
             clearTimeout(debounceTimeout.current);
         }
-        debounceTimeout.current = setTimeout(() => {
-            sendDiff();
-        }, DEBOUNCE_INTERVAL_MS);
+
+        debounceTimeout.current = setTimeout(() => {sendDiff();}, DEBOUNCE_INTERVAL_MS);
     }, [sendDiff]);
 
     // Handle each keypress and reset the timer 
@@ -299,10 +301,32 @@ export default function LiveCapture() {
         }
     };
 
+    function CaptureMouseButton() {
+            const handleToggle = () => setCaptureMouse((prev) => !prev);
+    
+            return (
+                <div onClick={handleToggle} 
+                className={`border border-hover text-text h-10 w-10 justify-between items-center p-2 rounded-lg
+                            ${captureMouse ? "bg-white text-shelf" : "bg-shelf"}`}>
+                    <CursorArrowRaysIcon className="h-5 w-5">
+                    </CursorArrowRaysIcon>
+                </div>
+            );
+        }
+
     const handleKeyUp = (e) => {
       if (e.key === 'Control') {
         ctrlPressed.current = false;
       }
+    }
+
+    const onPaste = (e) => {
+        e.preventDefault();
+        const newBuffer = buffer + e.clipboardData.getData('text');
+        bufferRef.current = newBuffer;
+        setBuffer(newBuffer);
+        scheduleSend();
+        return;
     }
 
     useEffect(() => {
@@ -326,18 +350,26 @@ export default function LiveCapture() {
             <Keyboard listenerRef={inputRef} deviceStatus={status}></Keyboard>
 
 
-            <div className="flex flex-col flex-1 my-4">
+            <div className="flex flex-col flex-1 my-4 rounded-xl transition-all border border-hover focus:border-shelf relative">
+                <div className="absolute top-2 right-2">
+                    <CaptureMouseButton />
+                </div>
+
                 <div
                     ref={inputRef}
                     tabIndex={0}
                     onKeyDown={handleKeyDown}
                     onKeyUp={handleKeyUp}
+                    contentEditable={true}
+                    suppressContentEditableWarning={true}
+                    onInput={(e) => e.preventDefault()} // stop text from being inserted
                     onPointerDown={onPointerDown}
                     onPointerMove={onPointerMove}
                     onPointerUp={onPointerUp}
                     onPointerCancel={onPointerCancel}
                     onPointerEnter={onPointerEnter}
-                    className="flex flex-1 w-full p-4 rounded-xl transition-all border border-hover focus:border-shelf 
+                    onPaste={onPaste}
+                    className="flex flex-1 w-full p-4  
                                 bg-transparent text-hover text-4xl outline-none focus:outline-none whitespace-pre-wrap font-sans overflow-y-auto">
                     
                     Type Here

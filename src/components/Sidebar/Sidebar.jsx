@@ -81,15 +81,6 @@ export function SidebarWithLogo({ onOpenPairing, onNavigate, activeView }) {
 
                 {/* Center: Desktop menu */}
                 <div className="hidden md:flex flex-1 justify-center space-x-16">
-                    <button
-                        className={`flex items-center space-x-1 py-4 px-8 gap-1 rounded ${
-                            activeView === "paste" ? "border border-text" : "hover:bg-hover"
-                        }`}
-                        onClick={() => onNavigate("paste")}
-                    >
-                        <ClipboardIcon className="h-5 w-5" />
-                        <Typography variant="h4">Paste</Typography>
-                    </button>
 
                     <button
                         className={`flex items-center space-x-1 py-4 px-8 gap-1  rounded ${
@@ -99,6 +90,16 @@ export function SidebarWithLogo({ onOpenPairing, onNavigate, activeView }) {
                     >
                         <PlayIcon className="h-5 w-5" />
                         <Typography variant="h4">Live Capture</Typography>
+                    </button>
+                    
+                    <button
+                        className={`flex items-center space-x-1 py-4 px-8 gap-1 rounded ${
+                            activeView === "paste" ? "border border-text" : "hover:bg-hover"
+                        }`}
+                        onClick={() => onNavigate("paste")}
+                    >
+                        <ClipboardIcon className="h-5 w-5" />
+                        <Typography variant="h4">Paste</Typography>
                     </button>
 
                     {status === 2 && (
@@ -135,18 +136,6 @@ export function SidebarWithLogo({ onOpenPairing, onNavigate, activeView }) {
             {/* Mobile Dropdown Menu */}
             {isOpen && (
                 <div className="md:hidden flex flex-col space-y-2 px-4 pb-4">
-                    <button
-                        className={`flex items-center space-x-1 px-3 py-2 rounded ${
-                            activeView === "paste" ? "outline-text" : "hover:bg-hover"
-                        }`}
-                        onClick={() => {
-                            onNavigate("paste");
-                            setIsOpen(false);
-                        }}
-                    >
-                        <ClipboardIcon className="h-5 w-5" />
-                        <span>Paste</span>
-                    </button>
 
                     <button
                         className={`flex items-center space-x-1 px-3 py-2 rounded ${
@@ -159,6 +148,19 @@ export function SidebarWithLogo({ onOpenPairing, onNavigate, activeView }) {
                     >
                         <PlayIcon className="h-5 w-5" />
                         <span>Live Capture</span>
+                    </button>
+                    
+                     <button
+                        className={`flex items-center space-x-1 px-3 py-2 rounded ${
+                            activeView === "paste" ? "outline-text" : "hover:bg-hover"
+                        }`}
+                        onClick={() => {
+                            onNavigate("paste");
+                            setIsOpen(false);
+                        }}
+                    >
+                        <ClipboardIcon className="h-5 w-5" />
+                        <span>Paste</span>
                     </button>
 
                     {status === 2 && (
