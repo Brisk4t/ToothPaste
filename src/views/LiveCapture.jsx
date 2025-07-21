@@ -332,22 +332,8 @@ export default function LiveCapture() {
 
     const handleTouchInput = (e) => {
         e.preventDefault();
-        const newBuffer = null;
-
-        if (e.inputType === "deleteContentBackward") {
-            // Backspace pressed
-            console.log("Backspace detected");
-            // Handle backspace here
-        } 
+        const newBuffer = buffer + e.data();      
         
-        else if (e.inputType === "insertText") {
-            const newBuffer = buffer + e.data();      
-        } 
-        
-        else {
-            // Other input types like paste, delete forward, etc.
-            console.log("Input type:", e.inputType, "data:", e.data);
-        }
         
         bufferRef.current = newBuffer;
         setBuffer(newBuffer);
