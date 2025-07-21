@@ -70,7 +70,7 @@ void moveMouse(int32_t x, int32_t y, bool LClick, bool RClick){
   }
   
 
-  smoothMoveMouse(x, y, 20, 5);
+  smoothMoveMouse(x, y, 20, 5); // Move the mouse by dx and dy over 20 steps and SLOWMODE_DELAY_MS ms between each step
 
   // Release after moving the mouse
   if (mouse.isPressed(MOUSE_LEFT)) {
@@ -83,14 +83,12 @@ void moveMouse(int32_t x, int32_t y, bool LClick, bool RClick){
   
 }
 
-void moveMouse(uint8_t* mousePacket){
-  // mousePacket is an array of int32_t values sent over a uint8_t stream
-
-  int32_t* ints = reinterpret_cast<int32_t*>(mousePacket);
-  //moveMouse(mousePacket[0], mousePacket[1], (bool)mousePacket[2], (bool)mousePacket[3]);
-  moveMouse(ints[0], ints[1], false, false);
+void moveMouse(uint8_t* mousePacket){ // mousePacket is an array of int32_t values sent over a uint8_t stream
+  int32_t* ints = reinterpret_cast<int32_t*>(mousePacket); // Safely cast uint8_t* to uint32_t*
+  moveMouse(ints[0], ints[1], ints[2], ints[3]);
 }
 
+// Smooth the mouse movement between its current position and dx dy
 void smoothMoveMouse(int dx, int dy, int steps, int interval) {
   float stepX = (float)dx / steps;
   float stepY = (float)dy / steps;
@@ -112,7 +110,7 @@ void smoothMoveMouse(int dx, int dy, int steps, int interval) {
       accumulatedY -= moveY;
     }
 
-    delay(interval);
+    delay(SLOWMODE_DELAY_MS);
   }
 }
 
