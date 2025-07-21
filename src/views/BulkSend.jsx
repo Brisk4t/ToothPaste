@@ -69,7 +69,7 @@ export default function BulkSend() {
 
 
     return (
-        <div className="flex flex-col max-h-screen w-full p-6 bg-background text-text">
+        <div className="flex flex-col flex-1 w-full p-6 bg-background text-text">
             <Typography variant="h2" className="text-text">
                 Paste Something
             </Typography>
@@ -77,7 +77,7 @@ export default function BulkSend() {
                 And the pigeons will do the rest.....
             </Typography>
 
-            <div className="flex flex-col flex-1 mt-5 min-h-0">
+            <div className="flex flex-col flex-1 mt-5">
                 {/* <CustomTyping> </CustomTyping> */}
 
                 <RichTextArea onKeyDownCapture={handleShortcut} onChange={(text) => setInput(text)} />

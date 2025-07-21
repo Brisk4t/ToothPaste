@@ -41,7 +41,6 @@ const keys = [
     { eventCode: "ControlLeft", label:"CTRL", width: "w-20" }, { eventCode: "MetaLeft", label: "WIN", width: "w-20" }, { eventCode: "AltLeft", label: "ALT", width: "w-20" },
     { eventCode: "Space", label:"_", width: "w-[310px]" },
     { eventCode: "AltRight", label: "ALT", width: "w-20" }, { eventCode: "MetaRight", label: "WIN", width: "w-20" }, { eventCode: "ControlRight", label:"CTRL", width: "w-20" },
-    // { eventCode: "ArrowLeft", label: "←", width: "w-20" }, { eventCode: "ArrowDown", label: "↓", width: "w-20" }, { eventCode: "ArrowRight", label:"→", width: "w-20" },
   ],
 ];
 
@@ -97,7 +96,6 @@ const numpadKeys = [
     { eventCode: "NumpadAdd", label: "+", width: "w-[104px]" },
   ],
 ];
-
 
 const modifierKeyCodes = [
     "ShiftLeft",
@@ -307,87 +305,85 @@ const Keyboard = ({ listenerRef, deviceStatus }) => {
     const isKeyActive = (eventCode) => activeKeys.has(eventCode);
 
     return (
-        <div className="bg-black text-white flex flex-col items-center justify-center space-y-6">
-            {/* Wrap both history and keyboard in a fixed-width container */}
-            <div className="w-full">
-                {/* Keyboard Layouts */}
-                <div className={`flex flex-row justify-center space-x-8 flex-[2] ${showKeyboard ? "" : "hidden"}`}>
-                    {/* TKL keys */}
-                    <div className="flex flex-col space-y-2">
-                        {keys.map((row, rowIndex) => (
-                            <div key={rowIndex} className="flex justify-center">
-                                {row.map(({ eventCode, width, label }) => (
-                                    <div
-                                        key={eventCode}
-                                        className={`${
-                                            width ?? "w-12"
-                                        } h-12 mx-1 border-2 border-hover flex items-center justify-center text-lg rounded-lg ${
-                                            rowIndex === 0 ? "mb-5" : ""
-                                        } ${isKeyActive(eventCode) ? backgroundColor : "bg-black"}`}
-                                    >
-                                        {label}
-                                    </div>
-                                ))}
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Cluster keys */}
-                    <div className="flex flex-col space-y-2 hidden lg:block">
-                        {clusterKeys.map((row, rowIndex) => (
-                            <div key={rowIndex} className="flex justify-center">
-                                {row.map(({ eventCode, width, label }) => (
-                                    <div
-                                        key={eventCode}
-                                        className={`${
-                                            width ?? "w-12"
-                                        } h-12 mx-1 border-2 border-hover flex items-center justify-center text-lg rounded-lg ${
-                                            isKeyActive(eventCode) ? backgroundColor : "bg-black"
-                                        }`}
-                                    >
-                                        {label}
-                                    </div>
-                                ))}
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Numpad keys */}
-                    <div className="flex flex-col space-y-2 hidden xl:block">
-                        {numpadKeys.map((row, rowIndex) => (
-                            <div key={rowIndex} className="flex justify-center">
-                                {row.map(({ eventCode, width, label }) => (
-                                    <div
-                                        key={eventCode}
-                                        className={`${
-                                            width ?? "w-12"
-                                        } h-12 mx-1 border-2 border-hover flex items-center justify-center text-lg rounded-lg ${
-                                            isKeyActive(eventCode) ? backgroundColor : "bg-black"
-                                        }`}
-                                    >
-                                        {label}
-                                    </div>
-                                ))}
-                            </div>
-                        ))}
-                    </div>
+        <div className="bg-black text-white flex flex-col w-full items-center justify-center space-y-6">
+            {/* Keyboard Layouts */}
+            <div className={`flex flex-row justify-center space-x-8 flex-[2] ${showKeyboard ? "" : "hidden"}`}>
+                
+                {/* TKL keys */}
+                <div className="flex flex-col space-y-2">
+                    {keys.map((row, rowIndex) => (
+                        <div key={rowIndex} className="flex justify-center">
+                            {row.map(({ eventCode, width, label }) => (
+                                <div
+                                    key={eventCode}
+                                    className={`${
+                                        width ?? "w-12"
+                                    } h-12 mx-1 border-2 border-hover flex items-center justify-center text-lg rounded-lg ${
+                                        rowIndex === 0 ? "mb-5" : ""
+                                    } ${isKeyActive(eventCode) ? backgroundColor : "bg-black"}`}
+                                >
+                                    {label}
+                                </div>
+                            ))}
+                        </div>
+                    ))}
                 </div>
 
-                {/* Command History Container Styling */}
-                <div className="rounded-lg bg-shelf px-2 py-2 mt-4 min-h-12 w-full max-w-full overflow-x-hidden">
-                    {/* Command History Container Function */}
-                    <div className="flex flex-nowrap space-x-2">
-                        <ShowKeyboardButton />
-                        {history.map((entry) => (
-                            <div
-                                key={entry.id}
-                                className={`px-2 py-1 flex items-center justify-center text-sm font-bold rounded ${backgroundColor} animate-fadeout`}
-                                style={{ animationDuration: `${HISTORY_DURATION}ms` }}
-                            >
-                                {entry.key}
-                            </div>
-                        ))}
-                    </div>
+                {/* Cluster keys */}
+                <div className="flex flex-col space-y-2 hidden lg:block">
+                    {clusterKeys.map((row, rowIndex) => (
+                        <div key={rowIndex} className="flex justify-center">
+                            {row.map(({ eventCode, width, label }) => (
+                                <div
+                                    key={eventCode}
+                                    className={`${
+                                        width ?? "w-12"
+                                    } h-12 mx-1 border-2 border-hover flex items-center justify-center text-lg rounded-lg ${
+                                        isKeyActive(eventCode) ? backgroundColor : "bg-black"
+                                    }`}
+                                >
+                                    {label}
+                                </div>
+                            ))}
+                        </div>
+                    ))}
+                </div>
+
+                {/* Numpad keys */}
+                <div className="flex flex-col space-y-2 hidden xl:block">
+                    {numpadKeys.map((row, rowIndex) => (
+                        <div key={rowIndex} className="flex justify-center">
+                            {row.map(({ eventCode, width, label }) => (
+                                <div
+                                    key={eventCode}
+                                    className={`${
+                                        width ?? "w-12"
+                                    } h-12 mx-1 border-2 border-hover flex items-center justify-center text-lg rounded-lg ${
+                                        isKeyActive(eventCode) ? backgroundColor : "bg-black"
+                                    }`}
+                                >
+                                    {label}
+                                </div>
+                            ))}
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Command History Container Styling */}
+            <div className="rounded-lg bg-shelf px-2 py-2 mt-4 min-h-12 w-full max-w-full overflow-x-hidden">
+                {/* Command History Container Function */}
+                <div className="flex flex-nowrap space-x-2">
+                    <ShowKeyboardButton />
+                    {history.map((entry) => (
+                        <div
+                            key={entry.id}
+                            className={`px-2 py-1 flex items-center justify-center text-sm font-bold rounded ${backgroundColor} animate-fadeout`}
+                            style={{ animationDuration: `${HISTORY_DURATION}ms` }}
+                        >
+                            {entry.key}
+                        </div>
+                    ))}
                 </div>
             </div>
         </div>
