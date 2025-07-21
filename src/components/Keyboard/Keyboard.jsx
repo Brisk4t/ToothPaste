@@ -305,9 +305,9 @@ const Keyboard = ({ listenerRef, deviceStatus }) => {
     const isKeyActive = (eventCode) => activeKeys.has(eventCode);
 
     return (
-        <div className="bg-black text-white flex flex-col w-full items-center justify-center space-y-6">
+        <div className="bg-black text-white flex flex-col w-full items-center justify-center space-y-6 mt-4">
             {/* Keyboard Layouts */}
-            <div className={`flex flex-row justify-center space-x-8 flex-[2] ${showKeyboard ? "" : "hidden"}`}>
+            <div className={`flex flex-row justify-center space-x-8 ${showKeyboard ? "" : "hidden"}`}>
                 
                 {/* TKL keys */}
                 <div className="flex flex-col space-y-2">

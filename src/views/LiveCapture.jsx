@@ -27,104 +27,107 @@ export default function LiveCapture() {
 
     // Mouse Vars
     const lastPos = useRef({ x: 0, y: 0 });
-    const isTracking = useRef(false);
+    const isTracking = useRef(true);
     const ctrlPressed = useRef(false);
     const lastReportTime = useRef(0);
-    const REPORT_INTERVAL_MS = 500;
+    const REPORT_INTERVAL_MS = 200;
 
-    // Mouse acceleration function (simple example)
-    // You can tweak this curve as you like
-    function applyAcceleration(delta) {
-        const sensitivity = 1.5; // base sensitivity multiplier
-        const exponent = 1.3;    // acceleration curve power
-        const sign = Math.sign(delta);
-        const absDelta = Math.abs(delta);
-
-        return sign * (Math.pow(absDelta, exponent)) * sensitivity;
-    }
-
+    // On click logic
     function onPointerDown(e) {
-        if (ctrlPressed.current) return; // ignore pointer down if ctrl held
-
+        e.target.setPointerCapture(e.pointerId);
         isTracking.current = true;
         lastPos.current = { x: e.clientX, y: e.clientY };
     }
 
-    function onPointerMove(e) {
-        if (!isTracking.current || ctrlPressed.current) return;
-
-        const rect = inputRef.current.getBoundingClientRect();
-
-        if (
-        e.clientX < rect.left || e.clientX > rect.right ||
-        e.clientY < rect.top || e.clientY > rect.bottom
-        ) {
-        // Pointer outside div — lift finger
-        isTracking.current = false;
-        return;
-        }
-
-        const deltaX = e.clientX - lastPos.current.x;
-        const deltaY = e.clientY - lastPos.current.y;
-        lastPos.current = { x: e.clientX, y: e.clientY };
-
-        // Apply acceleration or report delta here
-        const accelDeltaX = applyAcceleration(deltaX);
-        const accelDeltaY = applyAcceleration(deltaY);
-
-
-        //console.log('Accel delta:', accelDeltaX.toFixed(2), accelDeltaY.toFixed(2));
-
-        const keycode = new Uint8Array(160);
-
-        keycode[0] = 2;            
-        keycode[1] = 0;   
-        keycode[2] = 0;  
-        keycode[3] = 0;
-
-        // X
-        keycode[4] = 1;
-        keycode[5] = 1;
-        keycode[6] = 1;
-        keycode[7] = 1;
-
-        // Y
-        keycode[8] = 0;
-        keycode[9] = 0;
-        keycode[10] = 0;
-        keycode[11] = 0;
-
-        // L Click
-        keycode[12] = 0;
-        keycode[13] = 0;
-        keycode[14] = 0;
-        keycode[15] = 0;
-        
-        // R Click
-        keycode[16] = 0;
-        keycode[17] = 0;
-        keycode[18] = 0;
-        keycode[19] = 0;
-
-
-                    
-        const now = e.timeStamp || performance.now();
-
-        if (now - lastReportTime.current >= REPORT_INTERVAL_MS) {
-            console.log('Accel delta:', accelDeltaX.toFixed(2), accelDeltaY.toFixed(2));
-            lastReportTime.current = now;
-            sendEncrypted(keycode);
-        }
-
-    }
-
     function onPointerUp(e) {
-        isTracking.current = false;
+        // isTracking.current = false;
     }
 
     function onPointerCancel() {
         isTracking.current = false;
     }
+
+    // When a pointer enters the div
+    function onPointerEnter(e) {
+        const rect = inputRef.current.getBoundingClientRect();
+        if (
+            e.clientX >= rect.left &&
+            e.clientX <= rect.right &&
+            e.clientY >= rect.top &&
+            e.clientY <= rect.bottom
+        ) {
+            lastPos.current = { x: e.clientX, y: e.clientY };
+            isTracking.current = true;
+        }
+    }
+
+    // When a pointer moves
+    function onPointerMove(e) {
+        if (ctrlPressed.current) return;
+
+        // Get bounding rect once (you can optimize by caching it elsewhere)
+        const rect = inputRef.current.getBoundingClientRect();
+
+        // Check if pointer is inside the div bounds
+        const inside =
+            e.clientX >= rect.left &&
+            e.clientX <= rect.right &&
+            e.clientY >= rect.top &&
+            e.clientY <= rect.bottom;
+
+        if (!inside) {
+            // Pointer outside div but pointer capture means we still get events
+            // Stop tracking so next movement inside resets lastPos
+            isTracking.current = false;
+            return;
+        }
+
+        // If not tracking yet (e.g. pointer re-entered), reset lastPos
+        if (!isTracking.current) {
+            lastPos.current = { x: e.clientX, y: e.clientY };
+            isTracking.current = true;
+            return;
+        }
+
+        // Calculate deltas based on last known position
+        const deltaX = e.clientX - lastPos.current.x;
+        const deltaY = e.clientY - lastPos.current.y;
+
+        lastPos.current = { x: e.clientX, y: e.clientY };
+
+        const accelDeltaX = deltaX * 100; // your acceleration factor
+        const accelDeltaY = deltaY * 100;
+
+        const now = e.timeStamp || performance.now();
+
+        if (now - lastReportTime.current >= REPORT_INTERVAL_MS) {
+            sendMouseReport(accelDeltaX, accelDeltaY, false, false);
+            lastReportTime.current = now;
+        }
+    }
+
+    // Make a keycode packet and send it
+    function sendMouseReport(x, y, LClick, RClick){
+        
+        const flag = 2; // Flag to indicate mouse packet
+        const numInts = 4;
+
+        // Allocate a buffer and have two views of the same address space
+        const buffer = new ArrayBuffer(1 + numInts * 4); // 1 flag byte + 4 ints * 4 bytes each
+        const view = new DataView(buffer);
+
+        view.setUint8(0, flag); // set flag at first byte
+
+        // set int32 values starting at offset 1
+        view.setInt32(1,  x, true);
+        view.setInt32(5,  y, true);
+
+        const keycode = new Uint8Array(buffer);
+        console.log('Moved mouse by :(', x, y, ")");
+        sendEncrypted(keycode);
+    }
+
+
 
     // Send only recent characters while displaying the whole input
     const sendDiff = useCallback(async () => {
@@ -282,9 +285,7 @@ export default function LiveCapture() {
             }
             
             if (e.key === "Control") {
-
                 ctrlPressed.current = true;
-                isTracking.current = false;
             }
 
             if (e.key.length === 1) {
@@ -335,6 +336,7 @@ export default function LiveCapture() {
                     onPointerMove={onPointerMove}
                     onPointerUp={onPointerUp}
                     onPointerCancel={onPointerCancel}
+                    onPointerEnter={onPointerEnter}
                     className="flex flex-1 w-full p-4 rounded-xl transition-all border border-hover focus:border-shelf 
                                 bg-transparent text-hover text-4xl outline-none focus:outline-none whitespace-pre-wrap font-sans overflow-y-auto">
                     

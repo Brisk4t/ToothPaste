@@ -24,6 +24,8 @@ import {
     PlayIcon,
     LinkIcon,
     ArrowPathIcon,
+    SignalSlashIcon,
+    SignalIcon,
 } from "@heroicons/react/24/outline";
 
 import { useBLEContext } from "../../context/BLEContext";
@@ -38,6 +40,7 @@ function ConnectionButton() {
             0: "border-secondary",
             1: "border-primary",
             2: "border-orange", // make sure you defined `border-tertiary` in Tailwind config
+
         }[status] || "border-orange"; // fallback if undefined
 
     return (
@@ -46,10 +49,14 @@ function ConnectionButton() {
                 className={`flex items-center justify-between w-full p-4 border-2 ${borderClass} bg-transparent hover:border-text`}
                 onClick={connectToDevice}
             >
+                {/* If a device is connected get its name */}
                 <Typography variant="h6" color="text" className="text-lg font-sans font-medium normal-case mr-6">
                     {device ? device.name : "Connect to Device"}
                 </Typography>
-                <ArrowPathIcon className="text-text h-6 w-6" />
+                
+                {/* Change the icon for connected and disconnected states */}
+                {(status !== 0 && <SignalIcon className="h-5 y-5"/>)}
+                {(status === 0 && <SignalSlashIcon className="h-5 y-5"/>)}
             </Button>
         </div>
     );
@@ -57,13 +64,8 @@ function ConnectionButton() {
 
 export function SidebarWithLogo({ onOpenPairing, onNavigate, activeView }) {
     const [open, setOpen] = React.useState(0);
-    const [openAlert, setOpenAlert] = React.useState(true);
     const [isOpen, setIsOpen] = useState(false);
     const { status, device } = useBLEContext();
-
-    const handleOpen = (value) => {
-        setOpen(open === value ? 0 : value);
-    };
 
     console.log("Status is: ", status);
     return (
