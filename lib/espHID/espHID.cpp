@@ -4,7 +4,7 @@
 USBHIDKeyboard keyboard;
 USBHIDMouse mouse;
 USBHIDConsumerControl control;
-USBHIDSystemControl system;
+USBHIDSystemControl syscontrol;
 
 // Start the hid keyboard
 void hidSetup()
@@ -12,7 +12,7 @@ void hidSetup()
   keyboard.begin();
   mouse.begin();
   control.begin();
-  system.begin();
+  syscontrol.begin();
   USB.begin();
 }
 
