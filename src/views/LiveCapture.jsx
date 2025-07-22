@@ -349,23 +349,33 @@ export default function LiveCapture() {
         
         <div className="flex flex-col flex-1 w-full p-4 bg-background text-text">
             
-            <Typography variant="h2" className="text-text">
-                Start Typing
-            </Typography>
+            {/* <Typography variant="h4" className="text-text">
+                Send Keystrokes to the 'ToothPaste in real(ish) time
+            </Typography> */}
 
-            <Typography variant="h5" className="text-hover">
+            {/* <Typography variant="h5" className="text-hover">
                 It just works.....
-            </Typography>
+            </Typography> */}
 
 
             
             <Keyboard listenerRef={inputRef} deviceStatus={status}></Keyboard>
 
 
-            <div className="flex flex-col flex-1 my-4 rounded-xl transition-all border border-hover focus:border-shelf relative">
+            <div className="flex flex-col flex-1 my-4 rounded-xl transition-all border border-hover focus:border-shelf relative group ">
                 <div className="absolute top-2 right-2">
                     <CaptureMouseButton />
                 </div>
+
+                <Typography
+                    variant="h1"
+                    className="flex items-center justify-center pointer-events-none select-none text-gray-800 p-4 whitespace-pre-wrap font-sans absolute inset-0 z-0 group-focus-within:hidden"
+                    aria-hidden="true">Click here to start sending keystrokes in real time (kinda...)</Typography>
+                
+                <Typography
+                    variant="h1"
+                    className=" hidden group-focus-within:flex items-center justify-center pointer-events-none select-none text-hover p-4 whitespace-pre-wrap font-sans absolute inset-0 z-0 "
+                    aria-hidden="true">Capturing inputs...</Typography>
 
                 <div
                     ref={inputRef}
@@ -382,10 +392,9 @@ export default function LiveCapture() {
                     onPointerEnter={onPointerEnter}
                     onBeforeInput={handleTouchInput}
                     onPaste={onPaste}
-                    className="flex flex-1 w-full p-4  
-                                bg-transparent text-hover text-4xl outline-none focus:outline-none whitespace-pre-wrap font-sans overflow-y-auto">
+                    className="flex flex-1 w-full p-4 rounded-xl
+                            text-hover text-4xl bg-shelf focus:bg-background focus:bg-background focus:outline-none whitespace-pre-wrap font-sans overflow-y-auto">
                     
-                    Type Here
                     <span className="" />
                 </div>
             </div>
