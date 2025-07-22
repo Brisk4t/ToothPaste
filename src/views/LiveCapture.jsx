@@ -130,7 +130,6 @@ export default function LiveCapture() {
     }
 
 
-
     // Send only recent characters while displaying the whole input
     const sendDiff = useCallback(async () => {
         var keycode = new Uint8Array(8); // Payload = DATA_TYPE+[KEYCODES(6)]
@@ -340,6 +339,7 @@ export default function LiveCapture() {
         scheduleSend();
         return;
     }
+
 
     useEffect(() => {
         inputRef.current?.focus();

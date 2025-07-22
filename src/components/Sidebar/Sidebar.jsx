@@ -67,6 +67,15 @@ export function SidebarWithLogo({ onOpenPairing, onNavigate, activeView }) {
     const [isOpen, setIsOpen] = useState(false);
     const { status, device } = useBLEContext();
 
+
+    const borderClass =
+        {
+            0: "border-secondary",
+            1: "border-primary",
+            2: "border-orange", // make sure you defined `border-tertiary` in Tailwind config
+
+        }[status] || "border-orange"; // fallback if undefined
+
     console.log("Status is: ", status);
     return (
         <div className="w-full bg-shelf text-white">
@@ -80,11 +89,12 @@ export function SidebarWithLogo({ onOpenPairing, onNavigate, activeView }) {
                 </div>
 
                 {/* Center: Desktop menu */}
-                <div className="hidden md:flex flex-1 justify-center space-x-16">
+                <div className="hidden lg:flex flex-1 justify-center space-x-5">
 
                     <button
-                        className={`flex items-center space-x-1 py-4 px-8 gap-1  rounded ${
-                            activeView === "live" ? "border border-text" : "hover:bg-hover"
+                        disabled={status===2}
+                        className={`flex items-center space-x-1 p-2 gap-2 rounded disabled:text-hover disabled:hover:bg-transparent ${
+                            activeView === "live" ? "disabled:border-hover border border-text" : "hover:bg-hover"
                         }`}
                         onClick={() => onNavigate("live")}
                     >
@@ -93,8 +103,9 @@ export function SidebarWithLogo({ onOpenPairing, onNavigate, activeView }) {
                     </button>
                     
                     <button
-                        className={`flex items-center space-x-1 py-4 px-8 gap-1 rounded ${
-                            activeView === "paste" ? "border border-text" : "hover:bg-hover"
+                        disabled={status===2}
+                        className={`flex items-center space-x-1 p-2 gap-2 rounded disabled:text-hover disabled:hover:bg-transparent ${
+                            activeView === "paste" ? "disabled:border-hover border border-text" : "hover:bg-hover"
                         }`}
                         onClick={() => onNavigate("paste")}
                     >
@@ -104,11 +115,11 @@ export function SidebarWithLogo({ onOpenPairing, onNavigate, activeView }) {
 
                     {status === 2 && (
                         <button
-                            className="flex items-center space-x-1 p-4 gap-2 rounded hover:bg-hover"
+                            className="flex items-center space-x-1 p-2 gap-2 rounded hover:bg-hover"
                             onClick={onOpenPairing}
                         >
                             <LinkIcon className="h-5 w-5" />
-                            <Typography variant="h4">Pair Device</Typography>
+                            <Typography variant="h4" className="">Pair Device</Typography>
                         </button>
                     )}
                 </div>
@@ -116,15 +127,15 @@ export function SidebarWithLogo({ onOpenPairing, onNavigate, activeView }) {
                 {/* Right: Desktop ConnectionButton and Mobile Hamburger */}
                 <div className="flex items-center space-x-3">
                     {/* Desktop */}
-                    <div className="hidden md:block">
+                    <div className="hidden lg:block">
                         <ConnectionButton connected={status} />
                     </div>
 
                     {/* Mobile Hamburger */}
-                    <div className="md:hidden">
+                    <div className="lg:hidden">
                         <button
                             onClick={() => setIsOpen(!isOpen)}
-                            className="p-2 rounded hover:bg-hover focus:outline-none focus:ring-2 focus:ring-inset focus:ring-text"
+                            className={`p-2 rounded hover:bg-hover focus:outline-none focus:ring-2 focus:ring-inset focus:ring-text border border-2 ${borderClass}`}
                             aria-label="Toggle menu"
                         >
                             {isOpen ? <XMarkIcon className="h-6 w-6" /> : <Bars3Icon className="h-6 w-6" />}
@@ -135,11 +146,12 @@ export function SidebarWithLogo({ onOpenPairing, onNavigate, activeView }) {
 
             {/* Mobile Dropdown Menu */}
             {isOpen && (
-                <div className="md:hidden flex flex-col space-y-2 px-4 pb-4">
+                <div className="lg:hidden flex flex-col space-y-2 px-4 pb-4">
 
                     <button
-                        className={`flex items-center space-x-1 px-3 py-2 rounded ${
-                            activeView === "live" ? "outline-text" : "hover:bg-hover"
+                        disabled={status===2}
+                        className={`flex items-center space-x-1 px-3 py-2 gap-1 rounded disabled:text-hover disabled:hover:bg-transparent ${
+                            activeView === "live" ? "bg-hover" : "hover:bg-hover"
                         }`}
                         onClick={() => {
                             onNavigate("live");
@@ -151,8 +163,9 @@ export function SidebarWithLogo({ onOpenPairing, onNavigate, activeView }) {
                     </button>
                     
                      <button
-                        className={`flex items-center space-x-1 px-3 py-2 rounded ${
-                            activeView === "paste" ? "outline-text" : "hover:bg-hover"
+                        disabled={status===2}
+                        className={`flex items-center space-x-1 px-3 py-2 gap-1 rounded hover:bg-hover disabled:text-hover disabled:hover:bg-transparent ${
+                            activeView === "paste" ? "bg-hover" : "hover:bg-hover"
                         }`}
                         onClick={() => {
                             onNavigate("paste");

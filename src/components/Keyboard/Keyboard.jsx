@@ -294,6 +294,24 @@ const Keyboard = ({ listenerRef, deviceStatus }) => {
         node.addEventListener("keydown", handleKeyDown);
         node.addEventListener("keyup", handleKeyUp);
 
+
+        // Clear all keydown events if the window is no longer in focus
+        window.addEventListener("blur", () => {
+            activeKeysRef.current.clear();
+            setActiveKeys(new Set());
+            console.log("Window blurred — keys cleared");
+        });
+
+
+        // Clear all keydown events if the document is no longer in focus
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "hidden") {
+                activeKeysRef.current.clear();
+                setActiveKeys(new Set());
+                console.log("Tab hidden — keys cleared");
+            }
+        });
+
         return () => {
             node.removeEventListener("keydown", handleKeyDown);
             node.removeEventListener("keyup", handleKeyUp);
@@ -301,6 +319,8 @@ const Keyboard = ({ listenerRef, deviceStatus }) => {
             if (debounceTimer.current) clearTimeout(debounceTimer.current);
         };
     }, [listenerRef]);
+
+
 
     const isKeyActive = (eventCode) => activeKeys.has(eventCode);
 
