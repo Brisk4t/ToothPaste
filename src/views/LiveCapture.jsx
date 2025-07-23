@@ -311,7 +311,7 @@ export default function LiveCapture() {
         return (
             <div onClick={handleToggle} 
             className={`border border-hover text-text h-10 w-10 justify-between items-center p-2 rounded-lg
-                        ${captureMouse ? "bg-white text-shelf" : "bg-shelf"}`}>
+                        ${captureMouse ? "bg-white text-shelf" : "bg-shelf text-white"}`}>
                 <CursorArrowRaysIcon className="h-5 w-5">
                 </CursorArrowRaysIcon>
             </div>
@@ -324,7 +324,7 @@ export default function LiveCapture() {
         return (
             <div onClick={handleToggle} 
             className={`border border-hover text-text h-10 w-10 justify-between items-center p-2 rounded-lg
-                        ${macMode ? "bg-white text-shelf" : "bg-shelf"}`}>
+                        ${macMode ? "bg-white text-shelf" : "bg-shelf text-white"}`}>
                 {/* <IconButton>
                     <svg xmlns={windowsLogo} fill="white" className="h-5 w-5" />
                 </IconButton> */}
