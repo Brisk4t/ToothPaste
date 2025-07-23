@@ -217,6 +217,7 @@ export default function LiveCapture() {
     // Handle each keypress and reset the timer 
     const handleKeyDown = (e) => {
         e.preventDefault();
+        console.log("Key pressed: ", e.code, e.key);
         const isCtrl = e.ctrlKey || e.metaKey;
         const isAlt = e.altKey;
 
