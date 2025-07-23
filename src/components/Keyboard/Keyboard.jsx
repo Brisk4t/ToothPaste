@@ -159,7 +159,7 @@ const Keyboard = ({ listenerRef, deviceStatus }) => {
             <Button
                 variant="outlined"
                 onClick={handleToggle}
-                className={`p-3 border border-hover text-text 
+                className={`hidden lg:block p-3 border border-hover text-text 
                     ${showKeyboard ? "bg-white text-shelf" : "bg-shelf "}`}
             >
                 Keyboard
@@ -297,7 +297,7 @@ const Keyboard = ({ listenerRef, deviceStatus }) => {
 
         // Clear all keydown events if the window is no longer in focus
         window.addEventListener("blur", () => {
-            activeKeysRef.current.clear();
+            activeKeysRef.current = new Set();
             setActiveKeys(new Set());
             console.log("Window blurred — keys cleared");
         });
@@ -306,7 +306,7 @@ const Keyboard = ({ listenerRef, deviceStatus }) => {
         // Clear all keydown events if the document is no longer in focus
         document.addEventListener("visibilitychange", () => {
             if (document.visibilityState === "hidden") {
-                activeKeysRef.current.clear();
+                activeKeysRef.current = new Set();
                 setActiveKeys(new Set());
                 console.log("Tab hidden — keys cleared");
             }
@@ -394,7 +394,7 @@ const Keyboard = ({ listenerRef, deviceStatus }) => {
             <div className="rounded-lg bg-shelf px-2 py-2 mt-4 min-h-12 w-full max-w-full overflow-x-hidden">
                 {/* Command History Container Function */}
                 <div className="flex flex-nowrap space-x-2">
-                    <ShowKeyboardButton />
+                    <ShowKeyboardButton/>
                     {history.map((entry) => (
                         <div
                             key={entry.id}

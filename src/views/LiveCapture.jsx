@@ -6,16 +6,20 @@ import React, {
     useCallback,
 } from "react";
 
-import { Button, Typography } from "@material-tailwind/react";
+import { Button, IconButton, Typography } from "@material-tailwind/react";
 import { CursorArrowRaysIcon } from "@heroicons/react/24/outline";
 import { ECDHContext } from "../context/ECDHContext";
 import { BLEContext } from "../context/BLEContext";
 import "../components/CustomTyping/CustomTyping.css"; // We'll define animations here
 import Keyboard from "../components/Keyboard/Keyboard";
 
+import {ReactComponent as AppleLogo} from '../assets/appleLogo.svg'
+import {ReactComponent as WindowsLogo} from '../assets/windowsLogo.svg'
 
 export default function LiveCapture() {
     const [buffer, setBuffer] = useState(""); // what user is typing
+    const [macMode, setMacMode] = useState(false);
+
     const lastSentBuffer = useRef(""); // tracks last sent buffer
     const bufferRef = useRef("");
     const debounceTimeout = useRef(null);
@@ -301,17 +305,34 @@ export default function LiveCapture() {
     };
 
     function CaptureMouseButton() {
-            const handleToggle = () => setCaptureMouse((prev) => !prev);
+        const handleToggle = () => setCaptureMouse((prev) => !prev);
+
+        return (
+            <div onClick={handleToggle} 
+            className={`border border-hover text-text h-10 w-10 justify-between items-center p-2 rounded-lg
+                        ${captureMouse ? "bg-white text-shelf" : "bg-shelf"}`}>
+                <CursorArrowRaysIcon className="h-5 w-5">
+                </CursorArrowRaysIcon>
+            </div>
+        );
+    }
     
-            return (
-                <div onClick={handleToggle} 
-                className={`border border-hover text-text h-10 w-10 justify-between items-center p-2 rounded-lg
-                            ${captureMouse ? "bg-white text-shelf" : "bg-shelf"}`}>
-                    <CursorArrowRaysIcon className="h-5 w-5">
-                    </CursorArrowRaysIcon>
-                </div>
-            );
-        }
+    function MacModeButton() {
+        const handleToggle = () => setMacMode((prev) => !prev);
+
+        return (
+            <div onClick={handleToggle} 
+            className={`border border-hover text-text h-10 w-10 justify-between items-center p-2 rounded-lg
+                        ${macMode ? "bg-white text-shelf" : "bg-shelf"}`}>
+                {/* <IconButton>
+                    <svg xmlns={windowsLogo} fill="white" className="h-5 w-5" />
+                </IconButton> */}
+
+                <WindowsLogo fill="currentColor" className={`${macMode?"hidden" : ""} h-5 w-5`} />
+                <AppleLogo fill="currentColor" className={`${macMode?"" : "hidden"} h-5 w-5`} />
+            </div>
+        );
+    }
 
     const handleKeyUp = (e) => {
       if (e.key === 'Control') {
@@ -333,7 +354,7 @@ export default function LiveCapture() {
         e.preventDefault();
         const newBuffer = buffer + e.data;      
         
-        
+        console.log("Touch input detected: ", e.data);
         bufferRef.current = newBuffer;
         setBuffer(newBuffer);
         scheduleSend();
@@ -366,6 +387,13 @@ export default function LiveCapture() {
                 <div className="absolute top-2 right-2">
                     <CaptureMouseButton />
                 </div>
+
+                
+                <div className="absolute top-14 right-2">
+                    <MacModeButton />
+                </div>
+
+
 
                 <Typography
                     variant="h1"
