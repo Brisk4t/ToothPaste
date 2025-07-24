@@ -250,10 +250,11 @@ export default function LiveCapture() {
         keycode[2] = keypress.charCodeAt(0);
         sendEncrypted(keycode);
     }
-
     // Main keydown handler
     const handleKeyDown = (e) => {
         e.preventDefault();
+        console.log("Keydown event: ", e.key);
+
         const isCtrl = e.ctrlKey || e.metaKey;
         const isAlt = e.altKey;
         const buffer = bufferRef.current;
@@ -287,7 +288,7 @@ export default function LiveCapture() {
         }
     };
 
-     // Handle inputs from touch devices / on screen keyboards
+    // Handle inputs from touch devices / on screen keyboards
     const handleTouchInput = (e) => {
         e.preventDefault();
         console.log("Touch input detected: ", e.data);
