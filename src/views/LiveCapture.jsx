@@ -287,6 +287,21 @@ export default function LiveCapture() {
         }
     };
 
+     // Handle inputs from touch devices / on screen keyboards
+    const handleTouchInput = (e) => {
+        e.preventDefault();
+        console.log("Touch input detected: ", e.data);
+
+        // All touch backspaces are handled as special events
+        if (e.data === "Backspace") {
+                specialEvents.current.push("Backspace");
+                scheduleSend();
+            return;
+        }
+
+        updateBufferAndSend(bufferRef.current + e.data); // Append the input data to the buffer and schedule send
+    };
+
     // Toggle capturing and sending mouse data
     function CaptureMouseButton() {
         const handleToggle = () => setCaptureMouse((prev) => !prev);
@@ -332,26 +347,7 @@ export default function LiveCapture() {
         return;
     };
 
-    // Handle inputs from touch devices / on screen keyboards
-    const handleTouchInput = (e) => {
-        e.preventDefault();
-        console.log("Touch input detected: ", e.data);
-
-        if (e.data === "Backspace") {
-            if (buffer.length === 0) {
-                specialEvents.current.push("Backspace");
-                scheduleSend();
-            } else {
-                const newBuffer = buffer.slice(0, -1);
-                bufferRef.current = newBuffer;
-                setBuffer(newBuffer);
-                scheduleSend();
-            }
-            return;
-        }
-
-        updateBufferAndSend(bufferRef.current + e.data); // Append the input data to the buffer and schedule send
-    };
+   
 
     return (
         <div className="flex flex-col flex-1 w-full p-4 bg-background text-text">
