@@ -25,20 +25,36 @@ export default function LiveCapture() {
     const { pktCharacteristic, status, readyToReceive, sendEncrypted } = useContext(BLEContext);
     const { createEncryptedPackets } = useContext(ECDHContext);
     const DEBOUNCE_INTERVAL_MS = 50;
-
+    
     // Mouse Vars
-    const lastPos = useRef({ x: 0, y: 0 });
+    const lastPos = useRef({ x: 0, y: 0, t: performance.now() }); // Last known position of the mouse
     const isTracking = useRef(true);
     const ctrlPressed = useRef(false);
     const lastReportTime = useRef(0);
+    const tDisplacement = useRef({ x: 0, y: 0 }); // Total displacement since last report   
     const REPORT_INTERVAL_MS = 200;
+    const SCALE_FACTOR = 1; // Scale factor for mouse movement
     const [captureMouse, setCaptureMouse] = useState(false);
+
+
+    // Mouse polling logic
+    setInterval(() => {
+        if (captureMouse && (tDisplacement.current.x !== 0 || tDisplacement.current.y !== 0)) {
+            console.log("Sending mouse report: ", tDisplacement.current);
+            sendMouseReport(tDisplacement.current.x, tDisplacement.current.y, false, false);
+            tDisplacement.current = { x: 0, y: 0 }; // Reset displacement after sending
+        }
+    }, 1000)
 
     // On click logic
     function onPointerDown(e) {
         e.target.setPointerCapture(e.pointerId);
         isTracking.current = true;
-        lastPos.current = { x: e.clientX, y: e.clientY };
+        lastPos.current = { x: e.clientX, y: e.clientY, t: e.timeStamp };
+        
+        if(captureMouse) {
+            sendMouseReport(0,0, true, false); // Send left click
+        }
     }
 
     function onPointerUp(e) {
@@ -53,13 +69,15 @@ export default function LiveCapture() {
     function onPointerEnter(e) {
         const rect = inputRef.current.getBoundingClientRect();
         if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
-            lastPos.current = { x: e.clientX, y: e.clientY };
+            lastPos.current = { x: e.clientX, y: e.clientY, t: performance.now() };
             isTracking.current = true;
         }
     }
 
     // When a pointer moves
     function onPointerMove(e) {
+        //console.log("Pointer move event: ", e.clientX, e.clientY);
+        
         if (!captureMouse) return;
 
         // Get bounding rect once (you can optimize by caching it elsewhere)
@@ -69,36 +87,51 @@ export default function LiveCapture() {
         const inside =
             e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
 
-        if (!inside && ctrlPressed.current) {
+        if (!inside || ctrlPressed.current) {
             // Pointer outside div but pointer capture means we still get events
             // Stop tracking so next movement inside resets lastPos
+            console.log("Pointer outside div or ctrl pressed, stopping tracking");
+            tDisplacement.current = { x: 0, y: 0 }; // Reset displacement 
             isTracking.current = false;
             return;
         }
 
         // If not tracking yet (e.g. pointer re-entered), reset lastPos
         if (!isTracking.current) {
-            lastPos.current = { x: e.clientX, y: e.clientY };
+            lastPos.current = { x: e.clientX, y: e.clientY, t: e.timeStamp };
             isTracking.current = true;
             return;
         }
 
-        // Calculate deltas based on last known position
-        const deltaX = e.clientX - lastPos.current.x;
-        const deltaY = e.clientY - lastPos.current.y;
+        // Calculate displacement based on last known position
+        const displacementX = e.clientX - lastPos.current.x;
+        const displacementY = e.clientY - lastPos.current.y;
+        const dt = e.timeStamp - lastPos.current.t;
 
-        lastPos.current = { x: e.clientX, y: e.clientY };
+        const velocityX = Math.abs(displacementX / dt); // Velocity in X direction
+        const velocityY = Math.abs(displacementY / dt); // Velocity in Y direction
 
-        const accelDeltaX = deltaX * 100; // your acceleration factor
-        const accelDeltaY = deltaY * 100;
+        console.log("Displacement: ", displacementX, displacementY, "Time delta: ", dt);
 
-        const now = e.timeStamp || performance.now();
+        lastPos.current = { x: e.clientX, y: e.clientY, t: e.timeStamp }; // Update last position
 
-        if (now - lastReportTime.current >= REPORT_INTERVAL_MS) {
-            sendMouseReport(accelDeltaX, accelDeltaY, false, false);
-            lastReportTime.current = now;
-        }
+        // Scale by time delta to get acceleration-like values
+        const accelDeltaX = displacementX * (velocityX * SCALE_FACTOR); 
+        const accelDeltaY = displacementY * (velocityY * SCALE_FACTOR); 
+
+        
+
+        //console.log("Last position: ", lastPos.current);
+        //onsole.log("Mouse moved by: ", accelDeltaX, accelDeltaY);
+
+            
+
+   
+        tDisplacement.current.x += accelDeltaX;
+        tDisplacement.current.y += accelDeltaY;
     }
+
+        
 
     // Make a keycode packet and send it
     function sendMouseReport(x, y, LClick, RClick) {
@@ -114,13 +147,15 @@ export default function LiveCapture() {
         // set int32 values starting at offset 1
         view.setInt32(1, x, true);
         view.setInt32(5, y, true);
+        view.setInt32(9, LClick, true);
+        view.setInt32(13, RClick, true);
 
         const keycode = new Uint8Array(buffer);
         console.log("Moved mouse by :(", x, y, ")");
         sendEncrypted(keycode);
     }
 
-    // Send only recent characters while displaying the whole input
+    // Send packets periodically unless reset
     const sendDiff = useCallback(async () => {
         var keycode = new Uint8Array(8); // Payload for special characters
         keycode[0] = 1; // DATA_TYPE is TEXT
@@ -168,7 +203,7 @@ export default function LiveCapture() {
                     // add other special keys as needed
                 }
             }
-            // If the payload is not null
+            // If there are any special events that dont modify the buffer, send them as keycodes
             if (keycode[1] !== 0) {
                 console.log("Sending keycode");
                 sendEncrypted(keycode);
@@ -176,6 +211,8 @@ export default function LiveCapture() {
             }
             specialEvents.current = []; // Clear the special events after sending
         }
+
+        
 
         if (payload.length === 0) {
             return;
@@ -253,7 +290,7 @@ export default function LiveCapture() {
     // Main keydown handler
     const handleKeyDown = (e) => {
         e.preventDefault();
-        console.log("Keydown event: ", e.key);
+        console.log("Keydown event: ", e.key, "Code: ", e.code);
 
         const isCtrl = e.ctrlKey || e.metaKey;
         const isAlt = e.altKey;
@@ -283,6 +320,8 @@ export default function LiveCapture() {
 
     // When ctrl is released, start sending mouse data (if enabled)
     const handleKeyUp = (e) => {
+        console.log("Keyup event: ", e.key, "Code: ", e.code);
+
         if (e.key === "Control") {
             ctrlPressed.current = false;
         }
@@ -302,6 +341,21 @@ export default function LiveCapture() {
 
         updateBufferAndSend(bufferRef.current + e.data); // Append the input data to the buffer and schedule send
     };
+
+    const handleCompositionUpdate = (e) => {
+        e.preventDefault();
+        console.log("Composition update detected: ", e.data);
+    }
+    
+    const handleCompositionStart = (e) => {
+        e.preventDefault();
+        console.log("Composition Start detected: ", e.data);
+    }
+    
+    const handleCompositionEnd = (e) => {
+        e.preventDefault();
+        console.log("Composition end detected: ", e.data);
+    }
 
     // Toggle capturing and sending mouse data
     function CaptureMouseButton() {
@@ -402,6 +456,12 @@ export default function LiveCapture() {
                     onPointerEnter={onPointerEnter}
                     onBeforeInput={handleTouchInput}
                     onPaste={onPaste}
+                    
+                    onCompositionStart = {handleCompositionStart}
+                    onCompositionUpdate={handleCompositionUpdate}
+                    onCompositionEnd = {handleCompositionEnd} // prevent composition events from modifying the buffer
+
+
                     className="flex flex-1 w-full p-4 rounded-xl
                             text-hover text-4xl bg-shelf focus:bg-background focus:bg-background focus:outline-none whitespace-pre-wrap font-sans overflow-y-auto"
                 >
