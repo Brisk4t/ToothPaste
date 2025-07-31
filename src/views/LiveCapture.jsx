@@ -352,7 +352,7 @@ export default function LiveCapture() {
             return;
         }
 
-        // The inserted characters are in event.data
+        // // The inserted characters are in event.data
         // if (event.data) {   
         //     handleKeyDown({
         //         key: event.data,
@@ -362,8 +362,8 @@ export default function LiveCapture() {
         //         metaKey: false,
         //     });
 
-            //event.preventDefault();
-        }
+        //     //event.preventDefault();
+        // }
     };
 
     // Composition event handlers
