@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useContext, useCallback } from "react";
 
-import { Button, IconButton, Typography } from "@material-tailwind/react";
+import { Button, IconButton, input, Typography } from "@material-tailwind/react";
 import { CursorArrowRaysIcon } from "@heroicons/react/24/outline";
 import { ECDHContext } from "../context/ECDHContext";
 import { BLEContext } from "../context/BLEContext";
@@ -15,7 +15,8 @@ export default function LiveCapture() {
     const bufferRef = useRef(""); // Tracks the current input buffer
     const lastSentBuffer = useRef(""); // tracks last sent buffer
     const inputRef = useRef(null);
-    let lastText = '';
+    const isComposingRef = useRef(false);
+    const lastInputRef = useRef(""); // Last input value to compare with current input
 
     const [macMode, setMacMode] = useState(false); // Does WIN key send WIN or COMMAND key
 
@@ -291,13 +292,20 @@ export default function LiveCapture() {
 
     // Main keydown handler
     const handleKeyDown = (e) => {
-        console.log("Keydown event: ", e.key, "Code: ", e.code, "Original Event: ", e.originalEvent);
-
+        console.log("Keydown event: ", e.key, "Code: ", e.code);
         e.preventDefault();
 
         const isCtrl = e.ctrlKey || e.metaKey;
         const isAlt = e.altKey;
         const buffer = bufferRef.current;
+
+        if(e.key === " Unidentified") {
+            if(lastInputRef.current.length > inputRef.current.value.length) {
+                handleSpecialKey({key:"Backspace"}, buffer); // Handle backspace or other special keys
+            }
+            lastInputRef.current = inputRef.current.value; // Update last input value
+            return;
+        }
 
         if (isCtrl && e.key !== "Control") { // Just Ctrl does nothing
             handleModifierShortcut(e, 0x80);
@@ -314,7 +322,10 @@ export default function LiveCapture() {
             ctrlPressed.current = true;
             return;
         }
+
+        // If the key is a printing character (length 1), update the buffer and send
         if (e.key.length === 1) {
+            lastInputRef.current = inputRef.current.value; // Update last input value to the current input
             updateBufferAndSend(buffer + e.key);
             return true;
         }
@@ -330,60 +341,46 @@ export default function LiveCapture() {
         }
     };
 
-    // Handle inputs from touch devices / on screen keyboards
-    const handleTouchInput = (e) => {
-        e.preventDefault();
-        //console.log("Touch input detected in beforeInput: ", e.data);
-
-        // All touch backspaces are handled as special events
-        // if (e.data === "Backspace") {
-        //         specialEvents.current.push("Backspace");
-        //         scheduleSend();
-        //     return;
-        // }
-
-        // updateBufferAndSend(bufferRef.current + e.data); // Append the input data to the buffer and schedule send
-    };
-
-    function getDiffChars(prev, curr) {
-        if (curr.startsWith(prev)) {
-            return curr.slice(prev.length).split('');
-        }
-        return curr.split('');
-    }
 
     // mock a keydown event by slicing the input buffer and then clearing it
-    function handleInput() {
-        if (!inputRef) return;
+    // Called on beforeinput - fires BEFORE the input is applied
+    const handleOnBeforeInput = (event) => {
+        console.log("Touch input event handled in beforeInput: ", event.data);
 
-        console.log("Input event detected, slicing buffer, clearing inputRef");
+        // Ignore any intermediate composition events
+        if (isComposingRef.current) {
+            return;
+        }
 
-        const current = inputRef.textContent || '';
-        const diffChars = getDiffChars(lastText, current);
+        // The inserted characters are in event.data
+        // if (event.data) {   
+        //     handleKeyDown({
+        //         key: event.data,
+        //         preventDefault: () => event.preventDefault(),
+        //         ctrlKey: false,
+        //         altKey: false,
+        //         metaKey: false,
+        //     });
 
-        diffChars.forEach((char) => {
-            handleKeyDown({ key: char, preventDefault: () => {}, ctrlKey: false, metaKey: false, altKey: false }); // Call handleKeyDown with a mock event 
-        });
+            //event.preventDefault();
+        }
+    };
 
-        // Clear the input to keep it empty
-        inputRef.textContent = '';
-        lastText = '';
-    }
+    // Composition event handlers
+    const handleCompositionStart = () => {
+        console.log("Composition started");
+        isComposingRef.current = true;
+    };
 
-    const handleCompositionUpdate = (e) => {
-        e.preventDefault();
-        console.log("Composition update detected: ", e.data);
-    }
-    
-    const handleCompositionStart = (e) => {
-        e.preventDefault();
-        console.log("Composition Start detected: ", e.data);
-    }
-    
-    const handleCompositionEnd = (e) => {
-        e.preventDefault();
-        console.log("Composition end detected: ", e.data);
-    }
+    // Keep the input empty
+    const handleCompositionEnd = (event) => {
+        console.log("Composition ended with data: ", event.data);
+        isComposingRef.current = false;
+            if (inputRef.current) {
+                inputRef.current.value = "";
+                lastInputRef.current = "";
+            }
+    };
 
     // Toggle capturing and sending mouse data
     function CaptureMouseButton() {
@@ -430,7 +427,6 @@ export default function LiveCapture() {
         return;
     };
 
-   
 
     return (
         <div className="flex flex-col flex-1 w-full p-4 bg-background text-text">
@@ -469,7 +465,7 @@ export default function LiveCapture() {
                     Capturing inputs...
                 </Typography>
 
-                <div
+                {/* <div
                     ref={inputRef}
                     tabIndex={0}
                     onKeyDown={handleKeyDown}
@@ -482,7 +478,7 @@ export default function LiveCapture() {
                     onPointerUp={onPointerUp}
                     onPointerCancel={onPointerCancel}
                     onPointerEnter={onPointerEnter}
-                    onBeforeInput={handleTouchInput}
+                    onBeforeInput={handleOnBeforeInput}
                     onPaste={onPaste}
                     
                     onCompositionStart = {handleCompositionStart}
@@ -494,7 +490,32 @@ export default function LiveCapture() {
                             text-hover text-4xl bg-shelf focus:bg-background focus:bg-background focus:outline-none whitespace-pre-wrap font-sans overflow-y-auto"
                 >
                     <span className="" />
-                </div>
+                </div> */}
+                <input
+                    ref={inputRef}
+
+                    onKeyDown={handleKeyDown}
+                    onKeyUp={handleKeyUp}
+                    
+                    //onInput={} // mock a keydown event by slicing the input buffer and then clearing it
+                    onPointerDown={onPointerDown}
+                    onPointerMove={onPointerMove}
+                    onPointerUp={onPointerUp}
+                    onPointerCancel={onPointerCancel}
+                    onPointerEnter={onPointerEnter}
+                    onBeforeInput={handleOnBeforeInput}
+                    onPaste={onPaste}
+                    
+                    onCompositionStart={handleCompositionStart}
+                    onCompositionUpdate={() => {}}
+                    onCompositionEnd={handleCompositionEnd}
+
+
+
+                    className="flex flex-1 w-full p-4 rounded-xl caret-transparent
+                            text-hover text-4xl bg-shelf focus:bg-background focus:bg-background focus:outline-none whitespace-pre-wrap font-sans overflow-y-auto"
+                >
+                </input>
             </div>
         </div>
     );
