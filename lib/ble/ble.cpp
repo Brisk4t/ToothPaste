@@ -168,7 +168,7 @@ void notifyClient() {
 // Notify the semaphore characteristic if the RTOS task queue is not full
 void queuenotify(){
   if (uxQueueSpacesAvailable(packetQueue) == 0) {
-    Serial0.println("Queue is full!");
+    DEBUG_SERIAL_PRINTLN("Queue is full!");
     return;
   } 
   
@@ -201,7 +201,7 @@ void generateSharedSecret(SecureSession::rawDataPacket* packet, SecureSession* s
   // If the decode fails, output failure reason to serial
   if (ret != 0)
   {
-    Serial0.printf("Base64 decode failed, Error code: %d\n", ret);
+    DEBUG_SERIAL_PRINTF("Base64 decode failed, Error code: %d\n", ret);
     stateManager->setState(ERROR);
     return;
   }
@@ -213,7 +213,7 @@ void generateSharedSecret(SecureSession::rawDataPacket* packet, SecureSession* s
     // Derive AES key from shared secret and save it
     if (!session->deriveAESKeyFromSharedSecret(base64Input))
     {
-      Serial0.println("AES key derived successfully");
+      DEBUG_SERIAL_PRINTLN("AES key derived successfully");
       clientPubKey = std::string((const char*)base64Input, base64InputLen);
       stateManager->setState(READY);
 
@@ -225,7 +225,7 @@ void generateSharedSecret(SecureSession::rawDataPacket* packet, SecureSession* s
     // If the AES key derivation fails
     else
     {
-      Serial0.printf("AES key derivation failed! Code: %d\n", ret);
+      DEBUG_SERIAL_PRINTF("AES key derivation failed! Code: %d\n", ret);
       stateManager->setState(ERROR);
     }
   }
@@ -233,13 +233,13 @@ void generateSharedSecret(SecureSession::rawDataPacket* packet, SecureSession* s
   // If the shared secret computation fails
   else
   {
-    Serial0.printf("Shared Secret computation failed! Code: %d\n", ret);
+    DEBUG_SERIAL_PRINTF("Shared Secret computation failed! Code: %d\n", ret);
     stateManager->setState(ERROR);
   }
 
   // Disable pairing mode after processing
   stateManager->setState(READY);
-  Serial0.println("Pairing mode disabled.");
+  DEBUG_SERIAL_PRINTLN("Pairing mode disabled.");
 
   return;
 }
@@ -249,8 +249,8 @@ SecureSession::rawDataPacket unpack(void* rawPacketBytes) {
   std::string* rawValue = reinterpret_cast<std::string*>(rawPacketBytes);
   const uint8_t* raw = reinterpret_cast<const uint8_t*>(rawValue->data()); // Pointer to the heap copy of the received data
 
-  Serial0.printf("rawValue Length: %d\n\r", rawValue->length());
-  //Serial0.printf("raw Length: %d\n\r", rawValue->length());
+  DEBUG_SERIAL_PRINTF("rawValue Length: %d\n\r", rawValue->length());
+  //DEBUG_SERIAL_PRINTF("raw Length: %d\n\r", rawValue->length());
 
   SecureSession::rawDataPacket packet; // Packet instance inside RTOS task
   size_t offset = 0;
@@ -292,7 +292,7 @@ void decryptSendString(SecureSession::rawDataPacket* packet, SecureSession* sess
     if(plaintext[0] == 0){
       // Need to create an object on the heap since TinyUSB queues data and the calling function might return before the queue is emptied
       std::string textString((const char*)plaintext+1, (packet->dataLen)-1);
-      Serial0.printf("Decryption successful: %s\n\r\n\r", textString);
+      DEBUG_SERIAL_PRINTF("Decryption successful: %s\n\r\n\r", textString);
       
       sendString(textString.c_str(), packet->slowmode); // Send the decrypted data over HID
     }
@@ -305,7 +305,7 @@ void decryptSendString(SecureSession::rawDataPacket* packet, SecureSession* sess
     
     // The first byte indicates the data is mouse data
     else if(plaintext[0] == 2){
-      Serial0.println("Mouse Packet Detected");
+      DEBUG_SERIAL_PRINTLN("Mouse Packet Detected");
       std::vector<uint8_t> keycode(plaintext + 1, plaintext + packet->dataLen);
       moveMouse(keycode.data());
     }
@@ -315,8 +315,8 @@ void decryptSendString(SecureSession::rawDataPacket* packet, SecureSession* sess
   // If the decryption fails
   else
   {
-    Serial0.print("Decryption failed with error code: ");
-    Serial0.println(ret);
+    DEBUG_SERIAL_PRINT("Decryption failed with error code: ");
+    DEBUG_SERIAL_PRINTLN(ret);
 
     led.blinkStart(500, Colors::Blue);
     //stateManager->setState(ERROR);
@@ -327,13 +327,13 @@ void decryptSendString(SecureSession::rawDataPacket* packet, SecureSession* sess
 
 // Read an AUTH packet and check if the client public key and AES key are known
 void authenticateClient(SecureSession::rawDataPacket* packet, SecureSession* session) {
-  Serial0.println("Entered authenticateClient");
+  DEBUG_SERIAL_PRINTLN("Entered authenticateClient");
   clientPubKey = std::string((const char*)packet->data, packet->dataLen);  // if you're using std::string
 
-  Serial0.printf("clientPubKey: %s\n\r", clientPubKey);
+  DEBUG_SERIAL_PRINTF("clientPubKey: %s\n\r", clientPubKey);
   // If we don't know the AES key for the given public key, set Device Status to UNPAIRED
   if (!session->isEnrolled(clientPubKey.c_str())) {
-    Serial0.println("Client is not enrolled");
+    DEBUG_SERIAL_PRINTLN("Client is not enrolled");
     // Lower bits of notification are auth status to tell if we recognize the pubkey of the sender
     // Upper bits are the notification itself ([0] = KeepAlive, [1] = Ready to Receive, [2] = Not ready to receive )
     notificationPacket.packetType = RECV_NOT_READY;
@@ -343,7 +343,7 @@ void authenticateClient(SecureSession::rawDataPacket* packet, SecureSession* ses
 
   // If we know the AES key set device status to PAIRED (Note: This does not gurantee that the AES key is correct, just that it exists)
   else {
-    Serial0.println("Client is enrolled");
+    DEBUG_SERIAL_PRINTLN("Client is enrolled");
 
     notificationPacket.packetType = RECV_READY;
     notificationPacket.authStatus = AUTH_SUCCESS;
@@ -369,15 +369,15 @@ void packetTask(void* params)
                 delete rawValue; // Free string memory
 
                 // Debug prints...
-                Serial0.println("BLE Data Received.");
-                Serial0.printf("Data length: %d\r\n", packet.dataLen);
-                Serial0.printf("ID: %d\r\nSlowMode: %d\r\nPacket Number: %d\r\nTotal Packets: %d\r\n",
+                DEBUG_SERIAL_PRINTLN("BLE Data Received.");
+                DEBUG_SERIAL_PRINTF("Data length: %d\r\n", packet.dataLen);
+                DEBUG_SERIAL_PRINTF("ID: %d\r\nSlowMode: %d\r\nPacket Number: %d\r\nTotal Packets: %d\r\n",
                     packet.packetId,
                     packet.slowmode,
                     packet.packetNumber,
                     packet.totalPackets
                 );
-                Serial0.println();
+                DEBUG_SERIAL_PRINTLN();
 
                 if (packet.packetId == 0) {
                     decryptSendString(&packet, session);

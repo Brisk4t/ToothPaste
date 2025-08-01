@@ -24,7 +24,7 @@ void StateManager::setState(DeviceState newState) {
 // Add a callback function to the list of callbacks
 void StateManager::onChange(StateCallback cb) {
     callback = cb;
-    Serial0.printf("Device State: %d\n\r", currentState);
+    DEBUG_SERIAL_PRINTF("Device State: %d\n\r", currentState);
 }
 
 // Get the current device state

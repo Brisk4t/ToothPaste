@@ -6,9 +6,11 @@
 #include <esp_timer.h>
 
 // ClipBoard libraries
+#include <SerialDebug.h>
 #include "espHID.h"
 #include "main.h"
 #include "ble.h"
+
 
 SecureSession sec; // Global Secure Session
 static char base64pubKey[45]; // Buffer to hold the Base64 encoded public key (44 base64 chars + 1 null)
@@ -17,8 +19,8 @@ static char base64pubKey[45]; // Buffer to hold the Base64 encoded public key (4
 // Send the public key over hid and wait for ble peer public key
 void sendPublicKey(void* arg) {
   const char* pubKey = static_cast<const char*>(arg);
-  Serial0.println("Sending public key: ");
-  Serial0.println(pubKey); // Print the public key to Serial for debugging
+  DEBUG_SERIAL_PRINTLN("Sending public key: ");
+  DEBUG_SERIAL_PRINTLN(pubKey); // Print the public key to Serial for debugging
   sendString(pubKey); // Send the public key to the client over HID
   sendString("\n");
   led.blinkEnd(); // Stop blinking
@@ -31,7 +33,7 @@ void sendPublicKey(void* arg) {
 
 // Enter pairing mode, generate a keypair, and send the public key to the transmitter
 void enterPairingMode() { 
-  Serial0.println("Entering pairing mode...");
+  DEBUG_SERIAL_PRINTLN("Entering pairing mode...");
   stateManager->setState(PAIRING);
 
   uint8_t pubKey[SecureSession::PUBKEY_SIZE]; 
@@ -47,9 +49,9 @@ void enterPairingMode() {
     base64pubKey[olen] = '\0';  // Null-terminate the public key string
     
     // Print Public Key to Serial
-    Serial0.println("Public Key Generated: ");
-    Serial0.println(base64pubKey);
-    Serial0.println();
+    DEBUG_SERIAL_PRINTLN("Public Key Generated: ");
+    DEBUG_SERIAL_PRINTLN(base64pubKey);
+    DEBUG_SERIAL_PRINTLN();
 
     // Create a one-shot timer to send the public key after 5 seconds
     esp_timer_create_args_t timer_args = {
@@ -67,14 +69,14 @@ void enterPairingMode() {
     char retchar[12];
     snprintf(retchar, 12, "%d", ret);  
 
-    Serial0.println("Keygen failed with error: ");
-    Serial0.println(retchar); // Print the error code to Serial for debugging
+    DEBUG_SERIAL_PRINTLN("Keygen failed with error: ");
+    DEBUG_SERIAL_PRINTLN(retchar); // Print the error code to Serial for debugging
     stateManager->setState(ERROR);
   }
 }
 
 void setup() {
-  Serial0.begin(115200); // Initialize Serial for debugging
+  DEBUG_SERIAL_BEGIN(115200); // Initialize Serial for debugging
   
   led.begin();    // Intialize the RMT LED Driver
 
@@ -106,7 +108,7 @@ void loop() {
 
 
   else if (buttonEvent == 2) { // Hold event
-    Serial0.println("Button held!");
+    DEBUG_SERIAL_PRINTLN("Button held!");
     stateManager->setState(PAIRING);
     enterPairingMode(); // Enter pairing mode on hold
   }

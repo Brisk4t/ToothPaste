@@ -1,7 +1,8 @@
 #include <Preferences.h>
 #include <nvs_flash.h>
 
-#include "secureSession.h"
+#include <SerialDebug.h>
+#include "SecureSession.h"
 
 mbedtls_ecdh_context ecdh_ctx;
 mbedtls_ctr_drbg_context ctr_drbg;
@@ -99,12 +100,12 @@ int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE *
     if (ret != 0)
     {
         mbedtls_ecp_point_free(&peerPoint);
-        Serial0.println("Error reading peer public key");
-        Serial0.printf("Error code: %d\n", ret);
+        DEBUG_SERIAL_PRINTLN("Error reading peer public key");
+        DEBUG_SERIAL_PRINTF("Error code: %d\n", ret);
         return ret;
     }
 
-    Serial0.println("Peer public key read successfully");
+    DEBUG_SERIAL_PRINTLN("Peer public key read successfully");
 
     // Compute the shared secret (this is a scalar)
     ret = mbedtls_ecdh_compute_shared(
@@ -128,9 +129,9 @@ int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE *
         return ret;
 
     // Print the shared secret
-    Serial0.println("Shared Secret: ");
+    DEBUG_SERIAL_PRINTLN("Shared Secret: ");
     printBase64(sharedSecret, sizeof(sharedSecret));
-    Serial0.println();
+    DEBUG_SERIAL_PRINTLN();
 
     sharedReady = true;
     return 0;
@@ -160,16 +161,16 @@ int SecureSession::deriveAESKeyFromSharedSecret(const char *base64Input)
     );
 
     // Debugging
-    // Serial0.println("AES Key: ");
+    // DEBUG_SERIAL_PRINTLN("AES Key: ");
     // printBase64(aesKey, sizeof(aesKey));
-    // Serial0.println();
+    // DEBUG_SERIAL_PRINTLN();
 
     // If a key was successfully generated, store it
     if (!ret)
     {
         String hashedBase64 = hashKey(base64Input);
         preferences.putBytes(hashedBase64.c_str(), aesKey, sizeof(aesKey)); // Store the key in preferences for debugging
-        Serial0.printf("AES Key stored as %s\n", hashedBase64);
+        DEBUG_SERIAL_PRINTF("AES Key stored as %s\n", hashedBase64);
     };
 
     preferences.end(); // Close the write session
@@ -191,7 +192,7 @@ int SecureSession::encrypt(
     preferences.begin("security", true); // Open storage session in read only mode
     if (!preferences.isKey(hashedKey.c_str()))
     {
-        Serial0.println("aesKey not found in preferences storage");
+        DEBUG_SERIAL_PRINTLN("aesKey not found in preferences storage");
         return 1;
     }
 
@@ -235,7 +236,7 @@ int SecureSession::decrypt(
     preferences.begin("security", true); // Open storage session in read only mode
     if (!preferences.isKey(hashedKey.c_str()))
     {
-        Serial0.println("aesKey not found in preferences storage");
+        DEBUG_SERIAL_PRINTLN("aesKey not found in preferences storage");
         return 1;
     }
 
@@ -243,9 +244,9 @@ int SecureSession::decrypt(
     // set the generated AES key in the GCM context
     preferences.getBytes(hashedKey.c_str(), aesKey, ENC_KEYSIZE); // Get the AES key from preferences (for debugging)
 
-    // Serial0.println("AES KEY FROM PERFERENCES: ");
+    // DEBUG_SERIAL_PRINTLN("AES KEY FROM PERFERENCES: ");
     // printBase64(aesKey, ENC_KEYSIZE);
-    // Serial0.println();
+    // DEBUG_SERIAL_PRINTLN();
 
     // Import the bytearray AES key into the mbedtls context
     mbedtls_gcm_init(&gcm);
@@ -311,12 +312,12 @@ void SecureSession::printBase64(const uint8_t* data, size_t dataLen)
     if (ret == 0)
     {
         encoded[actualLen] = '\0'; // Null-terminate the string
-        Serial0.println((const char*)encoded);
+        DEBUG_SERIAL_PRINTLN((const char*)encoded);
     }
     else
     {
-        Serial0.print("Base64 encoding failed. Error code: ");
-        Serial0.println(ret);
+        DEBUG_SERIAL_PRINT("Base64 encoding failed. Error code: ");
+        DEBUG_SERIAL_PRINTLN(ret);
     }
 }
 

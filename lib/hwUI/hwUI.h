@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <SerialDebug.h>
 
 #define buttonPin 0 // use the boot button on most esp32 boards
 

@@ -5,6 +5,8 @@
 #include <vector>
 #include <functional>
 
+#include <SerialDebug.h>
+
 
 
 enum DeviceState {

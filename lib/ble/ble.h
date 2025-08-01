@@ -5,6 +5,7 @@
 #include <BLEUtils.h>
 #include <BLE2902.h>
 
+#include <SerialDebug.h>
 #include "espHID.h"
 #include "secureSession.h"
 

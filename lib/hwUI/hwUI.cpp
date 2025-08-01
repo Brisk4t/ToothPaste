@@ -83,12 +83,12 @@ int checkButton() {
 
 void buttonPressHandler(){
     // Handle button press event
-    Serial0.println("Button pressed!");
+    DEBUG_SERIAL_PRINTLN("Button pressed!");
 }
 
 void buttonHoldHandler(){
     // Handle button hold event
-    Serial0.println("Button held!");
+    DEBUG_SERIAL_PRINTLN("Button held!");
 
     //enterPairingMode(); // Enter pairing mode when button is held
 }
