@@ -15,8 +15,10 @@ export default function LiveCapture() {
     const bufferRef = useRef(""); // Tracks the current input buffer
     const lastSentBuffer = useRef(""); // tracks last sent buffer
     const inputRef = useRef(null);
+    const isIMERef = useRef(false); // Flag to indicate if IME is active
     const isComposingRef = useRef(false);
     const lastInputRef = useRef(""); // Last input value to compare with current input
+    const compositionStartRef = useRef(""); // Flag to indicate if composition has started
 
     const [macMode, setMacMode] = useState(false); // Does WIN key send WIN or COMMAND key
 
@@ -293,19 +295,15 @@ export default function LiveCapture() {
     // Main keydown handler
     const handleKeyDown = (e) => {
         console.log("Keydown event: ", e.key, "Code: ", e.code);
-        e.preventDefault();
+
+        // Let IME fill in the input without interference
+        if (!isIMERef.current) {
+            e.preventDefault();
+        }
 
         const isCtrl = e.ctrlKey || e.metaKey;
         const isAlt = e.altKey;
         const buffer = bufferRef.current;
-
-        if(e.key === " Unidentified") {
-            if(lastInputRef.current.length > inputRef.current.value.length) {
-                handleSpecialKey({key:"Backspace"}, buffer); // Handle backspace or other special keys
-            }
-            lastInputRef.current = inputRef.current.value; // Update last input value
-            return;
-        }
 
         if (isCtrl && e.key !== "Control") { // Just Ctrl does nothing
             handleModifierShortcut(e, 0x80);
@@ -334,52 +332,68 @@ export default function LiveCapture() {
 
     // When ctrl is released, start sending mouse data (if enabled)
     const handleKeyUp = (e) => {
-        console.log("Keyup event: ", e.key, "Code: ", e.code);
+        //console.log("Keyup event: ", e.key, "Code: ", e.code);
 
         if (e.key === "Control") {
             ctrlPressed.current = false;
         }
     };
 
-
-    // mock a keydown event by slicing the input buffer and then clearing it
-    // Called on beforeinput - fires BEFORE the input is applied
+    // When the input is a result of an IME non-composition event, it contains NEW data
     const handleOnBeforeInput = (event) => {
         console.log("Touch input event handled in beforeInput: ", event.data);
-
+        isIMERef.current = true; // Set IME flag on beforeinput
+        
         // Ignore any intermediate composition events
         if (isComposingRef.current) {
             return;
         }
+        
+        // Send the new data 
+        updateBufferAndSend(bufferRef.current + event.data)
+        isIMERef.current = false; // Reset IME flag on afterinput
 
-        // // The inserted characters are in event.data
-        // if (event.data) {   
-        //     handleKeyDown({
-        //         key: event.data,
-        //         preventDefault: () => event.preventDefault(),
-        //         ctrlKey: false,
-        //         altKey: false,
-        //         metaKey: false,
-        //     });
-
-        //     //event.preventDefault();
-        // }
+        // -> This will fire an onChange event for the input div 
     };
+
+    function handleOnChange(event) {
+        console.log("Input changed: ", event.target.value);
+        console.log("Last input value: ", lastInputRef.current);
+
+        // If the onChange event is fired but input size has shrunk, backspace was pressed
+        if (lastInputRef.current.length > event.target.value.length) {
+            console.log("Handling backspace for input change");
+            handleSpecialKey({key:"Backspace"}, buffer);
+        }
+
+        lastInputRef.current = event.target.value; // Update last input value to the current input
+    }
 
     // Composition event handlers
-    const handleCompositionStart = () => {
-        console.log("Composition started");
+    const handleCompositionStart = (event) => {
+        console.log("Composition started++++++++++++++");
         isComposingRef.current = true;
+        compositionStartRef.current = event.target.value; // Store the initial composition data
+
+        console.log("Event target value: ", event.target.value);
+        console.log("Last input value: ", lastInputRef.current);
+ 
+
     };
 
-    // Keep the input empty
+    // When composition ends it contains a CORRECTED word, which is presumably the final word typed
     const handleCompositionEnd = (event) => {
         console.log("Composition ended with data: ", event.data);
+        
+        if ((compositionStartRef.current).trim() !== event.data.trim())  {
+            handleModifierShortcut({key: "Backspace"}, 0x80); // Delete the word typed word (ctrl + backspace)
+            //backspaceString = "\b" * compositionStartRef.current.trim().length ; // Create a backspace string to delete the word typed
+            updateBufferAndSend(bufferRef.current + event.data); // Add the new word
+        }
+
+        inputRef.current.value = ""; // Clear the input field
+        lastInputRef.current = inputRef.current.value; // Update last input value to the new word
         isComposingRef.current = false;
-            if (inputRef.current) {
-                inputRef.current.value = "";
-                lastInputRef.current = "";
-            }
     };
 
     // Toggle capturing and sending mouse data
@@ -493,6 +507,10 @@ export default function LiveCapture() {
                 </div> */}
                 <input
                     ref={inputRef}
+                    autoCapitalize="off"
+                    type="text"
+                    name="username"
+                    autoComplete="disableAutoCompleteOnlySuggest"
 
                     onKeyDown={handleKeyDown}
                     onKeyUp={handleKeyUp}
@@ -505,7 +523,8 @@ export default function LiveCapture() {
                     onPointerEnter={onPointerEnter}
                     onBeforeInput={handleOnBeforeInput}
                     onPaste={onPaste}
-                    
+                    onChange={handleOnChange}
+
                     onCompositionStart={handleCompositionStart}
                     onCompositionUpdate={() => {}}
                     onCompositionEnd={handleCompositionEnd}
@@ -513,7 +532,7 @@ export default function LiveCapture() {
 
 
                     className="flex flex-1 w-full p-4 rounded-xl caret-transparent
-                            text-hover text-4xl bg-shelf focus:bg-background focus:bg-background focus:outline-none whitespace-pre-wrap font-sans overflow-y-auto"
+                            text-background text-4xl bg-shelf focus:bg-background focus:bg-background focus:outline-none whitespace-pre-wrap font-sans overflow-y-auto"
                 >
                 </input>
             </div>
