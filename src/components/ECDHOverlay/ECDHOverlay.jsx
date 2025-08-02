@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useRef, useEffect } from 'react';
 import { ec as EC } from 'elliptic';
 import { ECDHContext, arrayBufferToBase64, base64ToArrayBuffer } from '../../context/ECDHContext';
 import { Button, Typography } from "@material-tailwind/react";
@@ -15,6 +15,7 @@ const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
     const [error, setError] = useState(null);
     const [pkey, setpkey] = useState(null);
     const { device, pktCharacteristic, status, sendUnencrypted } = useContext(BLEContext);
+    const keyRef = useRef(null);
 
     const [isLoading, setisLoading] = useState(false);
 
@@ -75,6 +76,11 @@ const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
         }
     };
 
+    // Focus the input field when the overlay is shown
+    useEffect(() => {
+        keyRef.current?.focus();
+    }, []); 
+
     if (!showOverlay) return null;
 
     return (
@@ -127,8 +133,8 @@ const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
                 </Typography>
                             
                 <input
-                    type="text"
-                    placeholder="Enter compressed public key (base64)"
+                    type="password"
+                    placeholder="Pairing Key"
                     value={keyInput}
                     onChange={(e) => setkeyInput(e.target.value)}
                     onKeyDown={handleSubmit}
@@ -136,6 +142,7 @@ const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
                 />
 
                 <Button
+                    ref={keyRef}
                     onClick={handleSubmit}
                     loading={isLoading}
                     disabled={keyInput.trim().length < 44 || !pktCharacteristic || isLoading}

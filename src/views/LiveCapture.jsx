@@ -505,13 +505,15 @@ export default function LiveCapture() {
                 >
                     <span className="" />
                 </div> */}
+
                 <input
                     ref={inputRef}
                     autoCapitalize="off"
                     type="text"
                     name="username"
                     autoComplete="disableAutoCompleteOnlySuggest"
-
+                    data-lpignore="true"
+                    
                     onKeyDown={handleKeyDown}
                     onKeyUp={handleKeyUp}
                     
