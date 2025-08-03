@@ -11,23 +11,23 @@ export function useInputController() {
     // Text input handler settings
     const DEBOUNCE_INTERVAL_MS = 100; // Interval to wait before sending input data
     const inputRef = useRef(null); // The input DOM element reference
-
-
     const ctrlPressed = useRef(false); // Flag to indicate if Ctrl is pressed
-    const [buffer, setBuffer] = useState(""); // Holds the full input to render (not needed for current implementation)
-    const bufferRef = useRef(""); // Tracks the current input buffer
-    const lastSentBuffer = useRef(""); // tracks last sent buffer
-    
-    const isIMERef = useRef(false); // Flag to indicate if IME is active
-    const isComposingRef = useRef(false);
-    const lastCompositionRef = useRef("");
-    const lastInputRef = useRef(""); // Last input value to compare with current input
-    const compositionStartRef = useRef(""); // Flag to indicate if composition has started
-
     const debounceTimeout = useRef(null); // Holds the promise to send the buffer data after DEBOUNCE_INTERVAL_MS
     const specialEvents = useRef([]); // store special keys pressed but not modifying buffer
+    
+    // Each event within a DEBOUNCE_INTERVAL_MS period is added to a buffer
+    const bufferRef = useRef(""); // Tracks the current input buffer
+    const lastSentBuffer = useRef(""); // tracks last sent buffer to aggregate and send only updates, not entire buffer
+    
+    // Touch (IME) keyboard input variables
+    const isIMERef = useRef(false); // Flag to indicate if IME is active
+    const isComposingRef = useRef(false); // If there are any ghost events during the autocorrect process (compositionStart -> compositionEnd) ignore them
+    const lastCompositionRef = useRef(""); // Contains a string that was later autocorrected / autocompleted (updates on compositionStart)
+    const lastInputRef = useRef(""); // Last input value, compared with current input value to infer backspace and potentially other non-character inputs
 
-    // Send packets periodically unless reset
+
+
+    // Construct and send a packet using the difference between prev and current buffer (implementation allows tracking all historical data if needed later)
     const sendDiff = useCallback(async () => {
         var keycode = new Uint8Array(8); // Payload for special characters
         keycode[0] = 1; // DATA_TYPE is TEXT
@@ -81,11 +81,11 @@ export function useInputController() {
                 sendEncrypted(keycode);
                 keycode[1] = 0;
             }
-            specialEvents.current = []; // Clear the special events after sending
+            specialEvents.current = []; // Clear the special events after sending / adding to payload
         }
 
         
-
+        // If there is nothing to be printed, return
         if (payload.length === 0) {
             return;
         }
@@ -93,10 +93,13 @@ export function useInputController() {
         // Update lastSentBuffer early to avoid duplicate sends
         lastSentBuffer.current = current;
 
-        sendEncrypted(payload); // Send the input
+        sendEncrypted(payload); // Send the final payload
+        console.log("Current:", current);
+        console.log("Previous:", previous);
+
     }, [createEncryptedPackets, pktCharacteristic, readyToReceive]);
 
-    // Schedule the sendDiff function to be called after a delay, calling it again within the delay resets the timer
+    // Schedule the sendDiff function to be called after a delay of DEBOUNCE_INTERVAL_MS, calling scheduleSend() again within the delay resets the timer
     const scheduleSend = useCallback(() => {
         // If schedulesSend is called while another timeout is running, reset it
         if (debounceTimeout.current) {
@@ -109,10 +112,9 @@ export function useInputController() {
         }, DEBOUNCE_INTERVAL_MS);
     }, [sendDiff]);
 
-    // Handle each keypress and reset the timer
+    // Update the current debounce session's buffer and reset debounce timer
     function updateBufferAndSend(newBuffer) {
         bufferRef.current = newBuffer;
-        setBuffer(newBuffer);
         scheduleSend();
     }
 
@@ -142,19 +144,23 @@ export function useInputController() {
             return;
         }
 
-        if (handleSpecialKey(e, buffer)) return; // Handle special keys first
+        if (handleSpecialKey(e, buffer)) return; // If the key is Backspace
 
-        // if (e.key === "Control") {
-        //     ctrlPressed.current = true;
-        //     return;
-        // }
+        // If only Control is pressed (and not released yet)
+        if (e.key === "Control") {
+            ctrlPressed.current = true;
+            return;
+        }
 
-        // If the key is a printing character (length 1), update the buffer and send
+        // If the key is a printing character ('a', 'b', '.' etc. === length 1), update the buffer and send
         if (e.key.length === 1) {
-            lastInputRef.current = inputRef.current.value; // Update last input value to the current input
+            lastInputRef.current = inputRef.current.value; // Update last input value to the current input (for IME)
+            
+            // Append the new key to the buffer
             updateBufferAndSend(buffer + e.key);
             return true;
         }
+
         return false;
     }
 
@@ -162,25 +168,30 @@ export function useInputController() {
     function handleSpecialKey(e, buffer) {
         switch (e.key) {
             case "Backspace":
+                // If the buffer is empty, backspace must be sent by itself
                 if (buffer.length === 0) {
                     specialEvents.current.push("Backspace");
                     scheduleSend();
-                } else {
+                } 
+                
+                // Otherwise the buffer must be edited before backspace is sent to keep track of changes
+                else {
                     updateBufferAndSend(buffer.slice(0, -1));
                 }
+
                 return true;
+                
             case "Enter":
-                if (buffer.length === 0) {
-                    specialEvents.current.push("Enter");
-                    scheduleSend();
-                } else {
-                    updateBufferAndSend(buffer + "\n");
-                }
+                updateBufferAndSend(buffer + "\n");
                 return true;
+
             case "Tab":
-                e.preventDefault();
+                e.preventDefault(); // Prevent tab from switching DOM context
+                
+                // No need to check buffer since tab is not a printing character
                 updateBufferAndSend(buffer + "\t");
                 return true;
+
             default:
                 if (e.key.startsWith("Arrow")) {
                     specialEvents.current.push(e.key);
@@ -201,9 +212,9 @@ export function useInputController() {
         sendEncrypted(keycode);
     }
 
+    // When a key is released
     const handleKeyUp = (e) => {
         //console.log("Keyup event: ", e.key, "Code: ", e.code);
-
         if (e.key === "Control") {
             ctrlPressed.current = false;
         }
@@ -213,9 +224,8 @@ export function useInputController() {
     // Handle paste events (append pasted text to buffer)
     function handlePaste(e) {
         e.preventDefault();
-        const newBuffer = buffer + e.clipboardData.getData("text");
+        const newBuffer = bufferRef.current + e.clipboardData.getData("text");
         bufferRef.current = newBuffer;
-        setBuffer(newBuffer);
         scheduleSend();
         return;
     }
@@ -242,10 +252,9 @@ export function useInputController() {
     function handleCompositionStart(event) {
         console.log("Composition started++++++++++++++");
         isComposingRef.current = true;
-        compositionStartRef.current = lastCompositionRef.current; // Store the initial composition data
-
+        
         console.log("Event target value: ", event.target.value);
-        console.log("Last input value: ", compositionStartRef.current);
+        console.log("Last input value: ", lastCompositionRef.current);
  
 
     };
@@ -254,7 +263,7 @@ export function useInputController() {
     function handleCompositionEnd(event) {
         console.log("Composition ended with data: ", event.data);
         
-        var lastInput = (compositionStartRef.current).trim(); 
+        var lastInput = (lastCompositionRef.current).trim(); 
         var isPartialComplete = (lastInput !== ""); // If the last input is not a character, we assume fully autofilled word
 
         if (lastInput !== event.data.trim())  { // If the buffer doesnt match the composition end, autocorrect changed the word
@@ -264,7 +273,6 @@ export function useInputController() {
                 console.log("Partial word autofilled / autocorrected");
                 handleModifierShortcut({key: "Backspace"}, 0x80); // Delete the word typed word (ctrl + backspace)
             }
-            //backspaceString = "\b" * compositionStartRef.current.trim().length ; // Create a backspace string to delete the word typed
             updateBufferAndSend(bufferRef.current + event.data); // Add the new word
         }
         
@@ -283,7 +291,7 @@ export function useInputController() {
         // If the onChange event is fired but input size has shrunk, backspace was pressed
         if (lastInputRef.current.length > event.target.value.length) {
             console.log("Handling backspace for input change");
-            handleSpecialKey({key:"Backspace"}, buffer);
+            handleSpecialKey({key:"Backspace"}, bufferRef.current);
             lastCompositionRef.current = lastCompositionRef.current.slice(0, -1); // Keep the lastinput buffer updated
         }
 
@@ -292,6 +300,7 @@ export function useInputController() {
     
     return {
         inputRef,
+        ctrlPressed,
         handleKeyDown,
         handleKeyUp,
         handlePaste,
