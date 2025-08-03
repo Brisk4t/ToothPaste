@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useCallback, useContext } from 'react';
 import { BLEContext } from "../context/BLEContext";
 import { ECDHContext } from "../context/ECDHContext";
+import {HIDMap} from "./HIDMap.js"
 
 
 export function useInputController() {
@@ -8,12 +9,13 @@ export function useInputController() {
     const { pktCharacteristic, status, readyToReceive, sendEncrypted } = useContext(BLEContext);
     const { createEncryptedPackets } = useContext(ECDHContext);
     
-    // Text input handler settings
+    // Text input handler variables
     const DEBOUNCE_INTERVAL_MS = 100; // Interval to wait before sending input data
     const inputRef = useRef(null); // The input DOM element reference
     const ctrlPressed = useRef(false); // Flag to indicate if Ctrl is pressed
     const debounceTimeout = useRef(null); // Holds the promise to send the buffer data after DEBOUNCE_INTERVAL_MS
     const specialEvents = useRef([]); // store special keys pressed but not modifying buffer
+    const inputModeRef = useRef(0);
     
     // Each event within a DEBOUNCE_INTERVAL_MS period is added to a buffer
     const bufferRef = useRef(""); // Tracks the current input buffer
@@ -24,8 +26,7 @@ export function useInputController() {
     const isComposingRef = useRef(false); // If there are any ghost events during the autocorrect process (compositionStart -> compositionEnd) ignore them
     const lastCompositionRef = useRef(""); // Contains a string that was later autocorrected / autocompleted (updates on compositionStart)
     const lastInputRef = useRef(""); // Last input value, compared with current input value to infer backspace and potentially other non-character inputs
-
-
+  
 
     // Construct and send a packet using the difference between prev and current buffer (implementation allows tracking all historical data if needed later)
     const sendDiff = useCallback(async () => {
@@ -41,13 +42,15 @@ export function useInputController() {
         if (current.length > previous.length) {
             payload += current.slice(previous.length);
 
-            // If data was removed, add n backspaces to the payload where n is the difference in length
-        } else if (current.length < previous.length) {
+        } 
+        
+        // If data was removed, add n backspaces to the payload where n is the difference in length
+        else if (current.length < previous.length) {
             const numDeleted = previous.length - current.length;
             payload += "\b".repeat(numDeleted);
         }
 
-        // Append special events payloads
+        // Append special events payloads (TODO: redundant, need to refactor and remove)
         if (specialEvents.current.length > 0) {
             for (const ev of specialEvents.current) {
                 switch (ev) {
@@ -120,16 +123,21 @@ export function useInputController() {
 
     // Intercept keydown events
     function handleKeyDown(e) {
+        // TODO: Handle Combos in a function
+        // TODO: Handle just modifiers (hold ctrl to stop tracking cursor)
+        // TODO: 
+        // Input: "", <Backspace>, "" -> "abc" 
+        // Send: "abcd", Send 'Backspace', "\b"
+
         console.log("Keydown event: ", e.key, "Code: ", e.code);
-
-
         const isCtrl = e.ctrlKey || e.metaKey;
-        const buffer = bufferRef.current;
 
-        if (isCtrl && e.key !== "Control") { // Just Ctrl does nothing
+        // Ctrl + another key (TODO: Need to move this to a different handler to allow switching behaviour at runtime)
+        // <ctrl> - e.ctrlKey == True, e.key == 'a'
+        if (isCtrl && e.key !== "Control") { 
             if(e.key !== "v") {
                 e.preventDefault();
-                handleModifierShortcut(e, 0x80);
+                sendKeyCode(e, 0x80);
             }
             return;
         }
@@ -140,31 +148,27 @@ export function useInputController() {
         }
 
         if (e.altKey && e.key !== "Alt") { // Just Alt does nothing
-            handleModifierShortcut(e, 0x83);
+            sendKeyCode(e, 0x83);
             return;
         }
 
-        if (handleSpecialKey(e, buffer)) return; // If the key is Backspace
+        // TODO: Depending on the current input mode, we let host handle special keys or we send special keys as keycodes 
+        if (handleSpecialKey(e, bufferRef.current)) return; // If the key itself is a special key (e.key === "Backspace" / "Tab" / "Ctrl" / "Arrow_" etc.)
 
-        // If only Control is pressed (and not released yet)
-        if (e.key === "Control") {
-            ctrlPressed.current = true;
-            return;
-        }
 
         // If the key is a printing character ('a', 'b', '.' etc. === length 1), update the buffer and send
         if (e.key.length === 1) {
             lastInputRef.current = inputRef.current.value; // Update last input value to the current input (for IME)
             
             // Append the new key to the buffer
-            updateBufferAndSend(buffer + e.key);
+            updateBufferAndSend(bufferRef.current + e.key);
             return true;
         }
 
         return false;
     }
 
-    // Helper: handle special key events (Backspace, Enter, Arrow, Tab)
+    // Helper: handle special key events (Backspace, Enter, Arrow, Tab, etc.)
     function handleSpecialKey(e, buffer) {
         switch (e.key) {
             case "Backspace":
@@ -185,11 +189,13 @@ export function useInputController() {
                 updateBufferAndSend(buffer + "\n");
                 return true;
 
-            case "Tab":
-                e.preventDefault(); // Prevent tab from switching DOM context
-                
+            case "Tab":                
                 // No need to check buffer since tab is not a printing character
                 updateBufferAndSend(buffer + "\t");
+                return true;
+            
+            case "Control":
+                ctrlPressed.current = true;
                 return true;
 
             default:
@@ -198,19 +204,26 @@ export function useInputController() {
                     scheduleSend();
                     return true;
                 }
+            
                 return false;
         }
     }
 
-    // Helper: handle Ctrl/Alt + alpha shortcuts (Currently does not work with system shortcuts like alt+tab)
-    function handleModifierShortcut(e, modifierByte) {
-        let keypress = e.key === "Backspace" ? "\b" : e.key;
+    // Helper: handle non-printing inputs directly as keycodes (Currently does not work with system shortcuts like alt+tab)
+    function sendKeyCode(e, modifierKey) {
+        let modifierByte = modifierByte? HIDMap[modifierKey] : 0; // Get the modifier's code from HIDMap, if it doesnt exist there is no modifier in the keycode
+        let keypress = HIDMap[e.key] !== "Undefined" ? HIDMap[e.key] : e.key; // Check if the key is a HIDMap character, otherwise the key is a printing character
+
+        if(!(HIDMap[e.key] && modifierByte)) return; // If there is no modifier and the key is not in the HIDMap : the key is not special and modfies the buffer, handle in sendDiff
+
         let keycode = new Uint8Array(8);
-        keycode[0] = 1;
+        keycode[0] = 1; // First byte of sent data is a type indicator, 1 = Keycode
         keycode[1] = modifierByte;
         keycode[2] = keypress.charCodeAt(0);
+        
         sendEncrypted(keycode);
     }
+
 
     // When a key is released
     const handleKeyUp = (e) => {
@@ -271,7 +284,7 @@ export function useInputController() {
 
             if(isPartialComplete){
                 console.log("Partial word autofilled / autocorrected");
-                handleModifierShortcut({key: "Backspace"}, 0x80); // Delete the word typed word (ctrl + backspace)
+                sendKeyCode({key: "Backspace"}, 0x80); // Delete the word typed word (ctrl + backspace)
             }
             updateBufferAndSend(bufferRef.current + event.data); // Add the new word
         }
