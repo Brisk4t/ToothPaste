@@ -5,22 +5,10 @@ NeoPixelRMT::NeoPixelRMT(gpio_num_t pin) : dataPin(pin) {}
 
 // Initialize the RMT RGB led driver for the specified pin
 void NeoPixelRMT::begin() {
-    rmt_config_t config = {};
-    config.rmt_mode = RMT_MODE_TX;
-    config.channel = RMT_CHANNEL_0; // choose your channel
-    config.gpio_num = dataPin;
-    config.mem_block_num = 1; // equivalent to RMT_MEM_64 (64 is 1 block)
-    config.clk_div = 8;  // For 100ns tick with 80 MHz APB clock: 80 MHz / 8 = 10 MHz => 1 tick = 100 ns
-    config.tx_config.loop_en = false;
-    config.tx_config.carrier_en = false;
-    config.tx_config.idle_output_en = true;
-    config.tx_config.idle_level = RMT_IDLE_LEVEL_LOW;
-
-    rmt_config(&config);
-    rmt_driver_install(config.channel, 0, 0);
-
-    // Store the channel number if you want to use it later for writing items
-    rmt_channel = config.channel;
+    rmt = rmtInit(dataPin, RMT_TX_MODE, RMT_MEM_64);
+    if (rmt) {
+        rmtSetTick(rmt, 100);  // 100ns ticks
+    }
 }
 
 // Set the color of the LED using r,g,b values without calling show()
@@ -46,8 +34,9 @@ void NeoPixelRMT::setColor(const RGB& color) {
 
 // Write LED data to RMT
 void NeoPixelRMT::show() {
-    // rmt_channel is your stored channel number
-    rmt_write_items(rmt_channel, led_data, 24, true);  // 'true' means block until done
+    if (rmt) {
+        rmtWrite(rmt, led_data, 24);
+    }
 }
 
 

@@ -2,17 +2,17 @@
 #include <USB.h>
 
 USBHIDKeyboard keyboard;
-//USBHIDMouse mouse;
-//USBHIDConsumerControl control;
-//USBHIDSystemControl syscontrol;
+USBHIDMouse mouse;
+USBHIDConsumerControl control;
+USBHIDSystemControl syscontrol;
 
 // Start the hid keyboard
 void hidSetup()
 {
   keyboard.begin();
-  //mouse.begin();
-  //control.begin();
-  //syscontrol.begin();
+  mouse.begin();
+  control.begin();
+  syscontrol.begin();
   USB.begin();
 }
 
@@ -60,26 +60,26 @@ void sendKeycode(uint8_t* keys, bool slowMode) {
 
 void moveMouse(int32_t x, int32_t y, bool LClick, bool RClick){
   
-  // // Click before moving if the click is in the same report
-  // if(LClick){
-  //   mouse.press(MOUSE_LEFT);
-  // }
+  // Click before moving if the click is in the same report
+  if(LClick){
+    mouse.press(MOUSE_LEFT);
+  }
 
-  // if(RClick){
-  //   mouse.press(MOUSE_RIGHT);
-  // }
+  if(RClick){
+    mouse.press(MOUSE_RIGHT);
+  }
   
 
-  // smoothMoveMouse(x, y, 20, 5); // Move the mouse by dx and dy over 20 steps and SLOWMODE_DELAY_MS ms between each step
+  smoothMoveMouse(x, y, 20, 5); // Move the mouse by dx and dy over 20 steps and SLOWMODE_DELAY_MS ms between each step
 
-  // // Release after moving the mouse
-  // if (mouse.isPressed(MOUSE_LEFT)) {
-  //     mouse.release(MOUSE_LEFT);
-  // }
+  // Release after moving the mouse
+  if (mouse.isPressed(MOUSE_LEFT)) {
+      mouse.release(MOUSE_LEFT);
+  }
   
-  // if (mouse.isPressed(MOUSE_RIGHT)) {
-  //     mouse.release(MOUSE_RIGHT);
-  // }
+  if (mouse.isPressed(MOUSE_RIGHT)) {
+      mouse.release(MOUSE_RIGHT);
+  }
   
 }
 
@@ -105,7 +105,7 @@ void smoothMoveMouse(int dx, int dy, int steps, int interval) {
     int moveY = round(accumulatedY);
 
     if (moveX != 0 || moveY != 0) {
-      //mouse.move(moveX, moveY);
+      mouse.move(moveX, moveY);
       accumulatedX -= moveX;
       accumulatedY -= moveY;
     }

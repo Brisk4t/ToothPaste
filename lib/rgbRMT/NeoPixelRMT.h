@@ -6,7 +6,6 @@
 #define NEOPIXELRMT_H
 
 #include <esp32-hal.h>
-#include "driver/rmt.h"
 #include "Colors.h" // Import the RGB struct and Colors namespace
 
 
@@ -36,10 +35,9 @@ public:
     bool isBlinking() { return blinking; }
 
 private:
-    //rmt_obj_t* rmt;
-    rmt_item32_t led_data[24];
+    rmt_obj_t* rmt;
+    rmt_data_t led_data[24];
     gpio_num_t dataPin;
-    rmt_channel_t rmt_channel;  // <-- Store the channel here
 
     uint8_t blinkR, blinkG, blinkB;
     unsigned long blinkInterval;

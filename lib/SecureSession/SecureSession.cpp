@@ -43,8 +43,8 @@ int SecureSession::init()
 
     if (ret != 0)
         return ret;
-    
-    ret = mbedtls_ecdh_setup(&ecdh_ctx, MBEDTLS_ECP_DP_SECP256R1); // Use curve secp256r1
+
+    ret = mbedtls_ecp_group_load(&ecdh_ctx.grp, MBEDTLS_ECP_DP_SECP256R1); // Use curve secp256r1
     return ret;
 }
 
@@ -53,31 +53,29 @@ int SecureSession::generateKeypair(uint8_t outPublicKey[PUBKEY_SIZE], size_t& ou
 {
 
     // Try generating the keypair
-    // int ret = mbedtls_ecdh_gen_public(
-    //     &ecdh_ctx.grp, // Curve group (e.g., SECP256R1)
-    //     &ecdh_ctx.d,   // private key
-    //     &ecdh_ctx.Q,   // public key
-    //     mbedtls_ctr_drbg_random,
-    //     &ctr_drbg
-    // );
+    int ret = mbedtls_ecdh_gen_public(
+        &ecdh_ctx.grp, // Curve group (e.g., SECP256R1)
+        &ecdh_ctx.d,   // private key
+        &ecdh_ctx.Q,   // public key
+        mbedtls_ctr_drbg_random,
+        &ctr_drbg
+    );
 
-    // if (ret != 0)
-    //     return ret;
+    if (ret != 0)
+        return ret;
 
     // Write the compressed public key to the outPublicKey array (decompression is handled on the peer)
-
-    // mbedtls_ecp_point_write_binary(
-    //     &ecdh_ctx.grp,             // Curve group (e.g., SECP256R1)
-    //     &ecdh_ctx.Q,               // Public key point
-    //     MBEDTLS_ECP_PF_COMPRESSED, // <-- Use compressed format
-    //     &olen,
-    //     outPublicKey,
-    //     sizeof(pubkey)
-    // );
-
     unsigned char pubkey[PUBKEY_SIZE];
     size_t olen = 0;
-    int ret = mbedtls_ecdh_make_public(&ecdh_ctx, &olen, pubkey, PUBKEY_SIZE, mbedtls_ctr_drbg_random, nullptr);
+    mbedtls_ecp_point_write_binary(
+        &ecdh_ctx.grp,             // Curve group (e.g., SECP256R1)
+        &ecdh_ctx.Q,               // Public key point
+        MBEDTLS_ECP_PF_COMPRESSED, // <-- Use compressed format
+        &olen,
+        outPublicKey,
+        sizeof(pubkey)
+    );
+
     if (ret != 0)
         return ret;
 
@@ -93,10 +91,15 @@ int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE *
     if (peerPubLen < 65)
         return -1;
 
+    // initialize the struct to hold the peer's public key (point on the curve)
+    mbedtls_ecp_point peerPoint;
+    mbedtls_ecp_point_init(&peerPoint);
+
     // Read the uncompressed peer public key (compressed support N/A on current ESP32 arduino core)
-    int ret = mbedtls_ecdh_read_public(&ecdh_ctx, peerPublicKey, 65);
+    int ret = mbedtls_ecp_point_read_binary(&ecdh_ctx.grp, &peerPoint, peerPublicKey, 65);
     if (ret != 0)
     {
+        mbedtls_ecp_point_free(&peerPoint);
         DEBUG_SERIAL_PRINTLN("Error reading peer public key");
         DEBUG_SERIAL_PRINTF("Error code: %d\n", ret);
         return ret;
@@ -104,21 +107,24 @@ int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE *
 
     DEBUG_SERIAL_PRINTLN("Peer public key read successfully");
 
-    
-    // ret = mbedtls_ecdh_compute_shared(
-    //     &ecdh_ctx.grp,           // Curve defined on init
-    //     &ecdh_ctx.z,             // Pointer to shared secret
-    //     &peerPoint,              // Peer Public Key
-    //     &ecdh_ctx.d,             // Private Key
-    //     mbedtls_ctr_drbg_random, // PRNG
-    //     &ctr_drbg
-    // );
-
     // Compute the shared secret (this is a scalar)
+    ret = mbedtls_ecdh_compute_shared(
+        &ecdh_ctx.grp,           // Curve defined on init
+        &ecdh_ctx.z,             // Pointer to shared secret
+        &peerPoint,              // Peer Public Key
+        &ecdh_ctx.d,             // Private Key
+        mbedtls_ctr_drbg_random, // PRNG
+        &ctr_drbg
+    );
+
+    mbedtls_ecp_point_free(&peerPoint);
+    if (ret != 0)
+        return ret;
+
     // Export shared secret as fixed length binary
     // Since the write_binary functions pads data > 32bytes we use PUBKEY_SIZE-1
-    size_t secret_length = 0;
-    ret = mbedtls_ecdh_calc_secret(&ecdh_ctx, &secret_length, sharedSecret, ENC_KEYSIZE, mbedtls_ctr_drbg_random, &ctr_drbg);
+    size_t olen = 0;
+    ret = mbedtls_mpi_write_binary(&ecdh_ctx.z, sharedSecret, ENC_KEYSIZE);
     if (ret != 0)
         return ret;
 
