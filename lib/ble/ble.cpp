@@ -328,7 +328,7 @@ void decryptSendString(SecureSession::rawDataPacket* packet, SecureSession* sess
 // Read an AUTH packet and check if the client public key and AES key are known
 void authenticateClient(SecureSession::rawDataPacket* packet, SecureSession* session) {
   DEBUG_SERIAL_PRINTLN("Entered authenticateClient");
-  clientPubKey = std::string((const char*)packet->data, packet->dataLen);  // if you're using std::string
+  clientPubKey = std::string((const char*)packet->data, packet->dataLen);
 
   DEBUG_SERIAL_PRINTF("clientPubKey: %s\n\r", clientPubKey);
   // If we don't know the AES key for the given public key, set Device Status to UNPAIRED

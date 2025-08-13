@@ -23,6 +23,7 @@ public:
     static constexpr size_t TAG_SIZE = 16;       // AES-GCM authentication tag size
     static constexpr size_t HEADER_SIZE = 4;     // Size of the header  [packetId(0), slowmode(1), packetNumber(2), totalPackets(3)]
     
+    static constexpr size_t MAX_PAIRED_DEVICES = 5; // Number of devices that can be registered as 'transmitters' at once
     uint8_t sharedSecret[ENC_KEYSIZE];
 
     // Preamble byte in encrypted data to indicate the type of data (string, keycode, etc..)

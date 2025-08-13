@@ -145,7 +145,15 @@ int SecureSession::deriveAESKeyFromSharedSecret(const char *base64Input)
         return -1;
 
     preferences.begin("security", false); // Start the preferences RW sesion (NOT SECURE, just for testing)
-    preferences.clear();                  // Clear all historical data TODO: this forces single device pairing
+    int pairedDevices = preferences.getInt("pairedDevices", -1);
+
+
+    // Clear all historical data if there is no space left (TODO: placeholder until we can iterate over keys without knowing their names)
+    if((pairedDevices == -1) || (pairedDevices == MAX_PAIRED_DEVICES)){
+        preferences.clear(); 
+        DEBUG_SERIAL_PRINT("Max paired devices reached or uninitialized, clearing all...");
+        preferences.putInt("pairedDevices", 0);                 
+    }
 
     uint8_t aesKey[ENC_KEYSIZE];
 
@@ -160,16 +168,12 @@ int SecureSession::deriveAESKeyFromSharedSecret(const char *base64Input)
         aesKey, sizeof(aesKey)              // output key
     );
 
-    // Debugging
-    // DEBUG_SERIAL_PRINTLN("AES Key: ");
-    // printBase64(aesKey, sizeof(aesKey));
-    // DEBUG_SERIAL_PRINTLN();
-
     // If a key was successfully generated, store it
     if (!ret)
     {
         String hashedBase64 = hashKey(base64Input);
         preferences.putBytes(hashedBase64.c_str(), aesKey, sizeof(aesKey)); // Store the key in preferences for debugging
+        preferences.putInt("pairedDevices", pairedDevices+1);
         DEBUG_SERIAL_PRINTF("AES Key stored as %s\n", hashedBase64);
     };
 
