@@ -15,7 +15,6 @@
 SecureSession sec; // Global Secure Session
 static char base64pubKey[45]; // Buffer to hold the Base64 encoded public key (44 base64 chars + 1 null)
 
-
 // Send the public key over hid and wait for ble peer public key
 void sendPublicKey(void* arg) {
   const char* pubKey = static_cast<const char*>(arg);

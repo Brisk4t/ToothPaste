@@ -145,6 +145,8 @@ int SecureSession::deriveAESKeyFromSharedSecret(const char *base64Input)
         return -1;
 
     preferences.begin("security", false); // Start the preferences RW sesion (NOT SECURE, just for testing)
+    //preferences.clear(); // Wipe all persistent storage
+
     int pairedDevices = preferences.getInt("pairedDevices", -1);
 
 
@@ -194,6 +196,8 @@ int SecureSession::encrypt(
 
     String hashedKey = hashKey(base64pubKey);
     preferences.begin("security", true); // Open storage session in read only mode
+    preferences.end(); // Open storage session in read only mode
+
     if (!preferences.isKey(hashedKey.c_str()))
     {
         DEBUG_SERIAL_PRINTLN("aesKey not found in preferences storage");
@@ -241,12 +245,14 @@ int SecureSession::decrypt(
     if (!preferences.isKey(hashedKey.c_str()))
     {
         DEBUG_SERIAL_PRINTLN("aesKey not found in preferences storage");
+        preferences.end();
         return 1;
     }
 
     uint8_t aesKey[ENC_KEYSIZE];
     // set the generated AES key in the GCM context
     preferences.getBytes(hashedKey.c_str(), aesKey, ENC_KEYSIZE); // Get the AES key from preferences (for debugging)
+    preferences.end();
 
     // DEBUG_SERIAL_PRINTLN("AES KEY FROM PERFERENCES: ");
     // printBase64(aesKey, ENC_KEYSIZE);
@@ -397,4 +403,35 @@ String SecureSession::hashKey(const char* longKey) {
     sprintf(hex + i * 2, "%02x", hash[i]);
   }
   return String(hex).substring(0, 12); // Use 12-char hash for Preferences key
+}
+
+// Get the device name from storage
+bool SecureSession::getDeviceName(String &deviceNameBuffer){
+    preferences.begin("security", true);
+    bool ret = preferences.isKey("blename"); // Check if the AES key for the given public key exists
+    // If the name string exists return it
+    if(ret){
+        deviceNameBuffer = preferences.getString("blename");
+    }
+
+    preferences.end();
+    return ret;
+}
+
+// Set the device name
+bool SecureSession::setDeviceName(const char* deviceName){
+    preferences.begin("security", false);
+
+    bool ret = preferences.isKey("blename"); // Check if the AES key for the given key exists
+    // If the name string exists return it
+    if(ret){
+        preferences.remove("blename");
+    }
+
+    DEBUG_SERIAL_PRINTF("Key deletion code: %d\n", ret);
+    DEBUG_SERIAL_PRINTF("Attempting to save name string %s\n", deviceName);
+
+    ret = preferences.putString("blename", deviceName);
+    preferences.end();
+    return ret;
 }

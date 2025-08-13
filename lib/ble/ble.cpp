@@ -110,7 +110,19 @@ void InputCharacteristicCallbacks::onWrite(BLECharacteristic* inputCharacteristi
 void bleSetup(SecureSession* session)
 {
   createPacketTask(session);
-  BLEDevice::init("ClipBoard");
+  
+  // Get the device name and start advertising 
+  String deviceName;
+  session->getDeviceName(deviceName); // Get the device name
+  
+  DEBUG_SERIAL_PRINTF("Device Name is: %s", deviceName.c_str());
+  if(deviceName.length() < 1){
+    BLEDevice::init(BLE_DEVICE_DEFAULT_NAME);
+  }
+  else{
+    BLEDevice::init(deviceName.c_str()); // If the device name isn't set, fallback to default
+  }
+  
   //BLEDevice::setPower(ESP_PWR_LVL_N3); // low power for heat
   // Create the BLE Server
   bluServer = BLEDevice::createServer();
@@ -146,7 +158,7 @@ void bleSetup(SecureSession* session)
   // Start advertising
   BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(SERVICE_UUID);
-  pAdvertising->setScanResponse(false);
+  pAdvertising->setScanResponse(true); // Advertise the SERVICE_UUID, i.e. devices don't need to connect to find services
   pAdvertising->setMinPreferred(0x0); // set value to 0x00 to not advertise this parameter
   BLEDevice::startAdvertising();
 }
@@ -292,7 +304,7 @@ void decryptSendString(SecureSession::rawDataPacket* packet, SecureSession* sess
     if(plaintext[0] == 0){
       // Need to create an object on the heap since TinyUSB queues data and the calling function might return before the queue is emptied
       std::string textString((const char*)plaintext+1, (packet->dataLen)-1);
-      DEBUG_SERIAL_PRINTF("Decryption successful: %s\n\r\n\r", textString);
+      DEBUG_SERIAL_PRINTF("Decryption successful: %s\n\r\n\r", textString.c_str());
       
       sendString(textString.c_str(), packet->slowmode); // Send the decrypted data over HID
     }
@@ -308,6 +320,18 @@ void decryptSendString(SecureSession::rawDataPacket* packet, SecureSession* sess
       DEBUG_SERIAL_PRINTLN("Mouse Packet Detected");
       std::vector<uint8_t> keycode(plaintext + 1, plaintext + packet->dataLen);
       moveMouse(keycode.data());
+    }
+
+    // Rename data
+    else if(plaintext[0] == 3){
+      std::string textString((const char*)plaintext+1, (packet->dataLen)-1);
+      
+      int ret = session->setDeviceName(textString.c_str()); // Set the device name in preferences
+      DEBUG_SERIAL_PRINTF("Device rename status code: %d\n", ret);
+      DEBUG_SERIAL_PRINTLN("Rebooting Toothpaste...");
+
+      
+      esp_restart();// Restart the device after rename to clear any stale memory and force the transmitter to reconnect
     }
 
     notificationPacket.packetType = RECV_READY;
@@ -328,6 +352,11 @@ void decryptSendString(SecureSession::rawDataPacket* packet, SecureSession* sess
 // Read an AUTH packet and check if the client public key and AES key are known
 void authenticateClient(SecureSession::rawDataPacket* packet, SecureSession* session) {
   DEBUG_SERIAL_PRINTLN("Entered authenticateClient");
+
+  String deviceName;
+  session->getDeviceName(deviceName);
+  DEBUG_SERIAL_PRINTF("Device Name is: %s", deviceName);
+
   clientPubKey = std::string((const char*)packet->data, packet->dataLen);
 
   DEBUG_SERIAL_PRINTF("clientPubKey: %s\n\r", clientPubKey);

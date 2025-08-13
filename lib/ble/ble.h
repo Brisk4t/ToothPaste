@@ -9,6 +9,7 @@
 #include "espHID.h"
 #include "secureSession.h"
 
+#define BLE_DEVICE_DEFAULT_NAME     "Toothpaste"
 #define SERVICE_UUID        "19b10000-e8f2-537e-4f6c-d104768a1214"
 #define INPUT_STRING_CHARACTERISTIC "6856e119-2c7b-455a-bf42-cf7ddd2c5907"
 #define HID_SEMAPHORE_CHARCTERISTIC "6856e119-2c7b-455a-bf42-cf7ddd2c5908"

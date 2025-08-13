@@ -96,6 +96,10 @@ public:
                 const uint8_t *info, size_t info_len,
                 uint8_t *okm, size_t okm_len);
 
+    // Device name functions 
+    bool getDeviceName(String &deviceName);
+    bool setDeviceName(const char* deviceName);
+
 private:
     mbedtls_ecdh_context ecdh;
     mbedtls_ctr_drbg_context ctr_drbg;
