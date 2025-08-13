@@ -15,7 +15,7 @@ export function useInputController() {
     const ctrlPressed = useRef(false); // Flag to indicate if Ctrl is pressed
     const debounceTimeout = useRef(null); // Holds the promise to send the buffer data after DEBOUNCE_INTERVAL_MS
     const specialEvents = useRef([]); // store special keys pressed but not modifying buffer
-    const inputModeRef = useRef(0);
+    const [commandPassthrough, setCommandPassthrough] = useState(0);
     
     // Each event within a DEBOUNCE_INTERVAL_MS period is added to a buffer
     const bufferRef = useRef(""); // Tracks the current input buffer
@@ -130,31 +130,15 @@ export function useInputController() {
         // Send: "abcd", Send 'Backspace', "\b"
 
         console.log("Keydown event: ", e.key, "Code: ", e.code);
-        const isCtrl = e.ctrlKey || e.metaKey;
 
-        // Ctrl + another key (TODO: Need to move this to a different handler to allow switching behaviour at runtime)
-        // <ctrl> - e.ctrlKey == True, e.key == 'a'
-        if (isCtrl && e.key !== "Control") { 
-            if(e.key !== "v") {
-                e.preventDefault();
-                sendKeyCode(e, 0x80);
-            }
-            return;
-        }
+        // Handle inputs with modifiers (Ctrl + c, Alt + x, etc.). Don't prevent default behaviour until this point to allow selecting input modes
+        if(handleCombo(e)) return;
 
         // Let IME fill in the input without interference
-        if (!isIMERef.current) {
-            e.preventDefault();
-        }
-
-        if (e.altKey && e.key !== "Alt") { // Just Alt does nothing
-            sendKeyCode(e, 0x83);
-            return;
-        }
+        if (!isIMERef.current) e.preventDefault(); 
 
         // TODO: Depending on the current input mode, we let host handle special keys or we send special keys as keycodes 
         if (handleSpecialKey(e, bufferRef.current)) return; // If the key itself is a special key (e.key === "Backspace" / "Tab" / "Ctrl" / "Arrow_" etc.)
-
 
         // If the key is a printing character ('a', 'b', '.' etc. === length 1), update the buffer and send
         if (e.key.length === 1) {
@@ -168,7 +152,53 @@ export function useInputController() {
         return false;
     }
 
-    // Helper: handle special key events (Backspace, Enter, Arrow, Tab, etc.)
+    // Handle inputs with modifiers (Ctrl + c, Alt + x, etc.). Don't prevent default behaviour until this point to allow selecting input modes
+    function handleCombo(e){
+        // Control combo
+        const isCtrl = e.ctrlKey || e.metaKey;
+        if (isCtrl && e.key !== "Control"){
+            if(commandPassthrough){
+                e.preventDefault();
+                sendKeyCode(e, "Control");
+                return true;
+            }
+
+            else{
+                return true; // Default behaviour: paste data from host clipboard
+            }
+        }
+
+        // Alt Combo
+        if (e.altKey && e.key !== "Alt"){
+            if(commandPassthrough){
+                e.preventDefault();
+                sendKeyCode(e, "Alt");
+                return true;
+            }
+
+            else{
+                return true;// Default behaviour: paste data from host clipboard
+            }
+        }
+        
+        if (e.shiftKey && e.key !== "Shift"){
+            if(commandPassthrough){
+                e.preventDefault();
+                sendKeyCode(e, "Shift");
+                return true;
+            }
+
+            else{
+                return true;// Default behaviour: paste data from host clipboard
+            }
+        }
+
+
+
+        return false;
+    }
+
+    // Helper: handle special key events (Backspace, Enter, Tab, etc.)
     function handleSpecialKey(e, buffer) {
         switch (e.key) {
             case "Backspace":
@@ -199,29 +229,28 @@ export function useInputController() {
                 return true;
 
             default:
-                if (e.key.startsWith("Arrow")) {
-                    specialEvents.current.push(e.key);
-                    scheduleSend();
-                    return true;
-                }
-            
-                return false;
+                return (sendKeyCode(e, null));
         }
     }
 
     // Helper: handle non-printing inputs directly as keycodes (Currently does not work with system shortcuts like alt+tab)
-    function sendKeyCode(e, modifierKey) {
-        let modifierByte = modifierByte? HIDMap[modifierKey] : 0; // Get the modifier's code from HIDMap, if it doesnt exist there is no modifier in the keycode
-        let keypress = HIDMap[e.key] !== "Undefined" ? HIDMap[e.key] : e.key; // Check if the key is a HIDMap character, otherwise the key is a printing character
+    function sendKeyCode(e, modifierKey, anotherModifierKey) {
+        let modifierByte = modifierKey? HIDMap[modifierKey] : 0; // Get the modifier's code from HIDMap, if it doesnt exist there is no modifier in the keycode
+        let anotherModifierByte = anotherModifierKey? HIDMap[anotherModifierKey] : 0; // Get the modifier's code from HIDMap, if it doesnt exist there is no modifier in the keycode
+        let keypress = HIDMap[e.key]? HIDMap[e.key] : e.key; // Check if the key is a HIDMap character, otherwise the key is a printing character
+        let keypressCode = typeof(keypress) === 'string'? keypress.charCodeAt(0) : keypress;
 
-        if(!(HIDMap[e.key] && modifierByte)) return; // If there is no modifier and the key is not in the HIDMap : the key is not special and modfies the buffer, handle in sendDiff
+        console.log("Keypress, modifier: ", keypress, modifierByte, anotherModifierByte);
+        if(!(modifierByte || HIDMap[e.key])) return false; // If there is no modifier and the key is not in the HIDMap command edits buffer, handle in sendDiff
 
         let keycode = new Uint8Array(8);
         keycode[0] = 1; // First byte of sent data is a type indicator, 1 = Keycode
         keycode[1] = modifierByte;
-        keycode[2] = keypress.charCodeAt(0);
-        
+        keycode[2] = anotherModifierByte;
+        keycode[3] = keypressCode;
+
         sendEncrypted(keycode);
+        return true;
     }
 
 
@@ -314,6 +343,8 @@ export function useInputController() {
     return {
         inputRef,
         ctrlPressed,
+        commandPassthrough,
+        setCommandPassthrough,
         handleKeyDown,
         handleKeyUp,
         handlePaste,

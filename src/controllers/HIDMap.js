@@ -16,7 +16,7 @@ export const HIDMap = {
     "Backspace"       : 0xB2,
     "Tab"             : 0xB3,
     "Enter"           : 0xB0,
-    "Esc"             : 0xB1,
+    "Escape"          : 0xB1,
     "Insert"          : 0xD1,
     "Delete"          : 0xD4,
     "PageUp"          : 0xD3,

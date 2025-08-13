@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useContext, useCallback } from "react";
 
 import { Button, Typography } from "@material-tailwind/react";
-import { CursorArrowRaysIcon } from "@heroicons/react/24/outline";
+import { CursorArrowRaysIcon,  ArrowUpOnSquareStackIcon } from "@heroicons/react/24/outline";
 import { BLEContext } from "../context/BLEContext";
 import "../components/CustomTyping/CustomTyping.css"; // We'll define animations here
 import Keyboard from "../components/Keyboard/Keyboard";
@@ -15,6 +15,9 @@ export default function LiveCapture() {
     // Input controller hooks
     const {
         inputRef,
+        ctrlPressed,
+        commandPassthrough,
+        setCommandPassthrough,
         handleKeyDown,
         handleKeyUp,
         handlePaste,
@@ -32,7 +35,6 @@ export default function LiveCapture() {
     // Mouse Vars
     const lastPos = useRef({ x: 0, y: 0, t: performance.now() }); // Last known position of the mouse
     const isTracking = useRef(true);
-    const ctrlPressed = useRef(false);
     const lastReportTime = useRef(0);
     const tDisplacement = useRef({ x: 0, y: 0 }); // Total displacement since last report   
     const REPORT_INTERVAL_MS = 200;
@@ -47,7 +49,7 @@ export default function LiveCapture() {
             sendMouseReport(tDisplacement.current.x, tDisplacement.current.y, false, false);
             tDisplacement.current = { x: 0, y: 0 }; // Reset displacement after sending
         }
-    }, 1000)
+    }, 50)
 
     // On click logic
     function onPointerDown(e) {
@@ -109,7 +111,7 @@ export default function LiveCapture() {
         // Calculate displacement based on last known position
         const displacementX = e.clientX - lastPos.current.x;
         const displacementY = e.clientY - lastPos.current.y;
-        const dt = e.timeStamp - lastPos.current.t;
+        const dt = (e.timeStamp - lastPos.current.t) * 5;
 
         const velocityX = Math.abs(displacementX / dt); // Velocity in X direction
         const velocityY = Math.abs(displacementY / dt); // Velocity in Y direction
@@ -174,24 +176,42 @@ export default function LiveCapture() {
     }
 
     // Toggle between Mac and Windows mode to send command instead of windows
-    function MacModeButton() {
-        const handleToggle = () => setMacMode((prev) => !prev);
+    function CommandPassthroughButton() {
+        const handleToggle = () => setCommandPassthrough((prev) => !prev);
 
         return (
             <div
                 onClick={handleToggle}
                 className={`border border-hover h-10 w-10 justify-between items-center p-2 rounded-lg
-                        ${macMode ? "bg-white text-shelf" : "bg-shelf text-white"}`}
+                        ${commandPassthrough ? "bg-white text-shelf" : "bg-shelf text-text"}`}
             >
                 {/* <IconButton>
                     <svg xmlns={windowsLogo} fill="white" className="h-5 w-5" />
                 </IconButton> */}
 
-                <WindowsLogo fill="currentColor" className={`${macMode ? "hidden" : ""} h-5 w-5`} />
-                <AppleLogo fill="currentColor" className={`${macMode ? "" : "hidden"} h-5 w-5`} />
+                <ArrowUpOnSquareStackIcon className="h-5 w-5"></ArrowUpOnSquareStackIcon>
             </div>
         );
     }
+
+    // function MacModeButton() {
+    //     const handleToggle = () => setMacMode((prev) => !prev);
+
+    //     return (
+    //         <div
+    //             onClick={handleToggle}
+    //             className={`border border-hover h-10 w-10 justify-between items-center p-2 rounded-lg
+    //                     ${macMode ? "bg-white text-shelf" : "bg-shelf text-white"}`}
+    //         >
+    //             {/* <IconButton>
+    //                 <svg xmlns={windowsLogo} fill="white" className="h-5 w-5" />
+    //             </IconButton> */}
+
+    //             <WindowsLogo fill="currentColor" className={`${macMode ? "hidden" : ""} h-5 w-5`} />
+    //             <AppleLogo fill="currentColor" className={`${macMode ? "" : "hidden"} h-5 w-5`} />
+    //         </div>
+    //     );
+    // }
 
 
     return (
@@ -212,7 +232,7 @@ export default function LiveCapture() {
                 </div>
 
                 <div className="absolute top-14 right-2">
-                    <MacModeButton />
+                    <CommandPassthroughButton />
                 </div>
 
                 <Typography
