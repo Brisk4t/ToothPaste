@@ -179,6 +179,7 @@ export default function LiveCapture() {
 
         return (
             <div
+                title="Enable / Disable sending mouse movement"
                 onClick={handleToggle}
                 className={`border border-hover h-10 w-10 justify-between items-center p-2 rounded-lg
                         ${captureMouse ? "bg-white text-shelf" : "bg-shelf text-text"}`}
@@ -194,6 +195,7 @@ export default function LiveCapture() {
 
         return (
             <div
+                title="When this is enabled shortcuts like Ctrl+V are sent as is, when disabled Ctrl+V pastes the data in your clipboard as text"
                 onClick={handleToggle}
                 className={`border border-hover h-10 w-10 justify-between items-center p-2 rounded-lg
                         ${commandPassthrough ? "bg-white text-shelf" : "bg-shelf text-text"}`}

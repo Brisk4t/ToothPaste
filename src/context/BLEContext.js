@@ -13,7 +13,15 @@ export const BLEContext = createContext();
 export const useBLEContext = () => useContext(BLEContext);
 
 export function BLEProvider({ children, showOverlay, setShowOverlay }) {
-    const [status, setStatus] = React.useState(0); // 0 = disconnected, 1 = connected & paired, 2 = connected & not paired
+
+
+    const connectionStatus = {
+        disconnected: 0,
+        ready: 1,
+        connected: 2
+    };
+
+    const [status, setStatus] = React.useState(connectionStatus.disconnected); // 0 = disconnected, 1 = connected & paired, 2 = connected & not paired
     const [device, setDevice] = useState(null);
     const [server, setServer] = useState(null);
 
@@ -119,14 +127,17 @@ export function BLEProvider({ children, showOverlay, setShowOverlay }) {
                 console.log("AuthStatus:", authStatus);
                 console.log("PacketType:", packetType);
 
+                // If the device isnt authenticated it needs to be paired first
                 if (authStatus === 0) {
-                    setStatus(2);
-                } else if (authStatus === 1) {
-                    if (showOverlayRef.current) {
-                        setShowOverlay(false);
-                    }
-                    setStatus(1);
+                    setStatus(connectionStatus.connected);
+                } 
+                
+                // If the device is authenticated we are ready to send
+                else if (authStatus === 1) {
+                    if (showOverlayRef.current) setShowOverlay(false);
+                    setStatus(connectionStatus.ready);
                 }
+                
                 // If there is a promise to be resolved, resolve it
                 if (readyToReceive.current.resolve) {
                     readyToReceive.current.resolve(); // Signal the next packet can send
@@ -158,7 +169,10 @@ export function BLEProvider({ children, showOverlay, setShowOverlay }) {
                 if (showOverlayRef.current) {
                     setShowOverlay(false);
                 }
-                setStatus(0);
+                setStatus(connectionStatus.disconnected);
+                
+                setDevice(null); // Clear the device object, not doing this causes inconsistent connections when trying to reconnect
+
                 console.log("Clipboard Disconnected");
             });
 
@@ -166,17 +180,15 @@ export function BLEProvider({ children, showOverlay, setShowOverlay }) {
             if (!device.gatt.connected) {
                 await device.gatt.connect();
             }
+
             const server = device.gatt;
             await new Promise(r => setTimeout(r, 200)); // Wait a bit before getting any GATT information
 
-            // Get device info
+            // Get device info, retry on fail for each
             const service = await getServiceWithRetry(server, serviceUUID);
-            pktCharRef.current = await service.getCharacteristic(
-                packetCharacteristicUUID
-            );
-            const semChar = await service.getCharacteristic(
-                hidSemaphorepktCharacteristicUUID
-            );
+            pktCharRef.current = await getCharacteristicWithRetry(service, packetCharacteristicUUID);
+            const semChar = await getCharacteristicWithRetry(service, hidSemaphorepktCharacteristicUUID);
+
 
             setServer(server);
             setpktCharacteristic(pktCharRef.current);
@@ -187,7 +199,7 @@ export function BLEProvider({ children, showOverlay, setShowOverlay }) {
             // If we don't know the public key of the device, we need to pair before sending
             if (!(await keyExists(device.id))) {
                 console.error("ECDH keys not found for device", device.id);
-                setStatus(2);
+                setStatus(connectionStatus.connected);
             }
 
             // Else we can send
@@ -201,7 +213,7 @@ export function BLEProvider({ children, showOverlay, setShowOverlay }) {
             // Only set status to disconnected if the device is not connected,
             // a ble scan cancel might fail but the device could still be connected
             if (!device || !device.gatt.connected) {
-                setStatus(0);
+                setStatus(connectionStatus.disconnected);
             }
         }
     };
@@ -214,6 +226,22 @@ export function BLEProvider({ children, showOverlay, setShowOverlay }) {
             } catch (err) {
                 if (i < attempts - 1) {
                     console.warn("Retrying service discovery...", err);
+                    await new Promise((r) => setTimeout(r, 300));
+                } else {
+                    throw err;
+                }
+            }
+        }
+    };
+    
+    // Retry service query to prevent "ghost connections" where BLE is connected but the service query returns too quickly
+    const getCharacteristicWithRetry = async (service, characteristicUUID, attempts = 3) => {
+        for (let i = 0; i < attempts; i++) {
+            try {
+                return await service.getCharacteristic(characteristicUUID);
+            } catch (err) {
+                if (i < attempts - 1) {
+                    console.warn("Retrying characteristic discovery...", err);
                     await new Promise((r) => setTimeout(r, 300));
                 } else {
                     throw err;
