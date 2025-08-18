@@ -156,9 +156,15 @@ void bleSetup(SecureSession* session)
   pService->start();
 
   // Start advertising
+  BLEAdvertisementData advertisementData;
+  advertisementData.setManufacturerData("uniquename");
+
+
   BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
+
   pAdvertising->addServiceUUID(SERVICE_UUID);
   pAdvertising->setScanResponse(true); // Advertise the SERVICE_UUID, i.e. devices don't need to connect to find services
+  pAdvertising->setScanResponseData(advertisementData); // Unique identifier BEFORE connection, used as key in indexdb persistent pairing for web BLE
   pAdvertising->setMinPreferred(0x0); // set value to 0x00 to not advertise this parameter
   BLEDevice::startAdvertising();
 }
