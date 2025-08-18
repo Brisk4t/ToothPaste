@@ -38,7 +38,7 @@ export default function LiveCapture() {
     const lastReportTime = useRef(0);
     const tDisplacement = useRef({ x: 0, y: 0 }); // Total displacement since last report   
     const REPORT_INTERVAL_MS = 200;
-    const SCALE_FACTOR = 1; // Scale factor for mouse movement
+    const SCALE_FACTOR = 0.5; // Scale factor for mouse movement
     const [captureMouse, setCaptureMouse] = useState(false);
 
 
@@ -124,7 +124,7 @@ export default function LiveCapture() {
         // Calculate displacement based on last known position
         const displacementX = e.clientX - lastPos.current.x;
         const displacementY = e.clientY - lastPos.current.y;
-        const dt = (e.timeStamp - lastPos.current.t) * 5;
+        const dt = (e.timeStamp - lastPos.current.t);
 
         const velocityX = Math.abs(displacementX / dt); // Velocity in X direction
         const velocityY = Math.abs(displacementY / dt); // Velocity in Y direction
