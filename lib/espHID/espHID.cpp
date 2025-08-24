@@ -141,29 +141,6 @@ void moveMouse(uint8_t* mousePacket) {
     moveMouse(0, 0, LClick, RClick); 
 }
 
-// void moveMouse(uint8_t* mousePacket) {
-//     uint8_t numFrames = min(mousePacket[0], uint8_t(10)); // second byte = number of frames
-
-//     uint32_t x, y;
-
-//     uint8_t* ptr = mousePacket + 1; // start of frame data
-
-//     for(uint8_t i = 0; i < numFrames; i++) {
-//         memcpy(&x, ptr, sizeof(x));
-//         ptr += 4;
-//         memcpy(&y, ptr, sizeof(y));
-//         ptr += 4;
-
-//         moveMouse(x, y, false, false);
-//     }
-
-//     // Optional: read clicks
-//     int32_t LClick, RClick;
-//     memcpy(&LClick, ptr, 4);
-//     ptr += 4;
-//     memcpy(&RClick, ptr, 4);
-// }
-
 // ##################### Delay Functions #################### //
 // Timer callback must match `void (*)(void *)`
 void sendStringCallback(void *arg)
