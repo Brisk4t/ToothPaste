@@ -41,15 +41,18 @@ export default function LiveCapture() {
     const SCALE_FACTOR = 0.5; // Scale factor for mouse movement
     const [captureMouse, setCaptureMouse] = useState(false);
 
+    const displacementList = useRef([]);
 
     // Mouse polling logic
     setInterval(() => {
-        if (captureMouse && (tDisplacement.current.x !== 0 || tDisplacement.current.y !== 0)) {
-            console.log("Sending mouse report: ", tDisplacement.current);
-            sendMouseReport(tDisplacement.current.x, tDisplacement.current.y, false, false);
-            tDisplacement.current = { x: 0, y: 0 }; // Reset displacement after sending
+        //if (captureMouse && (tDisplacement.current.x !== 0 || tDisplacement.current.y !== 0)) {
+        if(displacementList.current.length > 0) {
+            //console.log("Sending mouse report: ", tDisplacement.current);
+            console.log("Sending mouse report: ", displacementList.current);
+            //sendMouseReport(tDisplacement.current.x, tDisplacement.current.y, false, false);
+            sendMouseReport(false, false);
         }
-    }, 50)
+    }, 200)
 
     // On click logic
     function onMouseDown(e) {
@@ -61,10 +64,10 @@ export default function LiveCapture() {
 
         
         if(captureMouse) {
-            if(e.button == 0) sendMouseReport(0,0, true, false); // Send left click
+            if(e.button == 0) sendMouseReport(true, false); // Send left click
             if(e.button == 2) {
                 e.preventDefault();
-                sendMouseReport(0,0, false, true);
+                sendMouseReport(false, true);
             }
         }
     }
@@ -72,10 +75,10 @@ export default function LiveCapture() {
     function onMouseUp(e) {
         console.log("Mouseup fired with button: ", e.button)
 
-        if(e.button == 0) sendMouseReport(0,0, 2, false); // Send left click
+        if(e.button == 0) sendMouseReport(2, false); // Send left click
         if(e.button == 2) {
             e.preventDefault();
-            sendMouseReport(0,0, false, 2);
+            sendMouseReport(false, 2);
         }
     }
 
@@ -151,25 +154,47 @@ export default function LiveCapture() {
 
         
     // Make a mouse packet and send it
-    function sendMouseReport(x, y, LClick, RClick) {
-        const flag = 2; // Flag to indicate mouse packet
-        const numInts = 4;
+    function sendMouseReport(LClick, RClick) {
+        const flag = 2; // Flag to indicate mouse packet (this is the first byte of the ciphertext)
+        const mouseFrames = displacementList.current;
+        var numInts = (mouseFrames.length * 2)+2; // Total number of integers in the current frame list tuples*2
 
         // Allocate a buffer and have two views of the same address space
-        const buffer = new ArrayBuffer(1 + numInts * 4); // 1 flag byte + 4 ints * 4 bytes each
+        const buffer = new ArrayBuffer(2 + (numInts * 4)); // (1 flag byte + 1 size byte + (numInts ints)) * 4 bytes each
         const view = new DataView(buffer);
 
-        view.setUint8(0, flag); // set flag at first byte
+        let arraypointer = 0;
 
+        view.setUint8(arraypointer, flag); // set flag at first byte
+        arraypointer++;
+        view.setUint8(arraypointer, mouseFrames.length); // set numInts at second byte
+        arraypointer++;
+
+        console.log("Mouse frames to send: ", mouseFrames);
+        // Set the coordinate tuple every 4 bytes (int32_t)
+        for(let i = 0; i<mouseFrames.length; i++){
+            // i/4th = nth member of mouseFrames
+            console.log("Mouseframes[", i, "].x: ", mouseFrames[i].x, " Mouseframes[", i, "].y: ", mouseFrames[i].y);
+            view.setInt32(arraypointer, mouseFrames[i].x, true); 
+            arraypointer += 4;
+            view.setInt32(arraypointer, mouseFrames[i].y, true);
+            arraypointer += 4;
+        }
+        
+        view.setInt32(arraypointer, LClick, true); // set left click state at the end 
+        view.setInt32(arraypointer+4, RClick, true); // set right click state at the end 
+
+        console.log("Mouse packet: ", view);
         // set int32 values starting at offset 1
-        view.setInt32(1, x, true);
-        view.setInt32(5, y, true);
-        view.setInt32(9, LClick, true);
-        view.setInt32(13, RClick, true);
+        //view.setInt32(1, x, true);
+        //view.setInt32(5, y, true);
+        //view.setInt32(9, LClick, true);
+        //view.setInt32(13, RClick, true);
 
         const keycode = new Uint8Array(buffer);
-        console.log("Moved mouse by :(", x, y, ")");
+        //console.log("Moved mouse by :(", x, y, ")");
         sendEncrypted(keycode);
+        displacementList.current = []; // Reset displacement list after sending
     }
 
 

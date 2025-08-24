@@ -10,7 +10,7 @@ export function useInputController() {
     const { createEncryptedPackets } = useContext(ECDHContext);
     
     // Text input handler variables
-    const DEBOUNCE_INTERVAL_MS = 100; // Interval to wait before sending input data
+    const DEBOUNCE_INTERVAL_MS = 20; // Interval to wait before sending input data
     const inputRef = useRef(null); // The input DOM element reference
     const ctrlPressed = useRef(false); // Flag to indicate if Ctrl is pressed
     const debounceTimeout = useRef(null); // Holds the promise to send the buffer data after DEBOUNCE_INTERVAL_MS
