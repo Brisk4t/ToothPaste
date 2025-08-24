@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useContext, useCallback } from "react";
 
 import { Button, Typography } from "@material-tailwind/react";
-import { CursorArrowRaysIcon,  ArrowUpOnSquareStackIcon } from "@heroicons/react/24/outline";
+import { CursorArrowRaysIcon, ArrowUpOnSquareStackIcon } from "@heroicons/react/24/outline";
 import { BLEContext } from "../context/BLEContext";
 import "../components/CustomTyping/CustomTyping.css"; // We'll define animations here
 import Keyboard from "../components/Keyboard/Keyboard";
@@ -11,7 +11,6 @@ import { ReactComponent as AppleLogo } from "../assets/appleLogo.svg";
 import { ReactComponent as WindowsLogo } from "../assets/windowsLogo.svg";
 
 export default function LiveCapture() {
-
     // Input controller hooks
     const {
         inputRef,
@@ -24,21 +23,21 @@ export default function LiveCapture() {
         handleOnBeforeInput,
         handleCompositionStart,
         handleCompositionEnd,
-        handleOnChange
+        handleOnChange,
     } = useInputController();
 
     const [macMode, setMacMode] = useState(false); // Does WIN key send WIN or COMMAND key
 
     // Contexts
-    const {status, sendEncrypted } = useContext(BLEContext);
-    
+    const { status, sendEncrypted } = useContext(BLEContext);
+
     // Mouse Vars
     const lastPos = useRef({ x: 0, y: 0, t: performance.now() }); // Last known position of the mouse
     const isTracking = useRef(true);
     const lastReportTime = useRef(0);
-    const tDisplacement = useRef({ x: 0, y: 0 }); // Total displacement since last report   
+    const tDisplacement = useRef({ x: 0, y: 0 }); // Total displacement since last report
     const REPORT_INTERVAL_MS = 200;
-    const SCALE_FACTOR = 0.5; // Scale factor for mouse movement
+    const SCALE_FACTOR = 0.2; // Scale factor for mouse movement
     const [captureMouse, setCaptureMouse] = useState(false);
 
     const displacementList = useRef([]);
@@ -46,39 +45,37 @@ export default function LiveCapture() {
     // Mouse polling logic
     setInterval(() => {
         //if (captureMouse && (tDisplacement.current.x !== 0 || tDisplacement.current.y !== 0)) {
-        if(displacementList.current.length > 0) {
+        if (displacementList.current.length > 0) {
             //console.log("Sending mouse report: ", tDisplacement.current);
             console.log("Sending mouse report: ", displacementList.current);
             //sendMouseReport(tDisplacement.current.x, tDisplacement.current.y, false, false);
             sendMouseReport(false, false);
         }
-    }, 200)
+    }, 200);
 
     // On click logic
     function onMouseDown(e) {
         //e.target.setPointerCapture(e.pointerId);
-        console.log("Mousedown fired with button: ", e.button)
+        console.log("Mousedown fired with button: ", e.button);
         isTracking.current = true;
         lastPos.current = { x: e.clientX, y: e.clientY, t: e.timeStamp };
 
-
-        
-        if(captureMouse) {
-            if(e.button == 0) sendMouseReport(true, false); // Send left click
-            if(e.button == 2) {
+        if (captureMouse) {
+            if (e.button == 0) sendMouseReport(1, 0); // Send left click
+            if (e.button == 2) {
                 e.preventDefault();
-                sendMouseReport(false, true);
+                sendMouseReport(0, 1);
             }
         }
     }
 
     function onMouseUp(e) {
-        console.log("Mouseup fired with button: ", e.button)
+        console.log("Mouseup fired with button: ", e.button);
 
-        if(e.button == 0) sendMouseReport(2, false); // Send left click
-        if(e.button == 2) {
+        if (e.button == 0) sendMouseReport(2, 0); // Send left click
+        if (e.button == 2) {
             e.preventDefault();
-            sendMouseReport(false, 2);
+            sendMouseReport(0, 2);
         }
     }
 
@@ -98,7 +95,7 @@ export default function LiveCapture() {
     // When a pointer moves
     function onPointerMove(e) {
         //console.log("Pointer move event: ", e.clientX, e.clientY);
-        
+
         if (!captureMouse) return;
 
         // Get bounding rect once (you can optimize by caching it elsewhere)
@@ -112,7 +109,7 @@ export default function LiveCapture() {
             // Pointer outside div but pointer capture means we still get events
             // Stop tracking so next movement inside resets lastPos
             console.log("Pointer outside div or ctrl pressed, stopping tracking");
-            tDisplacement.current = { x: 0, y: 0 }; // Reset displacement 
+            tDisplacement.current = { x: 0, y: 0 }; // Reset displacement
             isTracking.current = false;
             return;
         }
@@ -127,7 +124,7 @@ export default function LiveCapture() {
         // Calculate displacement based on last known position
         const displacementX = e.clientX - lastPos.current.x;
         const displacementY = e.clientY - lastPos.current.y;
-        const dt = (e.timeStamp - lastPos.current.t);
+        const dt = e.timeStamp - lastPos.current.t;
 
         const velocityX = Math.abs(displacementX / dt); // Velocity in X direction
         const velocityY = Math.abs(displacementY / dt); // Velocity in Y direction
@@ -137,66 +134,60 @@ export default function LiveCapture() {
         lastPos.current = { x: e.clientX, y: e.clientY, t: e.timeStamp }; // Update last position
 
         // Scale by time delta to get acceleration-like values
-        const accelDeltaX = displacementX * (velocityX * SCALE_FACTOR); 
-        const accelDeltaY = displacementY * (velocityY * SCALE_FACTOR); 
-
-        
+        const accelDeltaX = displacementX * (velocityX * SCALE_FACTOR);
+        const accelDeltaY = displacementY * (velocityY * SCALE_FACTOR);
 
         //console.log("Last position: ", lastPos.current);
         //console.log("Mouse moved by: ", accelDeltaX, accelDeltaY);
 
-            
-
-   
         tDisplacement.current.x += accelDeltaX;
         tDisplacement.current.y += accelDeltaY;
+
+        displacementList.current.push(tDisplacement.current);
+        tDisplacement.current = { x: 0, y: 0 }; // Reset displacement after adding to list
     }
 
-        
     // Make a mouse packet and send it
     function sendMouseReport(LClick, RClick) {
-        const flag = 2; // Flag to indicate mouse packet (this is the first byte of the ciphertext)
-        const mouseFrames = displacementList.current;
-        var numInts = (mouseFrames.length * 2)+2; // Total number of integers in the current frame list tuples*2
+        const flag = 2; // Flag to indicate mouse packet
+        const mouseFrames = displacementList.current.slice(0, 8);
+        const numFrames = mouseFrames.length;
 
-        // Allocate a buffer and have two views of the same address space
-        const buffer = new ArrayBuffer(2 + (numInts * 4)); // (1 flag byte + 1 size byte + (numInts ints)) * 4 bytes each
+        // Add 2 padding bytes to align int32 frames on 4-byte boundary
+        const headerSize = 2; // flag + numFrames
+        const padding = (4 - (headerSize % 4)) % 4; // padding to next multiple of 4
+        const buffer = new ArrayBuffer(headerSize + padding + numFrames * 2 * 4 + 8);
         const view = new DataView(buffer);
 
-        let arraypointer = 0;
+        let offset = 0;
 
-        view.setUint8(arraypointer, flag); // set flag at first byte
-        arraypointer++;
-        view.setUint8(arraypointer, mouseFrames.length); // set numInts at second byte
-        arraypointer++;
+        view.setUint8(offset++, flag); // first byte = flag
+        view.setUint8(offset++, numFrames); // second byte = frame count
+
+        // insert padding
+        offset += padding;
 
         console.log("Mouse frames to send: ", mouseFrames);
-        // Set the coordinate tuple every 4 bytes (int32_t)
-        for(let i = 0; i<mouseFrames.length; i++){
-            // i/4th = nth member of mouseFrames
-            console.log("Mouseframes[", i, "].x: ", mouseFrames[i].x, " Mouseframes[", i, "].y: ", mouseFrames[i].y);
-            view.setInt32(arraypointer, mouseFrames[i].x, true); 
-            arraypointer += 4;
-            view.setInt32(arraypointer, mouseFrames[i].y, true);
-            arraypointer += 4;
-        }
-        
-        view.setInt32(arraypointer, LClick, true); // set left click state at the end 
-        view.setInt32(arraypointer+4, RClick, true); // set right click state at the end 
 
-        console.log("Mouse packet: ", view);
-        // set int32 values starting at offset 1
-        //view.setInt32(1, x, true);
-        //view.setInt32(5, y, true);
-        //view.setInt32(9, LClick, true);
-        //view.setInt32(13, RClick, true);
+        // Set int32 x/y frames
+        for (let i = 0; i < numFrames; i++) {
+            view.setInt32(offset, mouseFrames[i].x, true);
+            offset += 4;
+            view.setInt32(offset, mouseFrames[i].y, true);
+            offset += 4;
+        }
+
+        // Set left/right clicks
+        view.setInt32(offset, LClick, true);
+        offset += 4;
+        view.setInt32(offset, RClick, true);
 
         const keycode = new Uint8Array(buffer);
-        //console.log("Moved mouse by :(", x, y, ")");
-        sendEncrypted(keycode);
-        displacementList.current = []; // Reset displacement list after sending
-    }
+        console.log("Mouse packet as uint8: ", keycode);
 
+        sendEncrypted(keycode);
+        displacementList.current = []; // reset list
+    }
 
     // Toggle capturing and sending mouse data
     function CaptureMouseButton() {
@@ -252,7 +243,6 @@ export default function LiveCapture() {
     //         </div>
     //     );
     // }
-
 
     return (
         <div className="flex flex-col flex-1 w-full p-4 bg-background text-text">
@@ -333,29 +323,22 @@ export default function LiveCapture() {
                     onKeyDown={handleKeyDown}
                     onKeyUp={handleKeyUp}
                     onPaste={handlePaste}
-
                     // Mouse event handlers
                     onMouseDown={onMouseDown} // When a mouse button is pressed
                     onMouseUp={onMouseUp} // When a mouse button is released
-
                     onPointerMove={onPointerMove}
                     onPointerCancel={onPointerCancel}
                     onPointerEnter={onPointerEnter}
                     onBeforeInput={handleOnBeforeInput}
                     onContextMenu={(e) => e.preventDefault()} // Prevent right-clicks from opening the default context menu inside this input
-                    
-                    // IME event handlers 
+                    // IME event handlers
                     onChange={handleOnChange}
                     onCompositionStart={handleCompositionStart}
                     onCompositionUpdate={() => {}}
                     onCompositionEnd={handleCompositionEnd}
-
-
-
                     className="flex flex-1 w-full p-4 rounded-xl caret-transparent
                             text-background text-4xl bg-shelf focus:bg-background focus:bg-background focus:outline-none whitespace-pre-wrap font-sans overflow-y-auto"
-                >
-                </input>
+                ></input>
             </div>
         </div>
     );
