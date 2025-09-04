@@ -238,6 +238,20 @@ dependencies:
       registry_url: https://components.espressif.com
       type: service
     version: 2.5.1
+  espressif/esp_tinyusb:
+    component_hash: 6a50305bc61c7a361da8c0833642be824e92dacb0a6001719a832a4e96e471bf
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.0'
+    - name: espressif/tinyusb
+      registry_url: https://components.espressif.com
+      require: public
+      version: '>=0.14.2'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.7.6~2
   espressif/jsmn:
     component_hash: d80350c41bbaa827c98a25b6072df00884e72f54885996fab4a4f0aebce6b6c3
     dependencies:
@@ -312,6 +326,20 @@ dependencies:
       registry_url: https://components.espressif.com/
       type: service
     version: 1.4.6
+  espressif/tinyusb:
+    component_hash: aa65639878f27a44d349044afd9c3fc134a92bd560874fdac1d836019b5c07ca
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.0'
+    source:
+      registry_url: https://components.espressif.com
+      type: service
+    targets:
+    - esp32s2
+    - esp32s3
+    - esp32p4
+    version: 0.18.0~4
   idf:
     source:
       type: idf
@@ -339,6 +367,7 @@ direct_dependencies:
 - espressif/esp_insights
 - espressif/esp_modem
 - espressif/esp_rainmaker
+- espressif/esp_tinyusb
 - espressif/libsodium
 - espressif/mdns
 - espressif/network_provisioning
@@ -346,6 +375,6 @@ direct_dependencies:
 - espressif/rmaker_common
 - idf
 - joltwallet/littlefs
-manifest_hash: c1533072b8f3490a9a071116079059e117051ff00c41ccf57fda2dd0fb374125
+manifest_hash: 7b821dfe5a8aeae43c9183bda73dc956f619925671009f533f3d35c1c97e1345
 target: esp32s3
 version: 2.0.0

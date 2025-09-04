@@ -1,10 +1,7 @@
 #include <espHID.h>
-#include <USB.h>
+#include "tinyusb.h"
 
-#include <USBHIDKeyboard.h>
-#include <USBHIDMouse.h>
-#include <USBHIDConsumerControl.h>
-#include <USBHIDSystemControl.h>
+
 
 // Needed to enable CDC if defined
 #if ARDUINO_USB_CDC_ON_BOOT
@@ -14,10 +11,10 @@
 
 
 
-USBHIDKeyboard keyboard; // Non-boot Keyboard
-USBHIDMouse mouse;
-USBHIDConsumerControl control;
-USBHIDSystemControl syscontrol;
+// USBHIDKeyboard keyboard; // Non-boot Keyboard
+// USBHIDMouse mouse;
+// USBHIDConsumerControl control;
+// USBHIDSystemControl syscontrol;
 
 
 uint8_t const desc_hid_report[] = {
@@ -27,18 +24,18 @@ uint8_t const desc_hid_report[] = {
 // Start the hid keyboard
 void hidSetup()
 { 
-  if(ARDUINO_USB_CDC_ON_BOOT) USBSerial.begin(); 
-  keyboard.begin();
-  mouse.begin();
-  control.begin();
-  syscontrol.begin();
+  // if(ARDUINO_USB_CDC_ON_BOOT) USBSerial.begin(); 
+  // keyboard.begin();
+  // mouse.begin();
+  // control.begin();
+  // syscontrol.begin();
 
-  // Ideally these shouldn't be needed since they're already defined in the header, but i have no idea why they don't work consistently
-  USB.manufacturerName(USB_MANUFACTURER);
-  USB.productName(USB_PRODUCT);
+  // // Ideally these shouldn't be needed since they're already defined in the header, but i have no idea why they don't work consistently
+  // USB.manufacturerName(USB_MANUFACTURER);
+  // USB.productName(USB_PRODUCT);
 
-  USB.begin();
-  DEBUG_SERIAL_PRINTLN(tud_hid_get_protocol());
+  // USB.begin();
+  // DEBUG_SERIAL_PRINTLN(tud_hid_get_protocol());
 }
 
 // Send a string with a delay between each character (crude implementation of alternative polling rates since ESPHID doesn't expose this)
@@ -48,7 +45,7 @@ size_t sendStringSlow(const char *str, int delayms) {
   for (size_t i = 0; str[i] != '\0'; i++) {
     char ch = str[i];
 
-    keyboard.print(ch);  // Send single character
+    //keyboard.print(ch);  // Send single character
     sentCount++;
 
     delay(delayms);  // Blocking delay between characters
@@ -60,11 +57,11 @@ size_t sendStringSlow(const char *str, int delayms) {
 // Send a string
 void sendString(const char *str, bool slowMode)
 {
-  if(!slowMode)
-    keyboard.print(str);
+  // if(!slowMode)
+  //   keyboard.print(str);
     
-  else
-    sendStringSlow(str, SLOWMODE_DELAY_MS);
+  // else
+  //   sendStringSlow(str, SLOWMODE_DELAY_MS);
 }
 
 // Cast a pointer to a string pointer and send the string 
@@ -77,35 +74,35 @@ void sendString(void *arg, bool slowMode)
 // Press all the keys in the array together and release them after 50ms (max 6)
 void sendKeycode(uint8_t* keys, bool slowMode) {
     for(int i=0; i<7; i++){
-      keyboard.press(keys[i]);
+      //keyboard.press(keys[i]);
     }
     delay(50); // optionally slower delay if slowMode
-    keyboard.releaseAll();
+    //keyboard.releaseAll();
 }
 
 void moveMouse(int32_t x, int32_t y, int32_t LClick, int32_t RClick){
   
-  //Click before moving if the click is in the same report
-  if(!(mouse.isPressed(MOUSE_LEFT)) && LClick == 1){
-    mouse.press(MOUSE_LEFT);
-  }
+  // //Click before moving if the click is in the same report
+  // if(!(mouse.isPressed(MOUSE_LEFT)) && LClick == 1){
+  //   mouse.press(MOUSE_LEFT);
+  // }
 
-  if(!(mouse.isPressed(MOUSE_RIGHT)) && RClick == 1){
-    mouse.press(MOUSE_RIGHT);
-  }
+  // if(!(mouse.isPressed(MOUSE_RIGHT)) && RClick == 1){
+  //   mouse.press(MOUSE_RIGHT);
+  // }
   
 
-  //smoothMoveMouse(x, y, 20, 5); // Move the mouse by dx and dy over 20 steps and SLOWMODE_DELAY_MS ms between each step
-  mouse.move(x, y);
+  // //smoothMoveMouse(x, y, 20, 5); // Move the mouse by dx and dy over 20 steps and SLOWMODE_DELAY_MS ms between each step
+  // mouse.move(x, y);
 
-  // Release after moving the mouse
-  if (mouse.isPressed(MOUSE_LEFT) && LClick == 2) {
-      mouse.release(MOUSE_LEFT);
-  }
+  // // Release after moving the mouse
+  // if (mouse.isPressed(MOUSE_LEFT) && LClick == 2) {
+  //     mouse.release(MOUSE_LEFT);
+  // }
   
-  if (mouse.isPressed(MOUSE_RIGHT) && RClick == 2) {
-      mouse.release(MOUSE_RIGHT);
-  }
+  // if (mouse.isPressed(MOUSE_RIGHT) && RClick == 2) {
+  //     mouse.release(MOUSE_RIGHT);
+  // }
   
 }
 

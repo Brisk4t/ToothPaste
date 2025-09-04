@@ -213,7 +213,7 @@ void queuenotify(){
   else {
     notificationPacket.packetType = RECV_READY;
     notifyClient();
-    printf("Queue has space: %lu\n", uxQueueSpacesAvailable(packetQueue));
+    printf("Queue has space: %d\n", uxQueueSpacesAvailable(packetQueue));
   }
 }
 

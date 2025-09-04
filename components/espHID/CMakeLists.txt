@@ -7,6 +7,6 @@ file(GLOB_RECURSE component_sources
 # Register the component with ESP-IDF
 idf_component_register(
     SRCS ${component_sources}           # All source files found
-    INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}"  # Header search path
-    REQUIRES arduino serialDebug        # Optional: list dependencies
+    INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}" # Header search path
+    REQUIRES arduino serialDebug esp_tinyusb esp_driver_gpio   # Optional: list dependencies
 )
