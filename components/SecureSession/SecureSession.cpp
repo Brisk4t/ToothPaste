@@ -44,7 +44,7 @@ int SecureSession::init()
     if (ret != 0)
         return ret;
 
-    ret = mbedtls_ecp_group_load(&ecdh_ctx.grp, MBEDTLS_ECP_DP_SECP256R1); // Use curve secp256r1
+    ret = mbedtls_ecp_group_load(&ecdh_ctx.private_grp, MBEDTLS_ECP_DP_SECP256R1); // Use curve secp256r1
     return ret;
 }
 
@@ -54,9 +54,9 @@ int SecureSession::generateKeypair(uint8_t outPublicKey[PUBKEY_SIZE], size_t& ou
 
     // Try generating the keypair
     int ret = mbedtls_ecdh_gen_public(
-        &ecdh_ctx.grp, // Curve group (e.g., SECP256R1)
-        &ecdh_ctx.d,   // private key
-        &ecdh_ctx.Q,   // public key
+        &ecdh_ctx.private_grp, // Curve group (e.g., SECP256R1)
+        &ecdh_ctx.private_d,   // private key
+        &ecdh_ctx.private_Q,   // public key
         mbedtls_ctr_drbg_random,
         &ctr_drbg
     );
@@ -68,8 +68,8 @@ int SecureSession::generateKeypair(uint8_t outPublicKey[PUBKEY_SIZE], size_t& ou
     unsigned char pubkey[PUBKEY_SIZE];
     size_t olen = 0;
     mbedtls_ecp_point_write_binary(
-        &ecdh_ctx.grp,             // Curve group (e.g., SECP256R1)
-        &ecdh_ctx.Q,               // Public key point
+        &ecdh_ctx.private_grp,             // Curve group (e.g., SECP256R1)
+        &ecdh_ctx.private_Q,               // Public key point
         MBEDTLS_ECP_PF_COMPRESSED, // <-- Use compressed format
         &olen,
         outPublicKey,
@@ -96,7 +96,7 @@ int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE *
     mbedtls_ecp_point_init(&peerPoint);
 
     // Read the uncompressed peer public key (compressed support N/A on current ESP32 arduino core)
-    int ret = mbedtls_ecp_point_read_binary(&ecdh_ctx.grp, &peerPoint, peerPublicKey, 65);
+    int ret = mbedtls_ecp_point_read_binary(&ecdh_ctx.private_grp, &peerPoint, peerPublicKey, 65);
     if (ret != 0)
     {
         mbedtls_ecp_point_free(&peerPoint);
@@ -109,22 +109,25 @@ int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE *
 
     // Compute the shared secret (this is a scalar)
     ret = mbedtls_ecdh_compute_shared(
-        &ecdh_ctx.grp,           // Curve defined on init
-        &ecdh_ctx.z,             // Pointer to shared secret
+        &ecdh_ctx.private_grp,           // Curve defined on init
+        &ecdh_ctx.private_z,             // Pointer to shared secret
         &peerPoint,              // Peer Public Key
-        &ecdh_ctx.d,             // Private Key
+        &ecdh_ctx.private_d,             // Private Key
         mbedtls_ctr_drbg_random, // PRNG
         &ctr_drbg
     );
+
+    DEBUG_SERIAL_PRINTLN("Shared secret computed successfully");
 
     mbedtls_ecp_point_free(&peerPoint);
     if (ret != 0)
         return ret;
 
+    DEBUG_SERIAL_PRINTLN("Point Freed Successfully");
     // Export shared secret as fixed length binary
     // Since the write_binary functions pads data > 32bytes we use PUBKEY_SIZE-1
     size_t olen = 0;
-    ret = mbedtls_mpi_write_binary(&ecdh_ctx.z, sharedSecret, ENC_KEYSIZE);
+    ret = mbedtls_mpi_write_binary(&ecdh_ctx.private_z, sharedSecret, ENC_KEYSIZE);
     if (ret != 0)
         return ret;
 
@@ -423,7 +426,7 @@ bool SecureSession::setDeviceName(const char* deviceName){
     preferences.begin("identity", false);
 
     bool ret = preferences.isKey("blename"); // Check if the AES key for the given key exists
-    // If the name string exists return it
+    // If the name string exists return itTTR
     if(ret){
         preferences.remove("blename");
     }

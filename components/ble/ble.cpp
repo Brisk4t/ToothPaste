@@ -1,7 +1,7 @@
 #include "ble.h"
 #include "NeoPixelRMT.h"
 #include "StateManager.h"
-#include "esp_bt_device.h"
+#include "esp_system.h"
 
 BLEServer* bluServer = NULL;                      // Pointer to the BLE Server instance
 BLECharacteristic* inputCharacteristic = NULL;    // Characteristic for sensor data
@@ -78,8 +78,7 @@ InputCharacteristicCallbacks::InputCharacteristicCallbacks(SecureSession* sessio
 // Callback handler for BLE Input Characteristic onWrite events
 void InputCharacteristicCallbacks::onWrite(BLECharacteristic* inputCharacteristic)
 {
-  std::string rawValue = inputCharacteristic->getValue(); // Gets the std::string value of the characteristic
-
+  std::string rawValue = std::string(inputCharacteristic->getValue().c_str(), inputCharacteristic->getLength()); // Convert to std::string for easier handling
   // Receive base64 encoded value
   if (!rawValue.empty() && session != nullptr)
   {
@@ -87,8 +86,9 @@ void InputCharacteristicCallbacks::onWrite(BLECharacteristic* inputCharacteristi
     auto* taskParams = new SharedSecretTaskParams{ session, rawCopy }; // Create the parameters passed to the RTOS task
 
     // Handle bad packets
-    if (rawValue.length() < SecureSession::IV_SIZE + SecureSession::TAG_SIZE + SecureSession::HEADER_SIZE) {
-      Serial.println("Characteristic too short!");
+    if (rawCopy->length() < SecureSession::IV_SIZE + SecureSession::TAG_SIZE + SecureSession::HEADER_SIZE) {
+      DEBUG_SERIAL_PRINTLN("Characteristic too short!");
+      DEBUG_SERIAL_PRINTF("Received length: %d\n\r", rawCopy->length());
       stateManager->setState(DROP);
       return;
     }
@@ -96,7 +96,7 @@ void InputCharacteristicCallbacks::onWrite(BLECharacteristic* inputCharacteristi
     // Queue the received packet params in the task queue (should never failed due to BLE notification semaphore blocking, failure indicates sender is forcing data)
     if (xQueueSend(packetQueue, &taskParams, 0) != pdTRUE) {
             // Queue full, drop packet or handle error
-            Serial.println("Packet queue full! Dropping packet.");
+            DEBUG_SERIAL_PRINTLN("Packet queue full! Dropping packet.");
             stateManager->setState(DROP);
             delete taskParams->rawValue;
             delete taskParams;
@@ -155,18 +155,24 @@ void bleSetup(SecureSession* session)
   );
 
   // Initialize with 8 bytes (all zeros here)
-  const uint8_t* macAddr = esp_bt_dev_get_address();
-  uint8_t initialValue[6] = {0};
-  memcpy(initialValue, macAddr, 6);
+  uint64_t mac = ESP.getEfuseMac();
+
+  // Convert to 6-byte array
+  uint8_t initialValue[6];
+  for (int i = 0; i < 6; i++) {
+      initialValue[i] = (mac >> (8 * (5 - i))) & 0xFF;
+  }
+
+  // Set the BLE characteristic value
   macCharacteristic->setValue(initialValue, 6);
 
 
 
   // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
   // Create a BLE Descriptor
-  inputCharacteristic->addDescriptor(new BLE2902());
-  semaphoreCharacteristic->addDescriptor(new BLE2902());
-  macCharacteristic->addDescriptor(new BLE2902());
+  // inputCharacteristic->addDescriptor(new BLE2902());
+  // semaphoreCharacteristic->addDescriptor(new BLE2902());
+  // macCharacteristic->addDescriptor(new BLE2902());
 
   // Start the service
   pService->start();

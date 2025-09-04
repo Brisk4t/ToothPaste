@@ -34,7 +34,7 @@ public:
     bool isBlinking() { return blinking; }
 
 private:
-    rmt_obj_t* rmt;
+    //rmt_obj_t* rmt;
     rmt_data_t led_data[24];
     gpio_num_t dataPin;
 
@@ -46,6 +46,7 @@ private:
 };
 
 extern NeoPixelRMT led;
+
 
 
 #endif // NEOPIXELRMT_H

@@ -5,10 +5,9 @@ NeoPixelRMT::NeoPixelRMT(gpio_num_t pin) : dataPin(pin) {}
 
 // Initialize the RMT RGB led driver for the specified pin
 void NeoPixelRMT::begin() {
-    rmt = rmtInit(dataPin, RMT_TX_MODE, RMT_MEM_64);
-    if (rmt) {
-        rmtSetTick(rmt, 100);  // 100ns ticks
-    }
+  if (!rmtInit(RGB_LED_PIN, RMT_TX_MODE, RMT_MEM_NUM_BLOCKS_1, 10000000)) {
+    Serial.println("init sender failed\n");
+  }
 }
 
 // Set the color of the LED using r,g,b values without calling show()
@@ -34,9 +33,9 @@ void NeoPixelRMT::setColor(const RGB& color) {
 
 // Write LED data to RMT
 void NeoPixelRMT::show() {
-    if (rmt) {
-        rmtWrite(rmt, led_data, 24);
-    }
+    //if (rmt) {
+          rmtWrite(RGB_LED_PIN, led_data, 24, RMT_WAIT_FOR_EVER);
+    //}
 }
 
 

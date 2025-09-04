@@ -1,3 +1,4 @@
+#define MBEDTLS_ECP_RESTARTABLE 1
 #include <Arduino.h>
 #include <mbedtls/ecdh.h>
 #include <mbedtls/ctr_drbg.h>
