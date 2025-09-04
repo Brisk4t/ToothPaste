@@ -5,7 +5,6 @@
 #ifndef NEOPIXELRMT_H
 #define NEOPIXELRMT_H
 
-#include <esp32-hal.h>
 #include "Colors.h" // Import the RGB struct and Colors namespace
 
 
