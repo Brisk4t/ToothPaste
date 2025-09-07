@@ -64,7 +64,7 @@ void IDFHID::end() {
   }
 }
 
-bool IDFHID::ready(void) {
+bool IDFHID::ready() {
   return tud_hid_n_ready(itf);
 }
 
@@ -78,14 +78,14 @@ void tud_hid_report_complete_cb(uint8_t instance, uint8_t const *report, size_t 
 bool IDFHID::SendReport(uint8_t id, const void *data, size_t len, uint32_t timeout_ms) {  
   // If we're configured to support boot protocol, and the host has requested boot protocol, prevent
   // sending of report ID, by passing report ID of 0 to tud_hid_n_report().
-  uint8_t effective_id = ((tinyusb_interface_protocol != HID_ITF_PROTOCOL_NONE) && (tud_hid_n_get_protocol(0) == HID_PROTOCOL_BOOT)) ? 0 : id;
-
+  uint8_t effective_id = ((tinyusb_interface_protocol != HID_ITF_PROTOCOL_NONE) && (tud_hid_n_get_protocol(itf) == HID_PROTOCOL_BOOT)) ? 0 : id;
+  printf("Effective ID: %d %d\n\r", effective_id, itf);
   // This does not guarantee that the HOST is ready to poll the device again
   while (!ready()) { // If the TinyUSB queue is ready to accept more reports 
         tud_task();
         vTaskDelay(pdMS_TO_TICKS(1));
   }
-  return tud_hid_n_report(itf, effective_id, data, len);
+  return tud_hid_n_report(itf, 0, data, len);
 
 }
 };

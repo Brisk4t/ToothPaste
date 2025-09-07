@@ -50,7 +50,7 @@ size_t sendStringSlow(const char *str, int delayms) {
   for (size_t i = 0; str[i] != '\0'; i++) {
     char ch = str[i];
 
-    //keyboard0.print(ch);  // Send single character
+    keyboard0.print(ch);  // Send single character
     keyboard1.print(ch);  // Send single character
     sentCount++;
 
@@ -60,7 +60,7 @@ size_t sendStringSlow(const char *str, int delayms) {
   return sentCount;
 }
 
-// Send a string
+// Send a string - slowMode is enabled by default
 void sendString(const char *str, bool slowMode)
 {
   if(!slowMode){
