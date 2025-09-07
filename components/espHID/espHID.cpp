@@ -14,7 +14,7 @@ using namespace idfusb;
 #endif
 
 
-// IDFHIDKeyboard keyboard0(0); // Boot Keyboard
+IDFHIDKeyboard keyboard0(0); // Boot Keyboard
 IDFHIDKeyboard keyboard1(1); // Non-boot Keyboard
 
 // USBHIDMouse mouse;
@@ -29,7 +29,7 @@ void hidSetup()
   
 
   // if(ARDUINO_USB_CDC_ON_BOOT) USBSerial.begin(); 
-  // keyboard0.begin();
+  keyboard0.begin();
   keyboard1.begin();
   // mouse.begin();
   // control.begin();
@@ -50,7 +50,7 @@ size_t sendStringSlow(const char *str, int delayms) {
   for (size_t i = 0; str[i] != '\0'; i++) {
     char ch = str[i];
 
-    // keyboard0.print(ch);  // Send single character
+    //keyboard0.print(ch);  // Send single character
     keyboard1.print(ch);  // Send single character
     sentCount++;
 
@@ -64,7 +64,7 @@ size_t sendStringSlow(const char *str, int delayms) {
 void sendString(const char *str, bool slowMode)
 {
   if(!slowMode){
-    // keyboard0.print(str);
+    //keyboard0.print(str);
     keyboard1.print(str);
   }
   else
@@ -78,13 +78,17 @@ void sendString(void *arg, bool slowMode)
   sendString(str, slowMode);
 }
 
+void stringTest(){
+  sendTestString();
+}
+
 // Press all the keys in the array together and release them after 50ms (max 6)
 void sendKeycode(uint8_t* keys, bool slowMode) {
     for(int i=0; i<7; i++){
       // keyboard0.press(keys[i]);
       keyboard1.press(keys[i]);
     }
-    delay(50); // optionally slower delay if slowMode
+    delay(5); // optionally slower delay if slowMode
     // keyboard0.releaseAll();
     keyboard1.releaseAll();
 }

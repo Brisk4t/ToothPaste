@@ -2,6 +2,7 @@
 #include "NeoPixelRMT.h"
 #include "StateManager.h"
 #include "esp_system.h"
+#include "esp_log.h"
 
 BLEServer* bluServer = NULL;                      // Pointer to the BLE Server instance
 BLECharacteristic* inputCharacteristic = NULL;    // Characteristic for sensor data

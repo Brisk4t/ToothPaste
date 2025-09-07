@@ -103,16 +103,21 @@ extern "C" void app_main() {
         uint8_t keycode[7] = { 0x80, 'a', 0, 0, 0, 0, 0 };
 
         if (buttonEvent == 1) { // Single click
-            if (stateManager->getState() == PAIRING) {
-                sendString(base64pubKey);
-            } else {
-                sendKeycode(keycode, true);
-            }
+          printf("Single Click");
+          if (stateManager->getState() == PAIRING) {
+              sendString(base64pubKey);
+          } else {
+              //sendKeycode(keycode, true);
+              sendString("Teststring1234", true);
+          }
         } 
         else if (buttonEvent == 2) { // Hold
-            DEBUG_SERIAL_PRINTLN("Button held!");
-            stateManager->setState(PAIRING);
-            enterPairingMode();
+          // printf("Button held!");
+          // stateManager->setState(PAIRING);
+          // enterPairingMode();
+          
+          printf("Running stringTest");
+          stringTest();
         }
 
         // Delay to allow FreeRTOS task switching

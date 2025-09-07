@@ -24,7 +24,7 @@
 #include "IDFHIDKeyboard.h"
 namespace idfusb {
 
-static const uint8_t report_descriptor[] = {TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(HID_REPORT_ID_KEYBOARD))};
+const uint8_t report_descriptor[] = {TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(HID_REPORT_ID_KEYBOARD))};
 
 IDFHIDKeyboard::IDFHIDKeyboard(uint8_t itf) : hid(itf), _asciimap(KeyboardLayout_en_US), shiftKeyReports(false) {
   static bool initialized = false;
@@ -185,6 +185,9 @@ void IDFHIDKeyboard::releaseAll(void) {
 
 size_t IDFHIDKeyboard::write(uint8_t c) {
   uint8_t p = press(c);  // Keydown
+  
+  vTaskDelay(pdMS_TO_TICKS(5)); // Delay between reports
+  
   release(c);            // Keyup
   return p;              // just return the result of press() since release() almost always returns 1
 }

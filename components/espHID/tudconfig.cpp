@@ -24,61 +24,7 @@ uint8_t const desc_hid_report2[] =
     TUD_HID_REPORT_DESC_MOUSE   ( HID_REPORT_ID(2            )),
 };
 
-uint8_t keyCode(const uint8_t c)
-{
-    uint8_t const conv_table[128][2] =  { HID_ASCII_TO_KEYCODE };
-    return conv_table[c][1];
-}
 
-// bool sendReport()
-// {
-//     if (tud_hid_n_ready(0))
-//     {
-//         bool itf0 = tud_hid_n_keyboard_report(0, 0, _report.modifier, _report.keycode);
-//     }
-//     if (tud_hid_n_ready(1))
-//     {
-//         bool itf1 = tud_hid_n_keyboard_report(1, 0, _report.modifier, _report.keycode);
-//     }
-//     return false;
-// }
-
-
-// bool sendchar(uint8_t key1 = 0) {
-//     _report.keycode[0] = key1;
-//     _report.keycode[1] = 0;
-//     _report.keycode[2] = 0;
-//     _report.keycode[3] = 0;
-//     _report.keycode[4] = 0;
-//     _report.keycode[5] = 0;
-//     return sendReport();
-// }
-
-// bool sendKey(uint8_t mod, uint8_t key1, uint8_t key2 = 0, uint8_t key3 = 0, uint8_t key4 = 0, uint8_t key5 = 0, uint8_t key6 = 0)
-// {
-//     _report.modifier = mod;
-//     _report.keycode[0] = key1;
-//     _report.keycode[1] = key2;
-//     _report.keycode[2] = key3;
-//     _report.keycode[3] = key4;
-//     _report.keycode[4] = key5;
-//     _report.keycode[5] = key6;
-//     return sendReport();
-// }
-
-// bool sendKey(const uint8_t c)
-// {
-//     uint8_t const conv_table[128][2] =  { HID_ASCII_TO_KEYCODE };
-//     if ( conv_table[c][0] ) _report.modifier = KEYBOARD_MODIFIER_LEFTSHIFT;
-//     _report.keycode[0] = conv_table[c][1];
-//     return sendReport();
-// }
-
-
-
-/**
- * @brief String descriptor
- */
 const char *hid_string_descriptor[5] = {
     // array of pointer to string descriptors
     (char[]){0x09, 0x04},  // 0: is supported language is English (0x0409)
@@ -97,85 +43,51 @@ static const uint8_t hid_configuration_descriptor[] = {
     TUD_HID_DESCRIPTOR(1, 4, false, sizeof(desc_hid_report2), 0x82, 64, 1),
 };
 
-// Initialize the mapping
-// static void init_ascii_to_hid(void) {
-//     memset(ascii_to_hid, 0, sizeof(ascii_to_hid));
+void sendTestString()
+{
+    // HID keyboard interface index
+    const uint8_t ITF = 0; // usually 0 for the first HID interface
 
-//     // Lowercase letters
-//     ascii_to_hid['a'] = (hid_key_t){HID_KEY_A, false};
-//     ascii_to_hid['b'] = (hid_key_t){HID_KEY_B, false};
-//     ascii_to_hid['c'] = (hid_key_t){HID_KEY_C, false};
-//     ascii_to_hid['d'] = (hid_key_t){HID_KEY_D, false};
-//     ascii_to_hid['e'] = (hid_key_t){HID_KEY_E, false};
-//     ascii_to_hid['f'] = (hid_key_t){HID_KEY_F, false};
-//     ascii_to_hid['g'] = (hid_key_t){HID_KEY_G, false};
-//     ascii_to_hid['h'] = (hid_key_t){HID_KEY_H, false};
-//     ascii_to_hid['i'] = (hid_key_t){HID_KEY_I, false};
-//     ascii_to_hid['j'] = (hid_key_t){HID_KEY_J, false};
-//     ascii_to_hid['k'] = (hid_key_t){HID_KEY_K, false};
-//     ascii_to_hid['l'] = (hid_key_t){HID_KEY_L, false};
-//     ascii_to_hid['m'] = (hid_key_t){HID_KEY_M, false};
-//     ascii_to_hid['n'] = (hid_key_t){HID_KEY_N, false};
-//     ascii_to_hid['o'] = (hid_key_t){HID_KEY_O, false};
-//     ascii_to_hid['p'] = (hid_key_t){HID_KEY_P, false};
-//     ascii_to_hid['q'] = (hid_key_t){HID_KEY_Q, false};
-//     ascii_to_hid['r'] = (hid_key_t){HID_KEY_R, false};
-//     ascii_to_hid['s'] = (hid_key_t){HID_KEY_S, false};
-//     ascii_to_hid['t'] = (hid_key_t){HID_KEY_T, false};
-//     ascii_to_hid['u'] = (hid_key_t){HID_KEY_U, false};
-//     ascii_to_hid['v'] = (hid_key_t){HID_KEY_V, false};
-//     ascii_to_hid['w'] = (hid_key_t){HID_KEY_W, false};
-//     ascii_to_hid['x'] = (hid_key_t){HID_KEY_X, false};
-//     ascii_to_hid['y'] = (hid_key_t){HID_KEY_Y, false};
-//     ascii_to_hid['z'] = (hid_key_t){HID_KEY_Z, false};
+    // Report ID (0 if not used)
+    const uint8_t REPORT_ID = 0;
 
-//     // Uppercase letters (Shift)
-//     for (char c = 'A'; c <= 'Z'; c++) {
-//         ascii_to_hid[(int)c] = (hid_key_t){ascii_to_hid[(int)(c + 32)].keycode, true};
-//     }
+    // HID 6-key report array: [modifier, reserved, key1..key6]
+    uint8_t report[8];
 
-//     // Digits
-//     ascii_to_hid['0'] = (hid_key_t){HID_KEY_0, false};
-//     ascii_to_hid['1'] = (hid_key_t){HID_KEY_1, false};
-//     ascii_to_hid['2'] = (hid_key_t){HID_KEY_2, false};
-//     ascii_to_hid['3'] = (hid_key_t){HID_KEY_3, false};
-//     ascii_to_hid['4'] = (hid_key_t){HID_KEY_4, false};
-//     ascii_to_hid['5'] = (hid_key_t){HID_KEY_5, false};
-//     ascii_to_hid['6'] = (hid_key_t){HID_KEY_6, false};
-//     ascii_to_hid['7'] = (hid_key_t){HID_KEY_7, false};
-//     ascii_to_hid['8'] = (hid_key_t){HID_KEY_8, false};
-//     ascii_to_hid['9'] = (hid_key_t){HID_KEY_9, false};
+    // Clear report
+    memset(report, 0, sizeof(report));
 
-//     // Space and common punctuation
-//     ascii_to_hid[' ']  = (hid_key_t){HID_KEY_SPACE, false};
-//     ascii_to_hid['.']  = (hid_key_t){HID_KEY_PERIOD, false};
-//     ascii_to_hid[',']  = (hid_key_t){HID_KEY_COMMA, false};
-//     ascii_to_hid['\n'] = (hid_key_t){HID_KEY_ENTER, false};
+    // "t e s t s t r i n g"
+    // Using standard HID keycodes (no modifiers for lowercase letters)
+    const uint8_t keys[] = {
+        HID_KEY_T, HID_KEY_E, HID_KEY_S, HID_KEY_T,
+        HID_KEY_S, HID_KEY_T, HID_KEY_R, HID_KEY_I,
+        HID_KEY_N, HID_KEY_G
+    };
 
-//     // Shifted symbols
-//     ascii_to_hid['!'] = (hid_key_t){HID_KEY_1, true};
-//     ascii_to_hid['@'] = (hid_key_t){HID_KEY_2, true};
-//     ascii_to_hid['#'] = (hid_key_t){HID_KEY_3, true};
-//     ascii_to_hid['$'] = (hid_key_t){HID_KEY_4, true};
-//     ascii_to_hid['%'] = (hid_key_t){HID_KEY_5, true};
-//     ascii_to_hid['^'] = (hid_key_t){HID_KEY_6, true};
-//     ascii_to_hid['&'] = (hid_key_t){HID_KEY_7, true};
-//     ascii_to_hid['*'] = (hid_key_t){HID_KEY_8, true};
-//     ascii_to_hid['('] = (hid_key_t){HID_KEY_9, true};
-//     ascii_to_hid[')'] = (hid_key_t){HID_KEY_0, true};
-// }
+    for (size_t i = 0; i < sizeof(keys); i++)
+    {
+        // Wait until HID is ready
+        while (!tud_hid_ready()) {
+            tud_task();
+            vTaskDelay(pdMS_TO_TICKS(1));
+        }
 
-// void tud_hid_send_string(const char *str)
-// {
-//     while (*str) {
+        // Press key
+        memset(report, 0, sizeof(report));
+        report[2] = keys[i];
+        tud_hid_n_report(ITF, REPORT_ID, report, sizeof(report));
 
-//         sendKey(*str++);
-//         vTaskDelay(pdMS_TO_TICKS(50));
+        // Give the host a chance to process
+        vTaskDelay(pdMS_TO_TICKS(10));
 
-//         sendchar(0); // release all keys
-//         vTaskDelay(pdMS_TO_TICKS(20));
-//     }
-// }
+        // Release key
+        memset(report, 0, sizeof(report));
+        tud_hid_n_report(ITF, REPORT_ID, report, sizeof(report));
+
+        vTaskDelay(pdMS_TO_TICKS(5));
+    }
+}
 
 void tudsetup()
 { 
