@@ -117,8 +117,8 @@ export const ECDHProvider = ({ children }) => {
             256
         );
 
-        // console.log("Shared Secret: ")
-        // console.log(arrayBufferToBase64(sharedSecret));
+        console.log("Shared Secret: ")
+        console.log(arrayBufferToBase64(sharedSecret));
 
         const info = new TextEncoder().encode("aes-gcm-256");
         const keyMaterial = await crypto.subtle.importKey("raw", sharedSecret, "HKDF", false, ["deriveKey"]);

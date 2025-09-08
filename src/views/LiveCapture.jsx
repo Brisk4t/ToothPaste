@@ -197,7 +197,7 @@ export default function LiveCapture() {
             <div
                 title="Enable / Disable sending mouse movement"
                 onClick={handleToggle}
-                className={`border border-hover h-10 w-10 justify-between items-center p-2 rounded-lg
+                className={`disabled border border-hover h-10 w-10 justify-between items-center p-2 rounded-lg
                         ${captureMouse ? "bg-white text-shelf" : "bg-shelf text-text"}`}
             >
                 <CursorArrowRaysIcon className="h-5 w-5"></CursorArrowRaysIcon>
@@ -258,12 +258,16 @@ export default function LiveCapture() {
 
             <div className="flex flex-col flex-1 my-4 rounded-xl transition-all border border-hover focus:border-shelf relative group ">
                 <div className="absolute top-2 right-2">
-                    <CaptureMouseButton />
-                </div>
-
-                <div className="absolute top-14 right-2">
                     <CommandPassthroughButton />
+
                 </div>
+                {/* <div className="absolute top-2 right-2">
+                    <CaptureMouseButton />
+                </div> */}
+
+                {/* <div className="absolute top-14 right-2">
+                    <CommandPassthroughButton />
+                </div> */}
 
                 <Typography
                     variant="h1"

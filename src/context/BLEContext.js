@@ -21,6 +21,7 @@ export function BLEProvider({ children, showOverlay, setShowOverlay }) {
         connected: 2
     };
     const serviceUUID = "19b10000-e8f2-537e-4f6c-d104768a1214"; // ClipBoard service UUID from example
+    
     const packetCharacteristicUUID = "6856e119-2c7b-455a-bf42-cf7ddd2c5907"; // String pktCharacteristic UUID
     const hidSemaphorepktCharacteristicUUID = "6856e119-2c7b-455a-bf42-cf7ddd2c5908"; // String pktCharacteristic UUID
     const macAddressCharacteristicUUID = "19b10002-e8f2-537e-4f6c-d104768a1214"
