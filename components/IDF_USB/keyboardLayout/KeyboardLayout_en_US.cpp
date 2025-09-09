@@ -3,7 +3,6 @@
  */
 
 #include "KeyboardLayout.h"
-namespace idfusb{
 extern const uint8_t KeyboardLayout_en_US[128] PROGMEM = {
   0x00,  // NUL
   0x00,  // SOH
@@ -134,5 +133,4 @@ extern const uint8_t KeyboardLayout_en_US[128] PROGMEM = {
   0x30 | SHIFT,  // }
   0x35 | SHIFT,  // ~
   0x00           // DEL
-};
 };

@@ -22,7 +22,6 @@
 #include "KeyboardLayout.h"
 
 #include "IDFHIDKeyboard.h"
-namespace idfusb {
 
 const uint8_t report_descriptor[] = {TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(HID_REPORT_ID_KEYBOARD))};
 
@@ -206,4 +205,3 @@ size_t IDFHIDKeyboard::write(const uint8_t *buffer, size_t size) {
   }
   return n;
 }
-};

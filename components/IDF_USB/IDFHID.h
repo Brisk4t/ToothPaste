@@ -21,7 +21,6 @@
 #include "freertos/task.h"
 #include "driver/gpio.h"
 
-namespace idfusb {
 
 // Used by the included TinyUSB drivers
 enum {
@@ -68,5 +67,4 @@ public:
   static bool addDevice(IDFHIDDevice *device, uint16_t descriptor_len);
 private:
   uint8_t itf;
-};
 };

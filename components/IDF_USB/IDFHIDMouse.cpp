@@ -18,47 +18,43 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-#include "USBHID.h"
-#if SOC_USB_OTG_SUPPORTED
+#include "IDFHID.h"
+#include "IDFHIDMouse.h"
 
-#if CONFIG_TINYUSB_HID_ENABLED
-
-#include "USBHIDMouse.h"
-
-USBHIDMouseBase::USBHIDMouseBase(HIDMouseType_t *type) : hid(), _buttons(0), _type(type) {
+IDFHIDMouseBase::IDFHIDMouseBase(HIDMouseType_t *type, uint8_t itf) : hid(itf), _buttons(0), _type(type) {
   static bool initialized = false;
   if (!initialized) {
-    initialized = true;
-    hid.addDevice(this, _type->descriptor_size);
+    // initialized = true;
+    // hid.addDevice(this, _type->descriptor_size);
   }
 };
 
-uint16_t USBHIDMouseBase::_onGetDescriptor(uint8_t *dst) {
+uint16_t IDFHIDMouseBase::_onGetDescriptor(uint8_t *dst) {
   memcpy(dst, _type->report_descriptor, _type->descriptor_size);
   return _type->descriptor_size;
 }
 
-void USBHIDMouseBase::buttons(uint8_t b) {
+void IDFHIDMouseBase::buttons(uint8_t b) {
   if (b != _buttons) {
     _buttons = b;
   }
 }
 
-void USBHIDMouseBase::begin() {
+void IDFHIDMouseBase::begin() {
   hid.begin();
 }
 
-void USBHIDMouseBase::end() {}
+void IDFHIDMouseBase::end() {}
 
-void USBHIDMouseBase::press(uint8_t b) {
+void IDFHIDMouseBase::press(uint8_t b) {
   this->buttons(_buttons | b);
 }
 
-void USBHIDMouseBase::release(uint8_t b) {
+void IDFHIDMouseBase::release(uint8_t b) {
   this->buttons(_buttons & ~b);
 }
 
-bool USBHIDMouseBase::isPressed(uint8_t b) {
+bool IDFHIDMouseBase::isPressed(uint8_t b) {
   if ((b & _buttons) > 0) {
     return true;
   }
@@ -115,6 +111,3 @@ void USBHIDRelativeMouse::buttons(uint8_t b) {
     move(0, 0);
   }
 }
-
-#endif /* CONFIG_TINYUSB_HID_ENABLED */
-#endif /* SOC_USB_OTG_SUPPORTED */

@@ -20,12 +20,7 @@
 */
 
 #pragma once
-
-#include "soc/soc_caps.h"
-#if SOC_USB_OTG_SUPPORTED
-
-#include "USBHID.h"
-#if CONFIG_TINYUSB_HID_ENABLED
+#include "IDFHID.h"
 
 #define MOUSE_LEFT     0x01
 #define MOUSE_RIGHT    0x02
@@ -49,9 +44,14 @@ struct HIDMouseType_t {
 extern HIDMouseType_t HIDMouseRel;
 extern HIDMouseType_t HIDMouseAbs;
 
-class USBHIDMouseBase : public USBHIDDevice {
+class IDFHIDMouseBase : public IDFHIDDevice {
+
+protected:
+  IDFHID hid;
+  uint8_t _buttons;
+  HIDMouseType_t *_type;
 public:
-  USBHIDMouseBase(HIDMouseType_t *type);
+  IDFHIDMouseBase(HIDMouseType_t *type, uint8_t itf);
   void begin(void);
   void end(void);
   void press(uint8_t b = MOUSE_LEFT);      // press LEFT by default
@@ -65,23 +65,20 @@ public:
   virtual void click(uint8_t b) = 0;
   virtual void buttons(uint8_t b) = 0;
 
-protected:
-  USBHID hid;
-  uint8_t _buttons;
-  HIDMouseType_t *_type;
+
 };
 
-class USBHIDRelativeMouse : public USBHIDMouseBase {
+class USBHIDRelativeMouse : public IDFHIDMouseBase {
 public:
-  USBHIDRelativeMouse(void) : USBHIDMouseBase(&HIDMouseRel) {}
+  USBHIDRelativeMouse(uint8_t itf) : IDFHIDMouseBase(&HIDMouseRel, itf) {}
   void move(int8_t x, int8_t y, int8_t wheel = 0, int8_t pan = 0);
   void click(uint8_t b = MOUSE_LEFT) override;
   void buttons(uint8_t b) override;
 };
 
-class USBHIDAbsoluteMouse : public USBHIDMouseBase {
+class USBHIDAbsoluteMouse : public IDFHIDMouseBase {
 public:
-  USBHIDAbsoluteMouse(void) : USBHIDMouseBase(&HIDMouseAbs) {}
+  USBHIDAbsoluteMouse(uint8_t itf) : IDFHIDMouseBase(&HIDMouseAbs, itf) {}
   void move(int16_t x, int16_t y, int8_t wheel = 0, int8_t pan = 0);
   void click(uint8_t b = MOUSE_LEFT) override;
   void buttons(uint8_t b) override;
@@ -92,7 +89,4 @@ private:
 };
 
 // don't break examples and old sketches
-typedef USBHIDRelativeMouse USBHIDMouse;
-
-#endif /* CONFIG_TINYUSB_HID_ENABLED */
-#endif /* SOC_USB_OTG_SUPPORTED */
+typedef USBHIDRelativeMouse IDFHIDMouse;

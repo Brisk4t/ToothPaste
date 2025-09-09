@@ -4,9 +4,9 @@
 #include "tudconfig.cpp"
 #include "IDFHID.h"
 #include "IDFHIDKeyboard.h"
+#include "IDFHIDMouse.h"
 #include "SerialDebug.h"
 
-using namespace idfusb;
 
 // Needed to enable CDC if defined
 #if ARDUINO_USB_CDC_ON_BOOT
@@ -16,8 +16,8 @@ using namespace idfusb;
 
 
 IDFHIDKeyboard keyboard0(0); // Boot Keyboard
-IDFHIDKeyboard keyboard1(1); // Non-boot Keyboard
-
+//IDFHIDKeyboard keyboard1(1); // Non-boot Keyboard
+IDFHIDMouse mouse(1);
 // USBHIDMouse mouse;
 // USBHIDConsumerControl control;
 // USBHIDSystemControl syscontrol;
@@ -31,7 +31,7 @@ void hidSetup()
 
   // if(ARDUINO_USB_CDC_ON_BOOT) USBSerial.begin(); 
   keyboard0.begin();
-  keyboard1.begin();
+  //keyboard1.begin();
   // mouse.begin();
   // control.begin();
   // syscontrol.begin();
@@ -94,28 +94,30 @@ void sendKeycode(uint8_t* keys, bool slowMode) {
 
 void moveMouse(int32_t x, int32_t y, int32_t LClick, int32_t RClick){
   
-  // //Click before moving if the click is in the same report
-  // if(!(mouse.isPressed(MOUSE_LEFT)) && LClick == 1){
-  //   mouse.press(MOUSE_LEFT);
-  // }
+  //Click before moving if the click is in the same report
+  if(!(mouse.isPressed(MOUSE_LEFT)) && LClick == 1){
+    mouse.press(MOUSE_LEFT);
+  }
 
-  // if(!(mouse.isPressed(MOUSE_RIGHT)) && RClick == 1){
-  //   mouse.press(MOUSE_RIGHT);
-  // }
+  if(!(mouse.isPressed(MOUSE_RIGHT)) && RClick == 1){
+    mouse.press(MOUSE_RIGHT);
+  }
   
+  vTaskDelay(pdMS_TO_TICKS(5));
+  //smoothMoveMouse(x, y, 20, 5); // Move the mouse by dx and dy over 20 steps and SLOWMODE_DELAY_MS ms between each step
+  mouse.move(x, y);
+  vTaskDelay(pdMS_TO_TICKS(5));
 
-  // //smoothMoveMouse(x, y, 20, 5); // Move the mouse by dx and dy over 20 steps and SLOWMODE_DELAY_MS ms between each step
-  // mouse.move(x, y);
-
-  // // Release after moving the mouse
-  // if (mouse.isPressed(MOUSE_LEFT) && LClick == 2) {
-  //     mouse.release(MOUSE_LEFT);
-  // }
+  // Release after moving the mouse
+  if (mouse.isPressed(MOUSE_LEFT) && LClick == 2) {
+      mouse.release(MOUSE_LEFT);
+  }
   
-  // if (mouse.isPressed(MOUSE_RIGHT) && RClick == 2) {
-  //     mouse.release(MOUSE_RIGHT);
-  // }
+  if (mouse.isPressed(MOUSE_RIGHT) && RClick == 2) {
+      mouse.release(MOUSE_RIGHT);
+  }
   
+  vTaskDelay(pdMS_TO_TICKS(5));
 }
 
 // void moveMouse(uint8_t* mousePacket){ // mousePacket is an array of int32_t values sent over a uint8_t stream

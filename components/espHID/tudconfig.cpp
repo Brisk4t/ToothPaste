@@ -20,8 +20,8 @@ uint8_t const desc_hid_report1[] =
 
 uint8_t const desc_hid_report2[] =
 {
-    TUD_HID_REPORT_DESC_KEYBOARD( HID_REPORT_ID(1         )),
-    TUD_HID_REPORT_DESC_MOUSE   ( HID_REPORT_ID(2            )),
+    //TUD_HID_REPORT_DESC_KEYBOARD( HID_REPORT_ID(1         )),
+    TUD_HID_REPORT_DESC_MOUSE   (),
 };
 
 
@@ -61,7 +61,7 @@ static const uint8_t hid_configuration_descriptor[] = {
 
     // Interface number, string index, boot protocol, report descriptor len, EP In address, size & polling interval
     TUD_HID_DESCRIPTOR(0, 4, true, sizeof(desc_hid_report1), 0x81, 64, 1),
-    TUD_HID_DESCRIPTOR(1, 4, false, sizeof(desc_hid_report2), 0x82, 64, 1),
+    TUD_HID_DESCRIPTOR(1, 4, true, sizeof(desc_hid_report2), 0x82, 64, 1),
 };
 
 void sendTestString()

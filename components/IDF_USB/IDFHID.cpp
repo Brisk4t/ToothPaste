@@ -17,7 +17,6 @@
 #include "IDFHID.h"
 #define USB_HID_DEVICES_MAX 10
 
-namespace idfusb { 
 typedef struct {
   IDFHIDDevice *device;
   uint8_t reports_num;
@@ -89,4 +88,3 @@ bool IDFHID::SendReport(uint8_t id, const void *data, size_t len, uint32_t timeo
   return tud_hid_n_report(itf, 0, data, len);
 
 }
-};

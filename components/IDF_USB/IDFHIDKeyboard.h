@@ -23,7 +23,6 @@
 
 #include "Print.h"
 #include "IDFHID.h"
-namespace idfusb{
 
 typedef union {
   struct {
@@ -160,6 +159,4 @@ public:
 
   // internal use
   //void _onOutput(uint8_t report_id, const uint8_t *buffer, uint16_t len);
-};
-
 };
