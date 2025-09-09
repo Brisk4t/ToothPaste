@@ -34,6 +34,27 @@ const char *hid_string_descriptor[5] = {
     "Example HID interface",  // 4: HID
 };
 
+tusb_desc_device_t const desc_device =
+{
+    .bLength            = sizeof(tusb_desc_device_t),
+    .bDescriptorType    = TUSB_DESC_DEVICE,
+    .bcdUSB             = 0x0200,
+    .bDeviceClass       = 0x00,
+    .bDeviceSubClass    = 0x00,
+    .bDeviceProtocol    = 0x00,
+    .bMaxPacketSize0    = CFG_TUD_ENDPOINT0_SIZE,
+
+    .idVendor           = 0xCafe,
+    .idProduct          = 0x0001,
+    .bcdDevice          = 0x0100,
+
+    .iManufacturer      = 0x01,
+    .iProduct           = 0x02,
+    .iSerialNumber      = 0x03,
+
+    .bNumConfigurations = 0x01
+};
+
 static const uint8_t hid_configuration_descriptor[] = {
     // Configuration number, interface count, string index, total length, attribute, power in mA
     TUD_CONFIG_DESCRIPTOR(1, 2, 0, TUSB_DESC_TOTAL_LEN, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 500),
@@ -93,7 +114,7 @@ void tudsetup()
 { 
   //init_ascii_to_hid();
   tinyusb_config_t tusb_cfg = {};
-    tusb_cfg.device_descriptor = NULL;
+    tusb_cfg.device_descriptor = &desc_device;
     tusb_cfg.string_descriptor = hid_string_descriptor;
     tusb_cfg.string_descriptor_count = sizeof(hid_string_descriptor) / sizeof(hid_string_descriptor[0]);
     tusb_cfg.external_phy = false;

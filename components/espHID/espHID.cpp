@@ -4,6 +4,7 @@
 #include "tudconfig.cpp"
 #include "IDFHID.h"
 #include "IDFHIDKeyboard.h"
+#include "SerialDebug.h"
 
 using namespace idfusb;
 
@@ -38,9 +39,6 @@ void hidSetup()
   // // Ideally these shouldn't be needed since they're already defined in the header, but i have no idea why they don't work consistently
   // USB.manufacturerName(USB_MANUFACTURER);
   // USB.productName(USB_PRODUCT);
-
-  // USB.begin();
-  // DEBUG_SERIAL_PRINTLN(tud_hid_get_protocol());
 }
 
 // Send a string with a delay between each character (crude implementation of alternative polling rates since ESPHID doesn't expose this)
@@ -147,7 +145,7 @@ void moveMouse(uint8_t* mousePacket) {
     int32_t RClick = clicks[1];
 
     // Handle Click
-    DEBUG_SERIAL_PRINTF("LClick: %d, RClick: %d\n", LClick, RClick);
+    //DEBUG_SERIAL_PRINTF("LClick: %d, RClick: %d\n", LClick, RClick);
     moveMouse(0, 0, LClick, RClick); 
 }
 

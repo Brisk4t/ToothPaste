@@ -4,7 +4,7 @@
 #include <BLEUtils.h>
 #include <BLE2902.h>
 #include <esp_timer.h>
-
+#include <nvs_flash.h>
 // ClipBoard libraries
 #include <SerialDebug.h>
 #include "espHID.h"
@@ -50,7 +50,7 @@ void enterPairingMode() {
     // Print Public Key to Serial
     DEBUG_SERIAL_PRINTLN("Public Key Generated: ");
     DEBUG_SERIAL_PRINTLN(base64pubKey);
-    DEBUG_SERIAL_PRINTLN();
+    DEBUG_SERIAL_PRINTLN("\n");
 
     // Create a one-shot timer to send the public key after 5 seconds
     esp_timer_create_args_t timer_args = {
@@ -76,8 +76,9 @@ void enterPairingMode() {
 
 extern "C" void app_main() {
     // Initialize Arduino core
+    printf("NVS Activation Status %x", nvs_flash_init());
     initArduino();
-
+    
     // Initialize Serial for debugging
     DEBUG_SERIAL_BEGIN(115200);
 

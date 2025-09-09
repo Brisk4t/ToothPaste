@@ -1,5 +1,6 @@
 #define MBEDTLS_ECP_RESTARTABLE 1
 #include <Arduino.h>
+#include <string>
 #include <mbedtls/ecdh.h>
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/entropy.h>
@@ -90,7 +91,7 @@ public:
 
 
     // Derive AES key from shared secret using KDF and store it in preferences
-    int deriveAESKeyFromSharedSecret(const char *base64Input);
+    int deriveAESKeyFromSharedSecret(std::string base64Input);
     void printBase64(const uint8_t * data, size_t dataLen);
     int hkdf_sha256(const uint8_t *salt, size_t salt_len,
                 const uint8_t *ikm, size_t ikm_len,

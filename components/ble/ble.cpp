@@ -228,7 +228,7 @@ void generateSharedSecret(SecureSession::rawDataPacket* packet, SecureSession* s
   size_t peerKeyLen = 0;
 
   // The packet data for an AUTH packet is a base64 string
-  const char* base64Input = (const char*)packet->data;
+  std::string base64Input = std::string((const char*)packet->data, (uint8_t)packet->dataLen);
   size_t base64InputLen = packet->dataLen;
 
   // Convert the received Base64 peer public key to a byte array
@@ -255,7 +255,7 @@ void generateSharedSecret(SecureSession::rawDataPacket* packet, SecureSession* s
     if (!session->deriveAESKeyFromSharedSecret(base64Input))
     {
       DEBUG_SERIAL_PRINTLN("AES key derived successfully");
-      clientPubKey = std::string((const char*)base64Input, base64InputLen);
+      clientPubKey = std::string((const char*)base64Input.c_str(), base64Input.length());
       stateManager->setState(READY);
 
       // Notify once pairing is successful
@@ -385,11 +385,11 @@ void authenticateClient(SecureSession::rawDataPacket* packet, SecureSession* ses
 
   String deviceName;
   session->getDeviceName(deviceName);
-  DEBUG_SERIAL_PRINTF("Device Name is: %s", deviceName);
+  DEBUG_SERIAL_PRINTF("Device Name is: %s", deviceName.c_str());
 
   clientPubKey = std::string((const char*)packet->data, packet->dataLen);
 
-  DEBUG_SERIAL_PRINTF("clientPubKey: %s\n\r", clientPubKey);
+  DEBUG_SERIAL_PRINTF("clientPubKey: %s\n\r", clientPubKey.c_str());
   // If we don't know the AES key for the given public key, set Device Status to UNPAIRED
   if (!session->isEnrolled(clientPubKey.c_str())) {
     DEBUG_SERIAL_PRINTLN("Client is not enrolled");

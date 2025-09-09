@@ -1,10 +1,12 @@
 #pragma once
+#define TOOTHPASTE_DEBUG_ENABLED 1
 
-#if ARDUINO_USB_CDC_ON_BOOT
+#if TOOTHPASTE_DEBUG_ENABLED
   #define DEBUG_SERIAL_BEGIN(...) Serial.begin(__VA_ARGS__)
   #define DEBUG_SERIAL_PRINT(...) Serial.print(__VA_ARGS__)
   #define DEBUG_SERIAL_PRINTLN(...) Serial.println(__VA_ARGS__)
   #define DEBUG_SERIAL_PRINTF(...) Serial.printf(__VA_ARGS__)
+
 #else
   #define DEBUG_SERIAL_BEGIN(...)
   #define DEBUG_SERIAL_PRINT(...)

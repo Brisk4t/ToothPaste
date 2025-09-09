@@ -141,7 +141,7 @@ int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE *
 }
 
 // Called after computeSharedSecret succeeds to compute a symmetric AES key 
-int SecureSession::deriveAESKeyFromSharedSecret(const char *base64Input)
+int SecureSession::deriveAESKeyFromSharedSecret(std::string base64Input)
 {
     // Return if a shared secret was never generated
     if (!sharedReady)
@@ -176,10 +176,11 @@ int SecureSession::deriveAESKeyFromSharedSecret(const char *base64Input)
     // If a key was successfully generated, store it
     if (!ret)
     {
-        String hashedBase64 = hashKey(base64Input);
-        preferences.putBytes(hashedBase64.c_str(), aesKey, sizeof(aesKey)); // Store the key in preferences for debugging
-        preferences.putInt("pairedDevices", pairedDevices+1);
-        DEBUG_SERIAL_PRINTF("AES Key stored as %s\n", hashedBase64);
+        String hashedBase64 = hashKey(base64Input.c_str());
+        DEBUG_SERIAL_PRINTF("Hashing %s, %d bytes as %s, %d bytes \n\r", base64Input.c_str(), base64Input.length(), hashedBase64.c_str(), hashedBase64.length());
+        int putBytes = preferences.putBytes(hashedBase64.c_str(), aesKey, sizeof(aesKey)); // Store the key in preferences for debugging
+        int putInt = preferences.putInt("pairedDevices", pairedDevices+1);
+        DEBUG_SERIAL_PRINTF("AES Key %s, %d bytes stored as %s with putBytes: %d, putInt: %d\n\r", aesKey, sizeof(aesKey), hashedBase64.c_str(), putBytes, putInt);
     };
 
     preferences.end(); // Close the write session
@@ -244,10 +245,12 @@ int SecureSession::decrypt(
     const char* base64pubKey)
 {
     String hashedKey = hashKey(base64pubKey);
+    DEBUG_SERIAL_PRINTF("Hashing key %s of length %d \n\r", base64pubKey, strlen(base64pubKey));
     preferences.begin("security", true); // Open storage session in read only mode
+
     if (!preferences.isKey(hashedKey.c_str()))
     {
-        DEBUG_SERIAL_PRINTLN("aesKey not found in preferences storage");
+        DEBUG_SERIAL_PRINTF("aesKey '%s' not found in preferences storage \n\r", hashedKey.c_str());
         preferences.end();
         return 1;
     }
