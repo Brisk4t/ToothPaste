@@ -23,6 +23,7 @@
     "usbd.h": "c",
     "ostream": "cpp",
     "string": "cpp",
-    "bleclient.h": "c"
+    "bleclient.h": "c",
+    "mutex": "cpp"
   }
 }

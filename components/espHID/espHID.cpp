@@ -5,6 +5,7 @@
 #include "IDFHID.h"
 #include "IDFHIDKeyboard.h"
 #include "IDFHIDMouse.h"
+#include "IDFHIDConsumerControl.h"
 #include "SerialDebug.h"
 
 
@@ -16,10 +17,10 @@
 
 
 IDFHIDKeyboard keyboard0(0); // Boot Keyboard
-//IDFHIDKeyboard keyboard1(1); // Non-boot Keyboard
 IDFHIDMouse mouse(1);
+IDFHIDConsumerControl control(2);
+
 // USBHIDMouse mouse;
-// USBHIDConsumerControl control;
 // USBHIDSystemControl syscontrol;
 
 
@@ -35,10 +36,6 @@ void hidSetup()
   // mouse.begin();
   // control.begin();
   // syscontrol.begin();
-
-  // // Ideally these shouldn't be needed since they're already defined in the header, but i have no idea why they don't work consistently
-  // USB.manufacturerName(USB_MANUFACTURER);
-  // USB.productName(USB_PRODUCT);
 }
 
 // Send a string with a delay between each character (crude implementation of alternative polling rates since ESPHID doesn't expose this)
@@ -120,10 +117,14 @@ void moveMouse(int32_t x, int32_t y, int32_t LClick, int32_t RClick){
   // vTaskDelay(pdMS_TO_TICKS(5));
 }
 
-// void moveMouse(uint8_t* mousePacket){ // mousePacket is an array of int32_t values sent over a uint8_t stream
-//   int32_t* ints = reinterpret_cast<int32_t*>(mousePacket); // Safely cast uint8_t* to uint32_t*
-//   moveMouse(ints[0], ints[1], ints[2], ints[3]);
-// }
+void genericInput(){
+  control.press(CONSUMER_CONTROL_PLAY_PAUSE);
+  vTaskDelay(pdMS_TO_TICKS(10));
+  control.release();
+  control.press(CONSUMER_CONTROL_VOLUME_INCREMENT);
+  vTaskDelay(pdMS_TO_TICKS(10));
+  control.release();
+}
 
 
 void moveMouse(uint8_t* mousePacket) {
@@ -185,6 +186,10 @@ void tud_hid_report_complete_cb(uint8_t instance, uint8_t const *report, size_t 
 
     case 1:
       mouse.unlock();
+      break;
+
+    case 2:
+      control.unlock();
       break;
 
     default:

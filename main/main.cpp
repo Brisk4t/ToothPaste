@@ -110,7 +110,8 @@ extern "C" void app_main() {
               sendString(base64pubKey);
           } else {
               //sendKeycode(keycode, true);
-              sendString("Teststring1234", true);
+              //sendString("Teststring1234", true);
+              genericInput();
           }
         } 
         else if (buttonEvent == 2) { // Hold

@@ -13,12 +13,8 @@
 // limitations under the License.
 
 #pragma once
+#include "IDFHID.h"
 
-#include "soc/soc_caps.h"
-#if SOC_USB_OTG_SUPPORTED
-
-#include "USBHID.h"
-#if CONFIG_TINYUSB_HID_ENABLED
 
 // Power Control
 #define CONSUMER_CONTROL_POWER 0x0030
@@ -75,21 +71,19 @@
 // Mouse Horizontal scroll
 #define CONSUMER_CONTROL_PAN 0x0238
 
-class USBHIDConsumerControl : public USBHIDDevice {
+class IDFHIDConsumerControl : public IDFHIDDevice {
 private:
-  USBHID hid;
+  IDFHID hid;
   bool send(uint16_t value);
 
 public:
-  USBHIDConsumerControl(void);
+  IDFHIDConsumerControl(uint8_t itf);
   void begin(void);
   void end(void);
   size_t press(uint16_t k);
   size_t release();
-
+  bool lock();
+  bool unlock();
   // internal use
-  uint16_t _onGetDescriptor(uint8_t *buffer);
+  // uint16_t _onGetDescriptor(uint8_t *buffer);
 };
-
-#endif /* CONFIG_TINYUSB_HID_ENABLED */
-#endif /* SOC_USB_OTG_SUPPORTED */
