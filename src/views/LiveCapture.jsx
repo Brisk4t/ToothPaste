@@ -257,17 +257,17 @@ export default function LiveCapture() {
             <Keyboard listenerRef={inputRef} deviceStatus={status}></Keyboard>
 
             <div className="flex flex-col flex-1 my-4 rounded-xl transition-all border border-hover focus:border-shelf relative group ">
-                <div className="absolute top-2 right-2">
-                    <CommandPassthroughButton />
-
-                </div>
                 {/* <div className="absolute top-2 right-2">
-                    <CaptureMouseButton />
-                </div> */}
-
-                {/* <div className="absolute top-14 right-2">
                     <CommandPassthroughButton />
+
                 </div> */}
+                <div className="absolute top-2 right-2">
+                    <CaptureMouseButton />
+                </div>
+
+                <div className="absolute top-14 right-2">
+                    <CommandPassthroughButton />
+                </div>
 
                 <Typography
                     variant="h1"

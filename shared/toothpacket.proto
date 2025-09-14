@@ -1,0 +1,95 @@
+syntax = "proto3";
+
+package toothpaste;
+
+// Total permissible size of DataPacket must be < 253 bytes on the wire (over BLE)
+message DataPacket{
+
+    // Packet.Header
+    enum PacketID {
+        DATA_PACKET = 0;
+        AUTH_PACKET = 1;
+    }
+    PacketID packetID = 1; // 1 - 4 bytes
+    uint32 packetNumber = 2; // 1 - 4 bytes
+    uint32 totalPackets = 3; // 1 - 4 bytes
+    bool slowMode = 4; // 1 byte
+    
+
+    // Packet.data
+    bytes IV = 5; // 12 bytes
+    uint32 dataLen = 6; // 4 bytes
+    bytes encryptedData = 7; // 200 bytes 
+    bytes TAG = 8; // 16 bytes
+
+}
+
+message EncryptedData{
+    // 1 byte
+    enum packetType{
+        KEYBOARD_STRING = 0;
+        KEYBOARD_KEYCODE = 1;
+        MOUSE = 2;
+        RENAME = 3;
+        CONSUMER_CONTROL = 4;
+        COMPOSITE = 5;
+    }
+    
+    oneof packetData{
+        KeyboardPacket keyboardPacket = 1;
+        KeycodePacket  keycodePacket = 2;
+        MousePacket  mousePacket = 3;
+        RenamePacket  renamePacket = 4;
+    }
+
+}
+
+// Arbitrary String Data (processed based on packet type byte)
+message KeyboardPacket{
+    string message = 1; // 190 bytes
+    uint32 length = 2; // 1 - 4 bytes
+}
+
+message RenamePacket{
+    string message = 1; // 190 bytes
+    uint32 length = 2; // 1 - 4 bytes
+}
+
+// Arbitrary keycode data (each uint32 is a keycode, <length> codes in 1 message)
+message KeycodePacket{
+    bytes code = 1; // 190 bytes
+    uint32 length = 2; // 1 - 4 bytes
+}
+
+// Represents a single unit of mouse movement
+message Frame {
+  int32 x = 1; // 4 bytes
+  int32 y = 2; // 4 bytes
+}
+
+// Packet with multiple units of mouse movement frames that define a curve
+message MousePacket {
+  uint32 num_frames = 1;     // how many frames
+  repeated Frame frames = 2; // sequence of (x, y) positions [8 bytes each - max ]
+  int32 l_click = 3;         // left click state
+  int32 r_click = 4;         // right click state
+}
+
+
+// Packet Sent by receiver to indicate state
+message NotificationPacket{
+    
+    // Indicate the notification type
+    enum NotificationType{
+        KEEPALIVE = 0;
+        RECV_READY = 1;
+        RECV_NOT_READY =2;
+    }
+
+    // Indicate if the transmitter is authorized to send any packets (failure in auth = packet ignored)
+    enum AuthStatus{
+        AUTH_FAILED = 0;
+        AUTH_SUCCESS = 1;
+    }
+
+}
