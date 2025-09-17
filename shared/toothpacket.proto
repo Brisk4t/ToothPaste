@@ -2,24 +2,25 @@ syntax = "proto3";
 
 package toothpaste;
 
-// Total permissible size of DataPacket must be < 253 bytes
+// Total permissible size of DataPacket must be < 253 bytes on the wire (over BLE)
 message DataPacket{
 
     // Packet.Header
-    enum packetID {
+    enum PacketID {
         DATA_PACKET = 0;
         AUTH_PACKET = 1;
     }
-    uint32 packetNumber = 2;
-    uint32 totalPackets = 3;
-    bool slowMode = 4;
+    PacketID packetID = 1; // 1 - 4 bytes
+    uint32 packetNumber = 2; // 1 - 4 bytes
+    uint32 totalPackets = 3; // 1 - 4 bytes
+    bool slowMode = 4; // 1 byte
     
 
     // Packet.data
-    bytes IV = 5;
-    uint32 dataLen = 6;
-    EncryptedData encryptedData = 7;
-    bytes TAG = 8;
+    bytes IV = 5; // 12 bytes
+    uint32 dataLen = 6; // 4 bytes
+    bytes encryptedData = 7; // 200 bytes 
+    bytes TAG = 8; // 16 bytes
 
 }
 
@@ -45,33 +46,33 @@ message EncryptedData{
 
 // Arbitrary String Data (processed based on packet type byte)
 message KeyboardPacket{
-    string message = 1;
-    uint32 length = 2;
+    string message = 1; // 190 bytes
+    uint32 length = 2; // 1 - 4 bytes
 }
 
 message RenamePacket{
-    string message = 1;
-    uint32 length = 2;
+    string message = 1; // 190 bytes
+    uint32 length = 2; // 1 - 4 bytes
 }
 
 // Arbitrary keycode data (each uint32 is a keycode, <length> codes in 1 message)
 message KeycodePacket{
-    repeated uint32 code = 1; // max_count = 6 (set in toothpacket.options)
-    uint32 length = 2;
+    bytes code = 1; // 190 bytes
+    uint32 length = 2; // 1 - 4 bytes
 }
 
 // Represents a single unit of mouse movement
 message Frame {
-  int32 x = 1;
-  int32 y = 2;
+  int32 x = 1; // 4 bytes
+  int32 y = 2; // 4 bytes
 }
 
 // Packet with multiple units of mouse movement frames that define a curve
 message MousePacket {
-  uint32 num_frames = 1;   // how many frames (max 10)
-  repeated Frame frames = 2; // sequence of (x, y) positions
-  int32 l_click = 3;       // left click state
-  int32 r_click = 4;       // right click state
+  uint32 num_frames = 1;     // how many frames
+  repeated Frame frames = 2; // sequence of (x, y) positions [8 bytes each - max ]
+  int32 l_click = 3;         // left click state
+  int32 r_click = 4;         // right click state
 }
 
 

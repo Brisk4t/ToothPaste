@@ -291,10 +291,10 @@ int SecureSession::decrypt(toothpaste_DataPacket* packet, uint8_t* decrypted_out
 {   
     // Decrypt the packet data
     int ret = decrypt(
-        packet->IV,
-        packet->dataLen,
-        packet->encryptedData,
-        packet->TAG,
+        packet->IV.bytes,
+        packet->encryptedData.size,
+        packet->encryptedData.bytes,
+        packet->TAG.bytes,
         decrypted_out,
         base64pubKey
     ); 

@@ -1,0 +1,14 @@
+# DataPacket fields
+toothpaste.DataPacket.IV             max_size:12
+toothpaste.DataPacket.encryptedData  max_size:200
+toothpaste.DataPacket.TAG            max_size:16
+
+# Keyboard packets
+toothpaste.KeyboardPacket.message    max_size:190
+toothpaste.RenamePacket.message      max_size:190
+
+# Keycode packets (max 8 keycodes at once)
+toothpaste.KeycodePacket.code        max_size:190
+
+# Mouse packets (max 10 frames)
+toothpaste.MousePacket.frames        max_count:20

@@ -35,7 +35,7 @@ struct NotificationPacket {
 
 struct SharedSecretTaskParams {
       SecureSession* session;
-      std::string* rawValue;
+      auto* rawValue;
       const char* base64pubKey;
 };
 
@@ -56,7 +56,7 @@ class InputCharacteristicCallbacks : public BLECharacteristicCallbacks{
 };
 
 void bleSetup(SecureSession* session);
-void generateSharedSecret(SecureSession::rawDataPacket* packet, SecureSession* session);
+void generateSharedSecret(toothpaste_DataPacket* packet, SecureSession* session);
 void disconnect();
 void enablePairingMode();
 void packetTask(void *sessionParams);

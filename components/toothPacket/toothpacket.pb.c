@@ -6,7 +6,7 @@
 #error Regenerate this file with the current version of nanopb generator.
 #endif
 
-PB_BIND(toothpaste_DataPacket, toothpaste_DataPacket, AUTO)
+PB_BIND(toothpaste_DataPacket, toothpaste_DataPacket, 2)
 
 
 PB_BIND(toothpaste_EncryptedData, toothpaste_EncryptedData, AUTO)

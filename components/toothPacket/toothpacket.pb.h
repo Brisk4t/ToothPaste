@@ -11,10 +11,10 @@
 
 /* Enum definitions */
 /* Packet.Header */
-typedef enum _toothpaste_DataPacket_packetID {
-    toothpaste_DataPacket_packetID_DATA_PACKET = 0,
-    toothpaste_DataPacket_packetID_AUTH_PACKET = 1
-} toothpaste_DataPacket_packetID;
+typedef enum _toothpaste_DataPacket_PacketID {
+    toothpaste_DataPacket_PacketID_DATA_PACKET = 0,
+    toothpaste_DataPacket_PacketID_AUTH_PACKET = 1
+} toothpaste_DataPacket_PacketID;
 
 /* 1 byte */
 typedef enum _toothpaste_EncryptedData_packetType {
@@ -40,33 +40,51 @@ typedef enum _toothpaste_NotificationPacket_AuthStatus {
 } toothpaste_NotificationPacket_AuthStatus;
 
 /* Struct definitions */
+typedef PB_BYTES_ARRAY_T(12) toothpaste_DataPacket_IV_t;
+typedef PB_BYTES_ARRAY_T(200) toothpaste_DataPacket_encryptedData_t;
+typedef PB_BYTES_ARRAY_T(16) toothpaste_DataPacket_TAG_t;
+/* Total permissible size of DataPacket must be < 253 bytes on the wire (over BLE) */
+typedef struct _toothpaste_DataPacket {
+    toothpaste_DataPacket_PacketID packetID; /* 1 - 4 bytes */
+    uint32_t packetNumber; /* 1 - 4 bytes */
+    uint32_t totalPackets; /* 1 - 4 bytes */
+    bool slowMode; /* 1 byte */
+    /* Packet.data */
+    toothpaste_DataPacket_IV_t IV; /* 12 bytes */
+    uint32_t dataLen; /* 4 bytes */
+    toothpaste_DataPacket_encryptedData_t encryptedData; /* 200 bytes */
+    toothpaste_DataPacket_TAG_t TAG; /* 16 bytes */
+} toothpaste_DataPacket;
+
 /* Arbitrary String Data (processed based on packet type byte) */
 typedef struct _toothpaste_KeyboardPacket {
-    pb_callback_t message;
-    uint32_t length;
+    char message[190]; /* 190 bytes */
+    uint32_t length; /* 1 - 4 bytes */
 } toothpaste_KeyboardPacket;
 
 typedef struct _toothpaste_RenamePacket {
-    pb_callback_t message;
-    uint32_t length;
+    char message[190]; /* 190 bytes */
+    uint32_t length; /* 1 - 4 bytes */
 } toothpaste_RenamePacket;
 
+typedef PB_BYTES_ARRAY_T(190) toothpaste_KeycodePacket_code_t;
 /* Arbitrary keycode data (each uint32 is a keycode, <length> codes in 1 message) */
 typedef struct _toothpaste_KeycodePacket {
-    pb_callback_t code; /* max_count = 6 (set in toothpacket.options) */
-    uint32_t length;
+    toothpaste_KeycodePacket_code_t code; /* 190 bytes */
+    uint32_t length; /* 1 - 4 bytes */
 } toothpaste_KeycodePacket;
 
 /* Represents a single unit of mouse movement */
 typedef struct _toothpaste_Frame {
-    int32_t x;
-    int32_t y;
+    int32_t x; /* 4 bytes */
+    int32_t y; /* 4 bytes */
 } toothpaste_Frame;
 
 /* Packet with multiple units of mouse movement frames that define a curve */
 typedef struct _toothpaste_MousePacket {
-    uint32_t num_frames; /* how many frames (max 10) */
-    pb_callback_t frames; /* sequence of (x, y) positions */
+    uint32_t num_frames; /* how many frames */
+    pb_size_t frames_count;
+    toothpaste_Frame frames[20]; /* sequence of (x, y) positions [8 bytes each - max ] */
     int32_t l_click; /* left click state */
     int32_t r_click; /* right click state */
 } toothpaste_MousePacket;
@@ -81,19 +99,6 @@ typedef struct _toothpaste_EncryptedData {
     } packetData;
 } toothpaste_EncryptedData;
 
-/* Total permissible size of DataPacket must be < 253 bytes */
-typedef struct _toothpaste_DataPacket {
-    uint32_t packetNumber;
-    uint32_t totalPackets;
-    bool slowMode;
-    /* Packet.data */
-    pb_callback_t IV;
-    uint32_t dataLen;
-    bool has_encryptedData;
-    toothpaste_EncryptedData encryptedData;
-    pb_callback_t TAG;
-} toothpaste_DataPacket;
-
 /* Packet Sent by receiver to indicate state */
 typedef struct _toothpaste_NotificationPacket {
     char dummy_field;
@@ -105,9 +110,9 @@ extern "C" {
 #endif
 
 /* Helper constants for enums */
-#define _toothpaste_DataPacket_packetID_MIN toothpaste_DataPacket_packetID_DATA_PACKET
-#define _toothpaste_DataPacket_packetID_MAX toothpaste_DataPacket_packetID_AUTH_PACKET
-#define _toothpaste_DataPacket_packetID_ARRAYSIZE ((toothpaste_DataPacket_packetID)(toothpaste_DataPacket_packetID_AUTH_PACKET+1))
+#define _toothpaste_DataPacket_PacketID_MIN toothpaste_DataPacket_PacketID_DATA_PACKET
+#define _toothpaste_DataPacket_PacketID_MAX toothpaste_DataPacket_PacketID_AUTH_PACKET
+#define _toothpaste_DataPacket_PacketID_ARRAYSIZE ((toothpaste_DataPacket_PacketID)(toothpaste_DataPacket_PacketID_AUTH_PACKET+1))
 
 #define _toothpaste_EncryptedData_packetType_MIN toothpaste_EncryptedData_packetType_KEYBOARD_STRING
 #define _toothpaste_EncryptedData_packetType_MAX toothpaste_EncryptedData_packetType_COMPOSITE
@@ -121,6 +126,7 @@ extern "C" {
 #define _toothpaste_NotificationPacket_AuthStatus_MAX toothpaste_NotificationPacket_AuthStatus_AUTH_SUCCESS
 #define _toothpaste_NotificationPacket_AuthStatus_ARRAYSIZE ((toothpaste_NotificationPacket_AuthStatus)(toothpaste_NotificationPacket_AuthStatus_AUTH_SUCCESS+1))
 
+#define toothpaste_DataPacket_packetID_ENUMTYPE toothpaste_DataPacket_PacketID
 
 
 
@@ -131,24 +137,32 @@ extern "C" {
 
 
 /* Initializer values for message structs */
-#define toothpaste_DataPacket_init_default       {0, 0, 0, {{NULL}, NULL}, 0, false, toothpaste_EncryptedData_init_default, {{NULL}, NULL}}
+#define toothpaste_DataPacket_init_default       {_toothpaste_DataPacket_PacketID_MIN, 0, 0, 0, {0, {0}}, 0, {0, {0}}, {0, {0}}}
 #define toothpaste_EncryptedData_init_default    {0, {toothpaste_KeyboardPacket_init_default}}
-#define toothpaste_KeyboardPacket_init_default   {{{NULL}, NULL}, 0}
-#define toothpaste_RenamePacket_init_default     {{{NULL}, NULL}, 0}
-#define toothpaste_KeycodePacket_init_default    {{{NULL}, NULL}, 0}
+#define toothpaste_KeyboardPacket_init_default   {"", 0}
+#define toothpaste_RenamePacket_init_default     {"", 0}
+#define toothpaste_KeycodePacket_init_default    {{0, {0}}, 0}
 #define toothpaste_Frame_init_default            {0, 0}
-#define toothpaste_MousePacket_init_default      {0, {{NULL}, NULL}, 0, 0}
+#define toothpaste_MousePacket_init_default      {0, 0, {toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default}, 0, 0}
 #define toothpaste_NotificationPacket_init_default {0}
-#define toothpaste_DataPacket_init_zero          {0, 0, 0, {{NULL}, NULL}, 0, false, toothpaste_EncryptedData_init_zero, {{NULL}, NULL}}
+#define toothpaste_DataPacket_init_zero          {_toothpaste_DataPacket_PacketID_MIN, 0, 0, 0, {0, {0}}, 0, {0, {0}}, {0, {0}}}
 #define toothpaste_EncryptedData_init_zero       {0, {toothpaste_KeyboardPacket_init_zero}}
-#define toothpaste_KeyboardPacket_init_zero      {{{NULL}, NULL}, 0}
-#define toothpaste_RenamePacket_init_zero        {{{NULL}, NULL}, 0}
-#define toothpaste_KeycodePacket_init_zero       {{{NULL}, NULL}, 0}
+#define toothpaste_KeyboardPacket_init_zero      {"", 0}
+#define toothpaste_RenamePacket_init_zero        {"", 0}
+#define toothpaste_KeycodePacket_init_zero       {{0, {0}}, 0}
 #define toothpaste_Frame_init_zero               {0, 0}
-#define toothpaste_MousePacket_init_zero         {0, {{NULL}, NULL}, 0, 0}
+#define toothpaste_MousePacket_init_zero         {0, 0, {toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero}, 0, 0}
 #define toothpaste_NotificationPacket_init_zero  {0}
 
 /* Field tags (for use in manual encoding/decoding) */
+#define toothpaste_DataPacket_packetID_tag       1
+#define toothpaste_DataPacket_packetNumber_tag   2
+#define toothpaste_DataPacket_totalPackets_tag   3
+#define toothpaste_DataPacket_slowMode_tag       4
+#define toothpaste_DataPacket_IV_tag             5
+#define toothpaste_DataPacket_dataLen_tag        6
+#define toothpaste_DataPacket_encryptedData_tag  7
+#define toothpaste_DataPacket_TAG_tag            8
 #define toothpaste_KeyboardPacket_message_tag    1
 #define toothpaste_KeyboardPacket_length_tag     2
 #define toothpaste_RenamePacket_message_tag      1
@@ -165,26 +179,19 @@ extern "C" {
 #define toothpaste_EncryptedData_keycodePacket_tag 2
 #define toothpaste_EncryptedData_mousePacket_tag 3
 #define toothpaste_EncryptedData_renamePacket_tag 4
-#define toothpaste_DataPacket_packetNumber_tag   2
-#define toothpaste_DataPacket_totalPackets_tag   3
-#define toothpaste_DataPacket_slowMode_tag       4
-#define toothpaste_DataPacket_IV_tag             5
-#define toothpaste_DataPacket_dataLen_tag        6
-#define toothpaste_DataPacket_encryptedData_tag  7
-#define toothpaste_DataPacket_TAG_tag            8
 
 /* Struct field encoding specification for nanopb */
 #define toothpaste_DataPacket_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, UENUM,    packetID,          1) \
 X(a, STATIC,   SINGULAR, UINT32,   packetNumber,      2) \
 X(a, STATIC,   SINGULAR, UINT32,   totalPackets,      3) \
 X(a, STATIC,   SINGULAR, BOOL,     slowMode,          4) \
-X(a, CALLBACK, SINGULAR, BYTES,    IV,                5) \
+X(a, STATIC,   SINGULAR, BYTES,    IV,                5) \
 X(a, STATIC,   SINGULAR, UINT32,   dataLen,           6) \
-X(a, STATIC,   OPTIONAL, MESSAGE,  encryptedData,     7) \
-X(a, CALLBACK, SINGULAR, BYTES,    TAG,               8)
-#define toothpaste_DataPacket_CALLBACK pb_default_field_callback
+X(a, STATIC,   SINGULAR, BYTES,    encryptedData,     7) \
+X(a, STATIC,   SINGULAR, BYTES,    TAG,               8)
+#define toothpaste_DataPacket_CALLBACK NULL
 #define toothpaste_DataPacket_DEFAULT NULL
-#define toothpaste_DataPacket_encryptedData_MSGTYPE toothpaste_EncryptedData
 
 #define toothpaste_EncryptedData_FIELDLIST(X, a) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (packetData,keyboardPacket,packetData.keyboardPacket),   1) \
@@ -199,21 +206,21 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (packetData,renamePacket,packetData.renamePac
 #define toothpaste_EncryptedData_packetData_renamePacket_MSGTYPE toothpaste_RenamePacket
 
 #define toothpaste_KeyboardPacket_FIELDLIST(X, a) \
-X(a, CALLBACK, SINGULAR, STRING,   message,           1) \
+X(a, STATIC,   SINGULAR, STRING,   message,           1) \
 X(a, STATIC,   SINGULAR, UINT32,   length,            2)
-#define toothpaste_KeyboardPacket_CALLBACK pb_default_field_callback
+#define toothpaste_KeyboardPacket_CALLBACK NULL
 #define toothpaste_KeyboardPacket_DEFAULT NULL
 
 #define toothpaste_RenamePacket_FIELDLIST(X, a) \
-X(a, CALLBACK, SINGULAR, STRING,   message,           1) \
+X(a, STATIC,   SINGULAR, STRING,   message,           1) \
 X(a, STATIC,   SINGULAR, UINT32,   length,            2)
-#define toothpaste_RenamePacket_CALLBACK pb_default_field_callback
+#define toothpaste_RenamePacket_CALLBACK NULL
 #define toothpaste_RenamePacket_DEFAULT NULL
 
 #define toothpaste_KeycodePacket_FIELDLIST(X, a) \
-X(a, CALLBACK, REPEATED, UINT32,   code,              1) \
+X(a, STATIC,   SINGULAR, BYTES,    code,              1) \
 X(a, STATIC,   SINGULAR, UINT32,   length,            2)
-#define toothpaste_KeycodePacket_CALLBACK pb_default_field_callback
+#define toothpaste_KeycodePacket_CALLBACK NULL
 #define toothpaste_KeycodePacket_DEFAULT NULL
 
 #define toothpaste_Frame_FIELDLIST(X, a) \
@@ -224,10 +231,10 @@ X(a, STATIC,   SINGULAR, INT32,    y,                 2)
 
 #define toothpaste_MousePacket_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UINT32,   num_frames,        1) \
-X(a, CALLBACK, REPEATED, MESSAGE,  frames,            2) \
+X(a, STATIC,   REPEATED, MESSAGE,  frames,            2) \
 X(a, STATIC,   SINGULAR, INT32,    l_click,           3) \
 X(a, STATIC,   SINGULAR, INT32,    r_click,           4)
-#define toothpaste_MousePacket_CALLBACK pb_default_field_callback
+#define toothpaste_MousePacket_CALLBACK NULL
 #define toothpaste_MousePacket_DEFAULT NULL
 #define toothpaste_MousePacket_frames_MSGTYPE toothpaste_Frame
 
@@ -256,15 +263,15 @@ extern const pb_msgdesc_t toothpaste_NotificationPacket_msg;
 #define toothpaste_NotificationPacket_fields &toothpaste_NotificationPacket_msg
 
 /* Maximum encoded size of messages (where known) */
-/* toothpaste_DataPacket_size depends on runtime parameters */
-/* toothpaste_EncryptedData_size depends on runtime parameters */
-/* toothpaste_KeyboardPacket_size depends on runtime parameters */
-/* toothpaste_RenamePacket_size depends on runtime parameters */
-/* toothpaste_KeycodePacket_size depends on runtime parameters */
-/* toothpaste_MousePacket_size depends on runtime parameters */
-#define TOOTHPASTE_TOOTHPACKET_PB_H_MAX_SIZE     toothpaste_Frame_size
+#define TOOTHPASTE_TOOTHPACKET_PB_H_MAX_SIZE     toothpaste_EncryptedData_size
+#define toothpaste_DataPacket_size               257
+#define toothpaste_EncryptedData_size            511
 #define toothpaste_Frame_size                    22
+#define toothpaste_KeyboardPacket_size           198
+#define toothpaste_KeycodePacket_size            199
+#define toothpaste_MousePacket_size              508
 #define toothpaste_NotificationPacket_size       0
+#define toothpaste_RenamePacket_size             198
 
 #ifdef __cplusplus
 } /* extern "C" */

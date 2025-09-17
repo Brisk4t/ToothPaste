@@ -152,6 +152,23 @@ void moveMouse(uint8_t* mousePacket) {
     moveMouse(0, 0, LClick, RClick); 
 }
 
+void moveMouse(toothpaste_MousePacket& mousePacket) {
+    // Move mouse for each frame
+    for(uint8_t i = 0; i < mousePacket.num_frames; i++){
+        int32_t x = mousePacket.frames[i].x;
+        int32_t y = mousePacket.frames[i].y;
+        moveMouse(x, y, 0, 0);
+    }
+
+    // Left/right click states come after the frames
+    int32_t LClick = mousePacket.l_click;
+    int32_t RClick = mousePacket.r_click;
+
+    // Handle Click
+    //DEBUG_SERIAL_PRINTF("LClick: %d, RClick: %d\n", LClick, RClick);
+    moveMouse(0, 0, LClick, RClick); 
+}
+
 // ##################### Delay Functions #################### //
 // Timer callback must match `void (*)(void *)`
 void sendStringCallback(void *arg)
