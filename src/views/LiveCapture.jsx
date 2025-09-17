@@ -36,7 +36,7 @@ export default function LiveCapture() {
     const isTracking = useRef(true);
     const lastReportTime = useRef(0);
     const tDisplacement = useRef({ x: 0, y: 0 }); // Total displacement since last report
-    const REPORT_INTERVAL_MS = 200;
+    const REPORT_INTERVAL_MS = 100;
     const SCALE_FACTOR = 0.2; // Scale factor for mouse movement
     const [captureMouse, setCaptureMouse] = useState(false);
 
@@ -51,7 +51,7 @@ export default function LiveCapture() {
             //sendMouseReport(tDisplacement.current.x, tDisplacement.current.y, false, false);
             sendMouseReport(false, false);
         }
-    }, 200);
+    }, REPORT_INTERVAL_MS);
 
     // On click logic
     function onMouseDown(e) {

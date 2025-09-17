@@ -8,6 +8,7 @@ import React, {
 import { keyExists, loadBase64 } from "../controllers/Storage";
 import { ECDHContext } from "./ECDHContext";
 import { Packet } from "../controllers/PacketFunctions";
+import { toothpaste } from '../controllers/toothpacket/toothpacket_pb.js';
 
 export const BLEContext = createContext();
 export const useBLEContext = () => useContext(BLEContext);
@@ -69,7 +70,12 @@ export function BLEProvider({ children, showOverlay, setShowOverlay }) {
             const packet = new Packet(1, dataPadded, 0, 1, 1);
             const packetData = packet.serialize();
 
-            await pktCharRef.current.writeValueWithoutResponse(packetData);
+            // protobuf packets
+            const unencryptedPacket = new toothpaste.DataPacket();
+            unencryptedPacket.setEncryptedData(textData);
+
+            await pktCharRef.current.writeValueWithoutResponse(unencryptedPacket.serializeBinary());
+            //await pktCharRef.current.writeValueWithoutResponse(packetData);
         } catch (error) {
             console.error("Error sending AUTH packet", error);
         }
