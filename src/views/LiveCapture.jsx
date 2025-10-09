@@ -354,7 +354,7 @@ export default function LiveCapture() {
 
                 <Typography
                     variant="h1"
-                    className="flex items-center justify-center pointer-events-none select-none text-gray-800 p-4 whitespace-pre-wrap font-sans absolute inset-0 z-0 group-focus-within:hidden"
+                    className="flex items-center justify-center opacity-70 pointer-events-none select-none text-gray-800 p-4 whitespace-pre-wrap font-sans absolute inset-0 z-0 group-focus-within:hidden"
                     aria-hidden="true"
                 >
                     Click here to start sending keystrokes in real time (kinda...)
@@ -362,7 +362,7 @@ export default function LiveCapture() {
 
                 <Typography
                     variant="h1"
-                    className=" hidden group-focus-within:flex items-center justify-center pointer-events-none select-none text-gray-800 p-4 whitespace-pre-wrap font-sans absolute inset-0 z-0 "
+                    className=" hidden group-focus-within:flex opacity-70 items-center justify-center pointer-events-none select-none text-gray-800 p-4 whitespace-pre-wrap font-sans absolute inset-0 z-0 "
                     aria-hidden="true"
                 >
                     Capturing inputs...
