@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useContext, useCallback } from "react";
 
 import { Button, Typography } from "@material-tailwind/react";
-import { CursorArrowRaysIcon, ArrowUpOnSquareStackIcon, PlayPauseIcon, ChevronDoubleUpIcon, ChevronDoubleDownIcon, ForwardIcon, BackwardIcon} from "@heroicons/react/24/outline";
+import { CursorArrowRaysIcon, PowerIcon, ArrowUpOnSquareStackIcon, PlayPauseIcon, ChevronDoubleUpIcon, ChevronDoubleDownIcon, ForwardIcon, BackwardIcon} from "@heroicons/react/24/outline";
 import { BLEContext } from "../context/BLEContext";
 import "../components/CustomTyping/CustomTyping.css"; // We'll define animations here
 import Keyboard from "../components/Keyboard/Keyboard";
@@ -276,7 +276,7 @@ export default function LiveCapture() {
     }   
 
     // Vertical dropdown with media control buttons (Play/Pause, Vol+, Vol-, Next, Prev)
-    function MediaControlDropdown() {
+    function LeftButtonColumn() {
         return (
             <div className="flex flex-col space-y-2">
                 
@@ -313,24 +313,21 @@ export default function LiveCapture() {
         );
     }
 
-    // function MacModeButton() {
-    //     const handleToggle = () => setMacMode((prev) => !prev);
+    // Vertical dropdown with media control buttons (Play/Pause, Vol+, Vol-, Next, Prev)
+    function RightButtonColumn() {
+        return (
+            <div className="flex flex-col space-y-2">
+                <CaptureMouseButton />
+                <CommandPassthroughButton />
+                <MediaToggleButton 
+                    title="Power Button"
+                    Icon={PowerIcon} 
+                    onClick={() => sendControlCode(0x0030)} 
+                />
 
-    //     return (
-    //         <div
-    //             onClick={handleToggle}
-    //             className={`border border-hover h-10 w-10 justify-between items-center p-2 rounded-lg
-    //                     ${macMode ? "bg-white text-shelf" : "bg-shelf text-white"}`}
-    //         >
-    //             {/* <IconButton>
-    //                 <svg xmlns={windowsLogo} fill="white" className="h-5 w-5" />
-    //             </IconButton> */}
-
-    //             <WindowsLogo fill="currentColor" className={`${macMode ? "hidden" : ""} h-5 w-5`} />
-    //             <AppleLogo fill="currentColor" className={`${macMode ? "" : "hidden"} h-5 w-5`} />
-    //         </div>
-    //     );
-    // }
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col flex-1 w-full p-4 bg-background text-text">
@@ -344,17 +341,13 @@ export default function LiveCapture() {
 
             <Keyboard listenerRef={inputRef} deviceStatus={status}></Keyboard>
 
-            <div className="flex flex-col flex-1 my-4 rounded-xl transition-all border border-hover focus:border-shelf relative group ">
-                <div className="absolute top-2 right-2">
-                    <CaptureMouseButton />
-                </div>
-
-                <div className="absolute top-14 right-2">
-                    <CommandPassthroughButton />
+            <div className="flex flex-col flex-1 my-4 rounded-xl transition-all border border-hover focus:border-shelf relative group ">         
+                <div className="absolute top-2 left-2">
+                    <LeftButtonColumn />
                 </div>
                 
-                <div className="absolute top-2 left-2">
-                    <MediaControlDropdown />
+                <div className="absolute top-2 right-2">
+                    <RightButtonColumn />
                 </div>
 
 
