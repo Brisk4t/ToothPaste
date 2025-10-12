@@ -14,32 +14,26 @@
 
 #pragma once
 
-#include "soc/soc_caps.h"
-#if SOC_USB_OTG_SUPPORTED
 
-#include "USBHID.h"
-#if CONFIG_TINYUSB_HID_ENABLED
+#include "IDFHID.h"
 
 #define SYSTEM_CONTROL_NONE      0
 #define SYSTEM_CONTROL_POWER_OFF 1
 #define SYSTEM_CONTROL_STANDBY   2
 #define SYSTEM_CONTROL_WAKE_HOST 3
 
-class USBHIDSystemControl : public USBHIDDevice {
+class IDFHIDSystemControl : public IDFHIDDevice {
 private:
-  USBHID hid;
+  IDFHID hid;
   bool send(uint8_t value);
 
 public:
-  USBHIDSystemControl(void);
+  IDFHIDSystemControl(uint8_t itf);
   void begin(void);
   void end(void);
   size_t press(uint8_t k);
   size_t release();
 
-  // internal use
-  uint16_t _onGetDescriptor(uint8_t *buffer);
+  bool lock();
+  bool unlock();
 };
-
-#endif /* CONFIG_TINYUSB_HID_ENABLED */
-#endif /* SOC_USB_OTG_SUPPORTED */

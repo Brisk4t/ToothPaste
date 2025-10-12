@@ -6,6 +6,7 @@
 #include "IDFHIDKeyboard.h"
 #include "IDFHIDMouse.h"
 #include "IDFHIDConsumerControl.h"
+#include "IDFHIDSystemControl.h"
 #include "SerialDebug.h"
 
 
@@ -15,10 +16,12 @@
     USBCDC USBSerial; 
 #endif
 
+int syscount = 1;
 
 IDFHIDKeyboard keyboard0(0); // Boot Keyboard
 IDFHIDMouse mouse(1);
 IDFHIDConsumerControl control(2);
+//IDFHIDSystemControl syscontrol(3);
 
 void hidSetup()
 { 
@@ -114,22 +117,23 @@ void moveMouse(int32_t x, int32_t y, int32_t LClick, int32_t RClick){
 
 // Press a consumer control key
 void consumerControlPress(uint16_t key){
+
+  if(key == CONSUMER_CONTROL_POWER) {
+    syscontrol.press(SYSTEM_CONTROL_WAKE_HOST);
+  };
+
   control.press(key);
   vTaskDelay(pdMS_TO_TICKS(10));
 }
 
 // Release all consumer control keys
 void consumerControlRelease(){
+  syscontrol.release();
   control.release();
 }
 
 void genericInput(){
-  control.press(CONSUMER_CONTROL_PLAY_PAUSE);
-  vTaskDelay(pdMS_TO_TICKS(10));
-  control.release();
-  control.press(CONSUMER_CONTROL_VOLUME_INCREMENT);
-  vTaskDelay(pdMS_TO_TICKS(10));
-  control.release();
+  syscontrol.press(syscount++);
 }
 
 

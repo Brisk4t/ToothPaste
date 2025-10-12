@@ -13,21 +13,27 @@ static const char *TAG = "hid_keyboard";
 
 
 
-uint8_t const desc_hid_report1[] =
+uint8_t const desc_boot_keyboard[] =
 {
   TUD_HID_REPORT_DESC_KEYBOARD()
 };
 
-uint8_t const desc_hid_report2[] =
+uint8_t const desc_boot_mouse[] =
 {
     //TUD_HID_REPORT_DESC_KEYBOARD( HID_REPORT_ID(1         )),
     TUD_HID_REPORT_DESC_MOUSE   (),
 };
 
-uint8_t const desc_hid_report3[] =
+uint8_t const desc_consumerControl[] =
 {
     //TUD_HID_REPORT_DESC_KEYBOARD( HID_REPORT_ID(1         )),
       TUD_HID_REPORT_DESC_CONSUMER(),
+};
+
+uint8_t const desc_systemControl[] =
+{
+    //TUD_HID_REPORT_DESC_KEYBOARD( HID_REPORT_ID(1         )),
+      TUD_HID_REPORT_DESC_SYSTEM_CONTROL(),
 };
 
 
@@ -68,9 +74,10 @@ static const uint8_t hid_configuration_descriptor[] = {
     TUD_CONFIG_DESCRIPTOR(1, 3, 0, TUSB_DESC_TOTAL_LEN, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 500),
 
     // Interface number, string index, boot protocol (none/boot keyboard/boot mouse), report descriptor len, EP In address, size & polling interval
-    TUD_HID_DESCRIPTOR(0, 4, HID_ITF_PROTOCOL_KEYBOARD, sizeof(desc_hid_report1), 0x81, 64, 1),
-    TUD_HID_DESCRIPTOR(1, 5, HID_ITF_PROTOCOL_MOUSE, sizeof(desc_hid_report2), 0x82, 64, 1),
-    TUD_HID_DESCRIPTOR(2, 6, HID_ITF_PROTOCOL_NONE, sizeof(desc_hid_report3), 0x83, 64, 1),
+    TUD_HID_DESCRIPTOR(0, 4, HID_ITF_PROTOCOL_KEYBOARD, sizeof(desc_boot_keyboard), 0x81, 64, 1),
+    TUD_HID_DESCRIPTOR(1, 5, HID_ITF_PROTOCOL_MOUSE, sizeof(desc_boot_mouse), 0x82, 64, 1),
+    TUD_HID_DESCRIPTOR(2, 6, HID_ITF_PROTOCOL_NONE, sizeof(desc_consumerControl), 0x83, 64, 1),
+    //TUD_HID_DESCRIPTOR(3, 6, HID_ITF_PROTOCOL_NONE, sizeof(desc_systemControl), 0x84, 64, 1),
 };
 
 // Send a test keyboard string without the keyboard library
@@ -163,16 +170,20 @@ uint8_t const * tud_hid_descriptor_report_cb(uint8_t itf)
 {
   if (itf == 0)
   {
-    return desc_hid_report1;
+    return desc_boot_keyboard;
   }
   else if (itf == 1)
   {
-    return desc_hid_report2;
+    return desc_boot_mouse;
   }
   else if (itf == 2)
   {
-    return desc_hid_report3;
+    return desc_consumerControl;
   }
+  // else if (itf == 3)
+  // {
+  //   return desc_systemControl;
+  // }
 
   return NULL;
 }
