@@ -46,15 +46,15 @@ typedef struct {
 } arduino_usb_hid_event_data_t;
 
 class IDFHIDDevice {
-public:
-  virtual uint16_t _onGetDescriptor(uint8_t *buffer) {
-    return 0;
-  }
-  virtual uint16_t _onGetFeature(uint8_t report_id, uint8_t *buffer, uint16_t len) {
-    return 0;
-  }
-  virtual void _onSetFeature(uint8_t report_id, const uint8_t *buffer, uint16_t len) {}
-  virtual void _onOutput(uint8_t report_id, const uint8_t *buffer, uint16_t len) {}
+  public:
+    virtual uint16_t _onGetDescriptor(uint8_t *buffer) {
+      return 0;
+    }
+    virtual uint16_t _onGetFeature(uint8_t report_id, uint8_t *buffer, uint16_t len) {
+      return 0;
+    }
+    virtual void _onSetFeature(uint8_t report_id, const uint8_t *buffer, uint16_t len) {}
+    virtual void _onOutput(uint8_t report_id, const uint8_t *buffer, uint16_t len) {}
 };
 
 class IDFHID {
@@ -69,4 +69,6 @@ public:
   static bool addDevice(IDFHIDDevice *device, uint16_t descriptor_len);
 private:
   uint8_t itf;
+  static SemaphoreHandle_t tinyusb_hid_device_input_sem;
+
 };

@@ -117,23 +117,17 @@ void moveMouse(int32_t x, int32_t y, int32_t LClick, int32_t RClick){
 
 // Press a consumer control key
 void consumerControlPress(uint16_t key){
-
-  if(key == CONSUMER_CONTROL_POWER) {
-    syscontrol.press(SYSTEM_CONTROL_WAKE_HOST);
-  };
-
   control.press(key);
   vTaskDelay(pdMS_TO_TICKS(10));
 }
 
 // Release all consumer control keys
 void consumerControlRelease(){
-  syscontrol.release();
   control.release();
 }
 
 void genericInput(){
-  syscontrol.press(syscount++);
+  //syscontrol.press(syscount++);
 }
 
 

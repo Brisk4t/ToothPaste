@@ -23,8 +23,7 @@ typedef struct {
   uint8_t *report_ids;
 } tinyusb_hid_device_t;
 
-
-static SemaphoreHandle_t tinyusb_hid_device_input_sem = NULL;
+SemaphoreHandle_t IDFHID::tinyusb_hid_device_input_sem = nullptr;
 bool tinyusb_hid_is_initialized = false;
 static hid_interface_protocol_enum_t tinyusb_interface_protocol = HID_ITF_PROTOCOL_NONE;
 #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_DEBUG

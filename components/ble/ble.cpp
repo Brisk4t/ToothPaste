@@ -112,11 +112,11 @@ void InputCharacteristicCallbacks::onWrite(BLECharacteristic* inputCharacteristi
 // Create the BLE Device
 void bleSetup(SecureSession* session)
 {
-  createPacketTask(session);
+  createPacketTask(session); // Create the persistent RTOS packet handler task
   
   // Get the device name and start advertising 
   String deviceName;
-  session->getDeviceName(deviceName); // Get the device name
+  session->getDeviceName(deviceName); // Get the device name from memory
   
   DEBUG_SERIAL_PRINTF("Device Name is: %s", deviceName.c_str());
   if(deviceName.length() < 1){
@@ -168,14 +168,6 @@ void bleSetup(SecureSession* session)
 
   // Set the BLE characteristic value
   macCharacteristic->setValue(initialValue, 6);
-
-
-
-  // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
-  // Create a BLE Descriptor
-  // inputCharacteristic->addDescriptor(new BLE2902());
-  // semaphoreCharacteristic->addDescriptor(new BLE2902());
-  // macCharacteristic->addDescriptor(new BLE2902());
 
   // Start the service
   pService->start();
