@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useContext, useCallback } from "react";
 
 import { Button, Typography } from "@material-tailwind/react";
-import { CursorArrowRaysIcon, ArrowUpOnSquareStackIcon } from "@heroicons/react/24/outline";
+import { CursorArrowRaysIcon, PowerIcon, ArrowUpOnSquareStackIcon, PlayPauseIcon, ChevronDoubleUpIcon, ChevronDoubleDownIcon, ForwardIcon, BackwardIcon} from "@heroicons/react/24/outline";
 import { BLEContext } from "../context/BLEContext";
 import "../components/CustomTyping/CustomTyping.css"; // We'll define animations here
 import Keyboard from "../components/Keyboard/Keyboard";
@@ -189,60 +189,145 @@ export default function LiveCapture() {
         displacementList.current = []; // reset list
     }
 
+    // Reusable IconToggleButton component
+    function IconToggleButton({
+        title,
+        toggled,
+        onClick,
+        Icon,
+        className = ""
+    }) {
+        return (
+            <div
+                title={title}
+                onClick={onClick}
+                className={`border border-hover h-10 w-10 flex justify-center items-center p-2 rounded-lg transition-colors cursor-pointer ${
+                    toggled ? "bg-white text-shelf" : "bg-shelf text-text"
+                } ${className}`}
+            >
+                {Icon && <Icon className="h-5 w-5" />}
+            </div>
+        );
+    }
+
+    function MediaToggleButton({ title, onClick, Icon }) {
+        const [toggled, setToggled] = React.useState(false);
+
+        const handleClick = () => {
+            setToggled(true);
+            onClick();
+            setTimeout(() => setToggled(false), 100); // 150ms visual feedback
+        };
+
+        return (
+            <IconToggleButton
+                title={title}
+                toggled={toggled}
+                onClick={handleClick}
+                Icon={Icon}
+            />
+        );
+}
+
     // Toggle capturing and sending mouse data
     function CaptureMouseButton() {
         const handleToggle = () => setCaptureMouse((prev) => !prev);
 
         return (
-            <div
+            <IconToggleButton
                 title="Enable / Disable sending mouse movement"
+                toggled={captureMouse}
                 onClick={handleToggle}
-                className={`disabled border border-hover h-10 w-10 justify-between items-center p-2 rounded-lg
-                        ${captureMouse ? "bg-white text-shelf" : "bg-shelf text-text"}`}
-            >
-                <CursorArrowRaysIcon className="h-5 w-5"></CursorArrowRaysIcon>
-            </div>
+                Icon={CursorArrowRaysIcon}
+            />
         );
     }
 
-    // Toggle between Mac and Windows mode to send command instead of windows
+    // Toggle how pasting and other command shortcuts are handled
     function CommandPassthroughButton() {
         const handleToggle = () => setCommandPassthrough((prev) => !prev);
-
         return (
-            <div
+            <IconToggleButton
                 title="When this is enabled shortcuts like Ctrl+V are sent as is, when disabled Ctrl+V pastes the data in your clipboard as text"
+                toggled={commandPassthrough}
                 onClick={handleToggle}
-                className={`border border-hover h-10 w-10 justify-between items-center p-2 rounded-lg
-                        ${commandPassthrough ? "bg-white text-shelf" : "bg-shelf text-text"}`}
-            >
-                {/* <IconButton>
-                    <svg xmlns={windowsLogo} fill="white" className="h-5 w-5" />
-                </IconButton> */}
+                Icon={ArrowUpOnSquareStackIcon}
+            />
+        );
+    }
 
-                <ArrowUpOnSquareStackIcon className="h-5 w-5"></ArrowUpOnSquareStackIcon>
+    function sendControlCode(controlCode, hold = false) {
+        const arr = new ArrayBuffer(10);
+        var view = new DataView(arr);
+
+        view.setUint8(0, 4); // first byte = flag
+        view.setUint16(1, controlCode, true); // next two bytes = control code
+
+        var keycode = new Uint8Array(arr);
+        sendEncrypted(keycode);
+
+        if (!hold) {
+            // If not holding, send a "key release" after a short delay
+            const releaseArr = new ArrayBuffer(10);
+            var releaseView = new DataView(releaseArr);
+            releaseView.setUint8(0, 4); // first byte = flag
+            releaseView.setUint16(1, 0, true); // next two bytes = control code
+        }
+    }   
+
+    // Vertical dropdown with media control buttons (Play/Pause, Vol+, Vol-, Next, Prev)
+    function LeftButtonColumn() {
+        return (
+            <div className="flex flex-col space-y-2">
+                
+                    <MediaToggleButton
+                        title="Play / Pause media"
+                        onClick={() => {sendControlCode(0x00CD)}}
+                        Icon={PlayPauseIcon}
+                        />
+                
+                    <MediaToggleButton
+                        title="Volume Up"
+                        onClick={() => {sendControlCode(0x00E9)}}
+                        Icon={ChevronDoubleUpIcon}
+                        />
+                
+                    <MediaToggleButton
+                        title="Volume Down"
+                        onClick={() => {sendControlCode(0x00EA)}}
+                        Icon={ChevronDoubleDownIcon}
+                        />
+                
+                    <MediaToggleButton
+                        title="Next"
+                        onClick={() => {sendControlCode(0x00B5)}}
+                        Icon={ForwardIcon}
+                        />
+                
+                    <MediaToggleButton
+                        title="Previous"
+                        onClick={() => {sendControlCode(0x00B6)}}
+                        Icon={BackwardIcon}
+                        />
             </div>
         );
     }
 
-    // function MacModeButton() {
-    //     const handleToggle = () => setMacMode((prev) => !prev);
+    // Vertical dropdown with media control buttons (Play/Pause, Vol+, Vol-, Next, Prev)
+    function RightButtonColumn() {
+        return (
+            <div className="flex flex-col space-y-2">
+                <CaptureMouseButton />
+                <CommandPassthroughButton />
+                <MediaToggleButton 
+                    title="Power Button"
+                    Icon={PowerIcon} 
+                    onClick={() => sendControlCode(0x0030)} 
+                />
 
-    //     return (
-    //         <div
-    //             onClick={handleToggle}
-    //             className={`border border-hover h-10 w-10 justify-between items-center p-2 rounded-lg
-    //                     ${macMode ? "bg-white text-shelf" : "bg-shelf text-white"}`}
-    //         >
-    //             {/* <IconButton>
-    //                 <svg xmlns={windowsLogo} fill="white" className="h-5 w-5" />
-    //             </IconButton> */}
-
-    //             <WindowsLogo fill="currentColor" className={`${macMode ? "hidden" : ""} h-5 w-5`} />
-    //             <AppleLogo fill="currentColor" className={`${macMode ? "" : "hidden"} h-5 w-5`} />
-    //         </div>
-    //     );
-    // }
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col flex-1 w-full p-4 bg-background text-text">
@@ -256,22 +341,20 @@ export default function LiveCapture() {
 
             <Keyboard listenerRef={inputRef} deviceStatus={status}></Keyboard>
 
-            <div className="flex flex-col flex-1 my-4 rounded-xl transition-all border border-hover focus:border-shelf relative group ">
-                {/* <div className="absolute top-2 right-2">
-                    <CommandPassthroughButton />
-
-                </div> */}
+            <div className="flex flex-col flex-1 my-4 rounded-xl transition-all border border-hover focus:border-shelf relative group ">         
+                <div className="absolute top-2 left-2">
+                    <LeftButtonColumn />
+                </div>
+                
                 <div className="absolute top-2 right-2">
-                    <CaptureMouseButton />
+                    <RightButtonColumn />
                 </div>
 
-                <div className="absolute top-14 right-2">
-                    <CommandPassthroughButton />
-                </div>
+
 
                 <Typography
                     variant="h1"
-                    className="flex items-center justify-center pointer-events-none select-none text-gray-800 p-4 whitespace-pre-wrap font-sans absolute inset-0 z-0 group-focus-within:hidden"
+                    className="flex items-center justify-center opacity-70 pointer-events-none select-none text-gray-800 p-4 whitespace-pre-wrap font-sans absolute inset-0 z-0 group-focus-within:hidden"
                     aria-hidden="true"
                 >
                     Click here to start sending keystrokes in real time (kinda...)
@@ -279,7 +362,7 @@ export default function LiveCapture() {
 
                 <Typography
                     variant="h1"
-                    className=" hidden group-focus-within:flex items-center justify-center pointer-events-none select-none text-gray-800 p-4 whitespace-pre-wrap font-sans absolute inset-0 z-0 "
+                    className=" hidden group-focus-within:flex opacity-70 items-center justify-center pointer-events-none select-none text-gray-800 p-4 whitespace-pre-wrap font-sans absolute inset-0 z-0 "
                     aria-hidden="true"
                 >
                     Capturing inputs...
