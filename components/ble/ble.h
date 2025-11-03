@@ -35,7 +35,7 @@ struct NotificationPacket {
 
 struct SharedSecretTaskParams {
       SecureSession* session;
-      auto* rawValue;
+      std::vector<uint8_t> rawValue;
       const char* base64pubKey;
 };
 

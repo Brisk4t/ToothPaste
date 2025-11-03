@@ -17,16 +17,16 @@ message DataPacket{
     
 
     // Packet.data
-    bytes IV = 5; // 12 bytes
+    bytes iv = 5; // 12 bytes
     uint32 dataLen = 6; // 4 bytes
     bytes encryptedData = 7; // 200 bytes 
-    bytes TAG = 8; // 16 bytes
+    bytes tag = 8; // 16 bytes
 
 }
 
 message EncryptedData{
     // 1 byte
-    enum packetType{
+    enum PacketType{
         KEYBOARD_STRING = 0;
         KEYBOARD_KEYCODE = 1;
         MOUSE = 2;
@@ -35,11 +35,13 @@ message EncryptedData{
         COMPOSITE = 5;
     }
     
+    PacketType packetType = 1;
+    
     oneof packetData{
-        KeyboardPacket keyboardPacket = 1;
-        KeycodePacket  keycodePacket = 2;
-        MousePacket  mousePacket = 3;
-        RenamePacket  renamePacket = 4;
+        KeyboardPacket keyboardPacket = 2;
+        KeycodePacket  keycodePacket = 3;
+        MousePacket  mousePacket = 4;
+        RenamePacket  renamePacket = 5;
     }
 
 }

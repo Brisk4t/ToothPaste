@@ -85,21 +85,22 @@ InputCharacteristicCallbacks::InputCharacteristicCallbacks(SecureSession* sessio
 void InputCharacteristicCallbacks::onWrite(BLECharacteristic* inputCharacteristic)
 {    
   
-  const uint8_t* bleData = inputCharacteristic->getValue();
+  const uint8_t* bleData = inputCharacteristic->getData();
   size_t bleLen = inputCharacteristic->getLength();
   //std::string rawValue = std::string(inputCharacteristic->getValue().c_str(), inputCharacteristic->getLength()); // Convert to std::string for easier handling
   // Receive base64 encoded value
-  if (!rawValue.empty() && session != nullptr)
+  if (bleLen != 0 && session != nullptr)
   {
-    auto* rawCopy = new uint8_t[bleLen]; // allocate a heap copy of the received packet
-    memcpy(rawCopy, bleData, bleLen);
-    
-    auto* taskParams = new SharedSecretTaskParams{ session, rawCopy }; // Create the parameters passed to the RTOS task
+    std::vector<uint8_t> rawCopy(bleData, bleData + bleLen); // allocate a heap copy of the received packet
+    auto* taskParams = new SharedSecretTaskParams{ session, std::move(rawCopy) }; // Create the parameters passed to the RTOS task
+
+
+    DEBUG_SERIAL_PRINTF("Received data on Input Characteristic: %d bytes\n\r", bleLen);
 
     // Handle bad packets
-    if (rawCopy->length() < SecureSession::IV_SIZE + SecureSession::TAG_SIZE + SecureSession::HEADER_SIZE) {
+    if (bleLen < SecureSession::IV_SIZE + SecureSession::TAG_SIZE + SecureSession::HEADER_SIZE) {
       DEBUG_SERIAL_PRINTLN("Characteristic too short!");
-      DEBUG_SERIAL_PRINTF("Received length: %d\n\r", rawCopy->length());
+      DEBUG_SERIAL_PRINTF("Received length: %d\n\r", bleLen);
       stateManager->setState(DROP);
       return;
     }
@@ -109,7 +110,7 @@ void InputCharacteristicCallbacks::onWrite(BLECharacteristic* inputCharacteristi
             // Queue full, drop packet or handle error
             DEBUG_SERIAL_PRINTLN("Packet queue full! Dropping packet.");
             stateManager->setState(DROP);
-            delete taskParams->rawValue;
+            //delete taskParams->rawValue;
             delete taskParams;
     }
   }
@@ -324,15 +325,31 @@ void decryptSendString(toothpaste_DataPacket* packet, SecureSession* session) {
   // Allocate plaintext buffer and decrypt
   //uint8_t* plaintext = new uint8_t[SecureSession::MAX_DATA_LEN];
   
-  std::vector<uint8_t> decrypted_bytes;
+  // Todo: Decode encrypted BYTES into an encrypted data packet 
+  // Params: ciphertext, tag, iv, public key (to get private key from storage)
+
+  std::vector<uint8_t> decrypted_bytes(packet->dataLen);
   toothpaste_EncryptedData decrypted = toothpaste_EncryptedData_init_default;
   
   int ret = session->decrypt(packet, decrypted_bytes.data(), clientPubKey.c_str()); // Get the serialized form of the decrypted data
 
+  DEBUG_SERIAL_PRINTF("Decryption return code: %d\n", ret);
+  DEBUG_SERIAL_PRINTF("Decrypted data length: %d\n", decrypted_bytes.size());
+  DEBUG_SERIAL_PRINT("Decrypted data: ");
+
+
+
+  DEBUG_SERIAL_PRINT("Raw Data (chars): ");
+  for (size_t i = 0; i < decrypted_bytes.size(); ++i) {
+    DEBUG_SERIAL_PRINTF("%c", decrypted_bytes[i]);
+  }
+  
+  DEBUG_SERIAL_PRINTLN("");
+  
   // Deserialize the decrypted data into a protobuf packet
   pb_istream_t stream = pb_istream_from_buffer(decrypted_bytes.data(), decrypted_bytes.size()); 
   if (!pb_decode(&stream, toothpaste_EncryptedData_fields, &decrypted)) {
-    printf("Decoding failed: %s\n", PB_GET_ERROR(&stream));
+    printf("Decoding encrypted data failed: %s\n", PB_GET_ERROR(&stream));
     return;
   }
 
@@ -392,7 +409,7 @@ void authenticateClient(toothpaste_DataPacket* packet, SecureSession* session) {
 
   String deviceName;
   session->getDeviceName(deviceName);
-  DEBUG_SERIAL_PRINTF("Device Name is: %s", deviceName.c_str());
+  DEBUG_SERIAL_PRINTF("Device Name is: %s\n\r", deviceName.c_str());
 
   clientPubKey = std::string((const char*)packet->encryptedData.bytes, packet->encryptedData.size);
 
@@ -433,10 +450,18 @@ void packetTask(void* params)
                 //SecureSession::rawDataPacket packet = unpack(rawValue);
 
                 // Decode protobuf
+                DEBUG_SERIAL_PRINTF("Decoding protobuf from %d bytes\n\r", taskParams->rawValue.size());
+
+                DEBUG_SERIAL_PRINT("Raw Data (chars): ");
+                for (size_t i = 0; i < taskParams->rawValue.size(); ++i) {
+                    DEBUG_SERIAL_PRINTF("%c", taskParams->rawValue[i]);
+                }
+                DEBUG_SERIAL_PRINTLN("");
+
                 toothpaste_DataPacket toothPacket = toothpaste_DataPacket_init_default;
-                pb_istream_t istream = pb_istream_from_buffer(taskParams->rawValue, taskParams->rawValue->length());
-                if(!pb_decode(&istream, toothpaste_DataPacket_fields, &toothPacket)) {
-                    printf("Decoding failed: %s\n", PB_GET_ERROR(&istream));
+                pb_istream_t istream = pb_istream_from_buffer(taskParams->rawValue.data(), taskParams->rawValue.size());
+                if (!pb_decode(&istream, toothpaste_DataPacket_fields, &toothPacket)) {
+                    printf("Decoding toothPacket failed: %s\n", PB_GET_ERROR(&istream));
                 }
 
                 //delete rawValue; // Free string memory
@@ -451,18 +476,14 @@ void packetTask(void* params)
                     toothPacket.totalPackets
                 );
                 DEBUG_SERIAL_PRINTLN();
-                
+              
+                // Print raw data as characters (not useful for excrypted data but good for debugging using unencrypted packets)
+                DEBUG_SERIAL_PRINT("Raw Data (chars): ");
+                for (size_t i = 0; i < toothPacket.dataLen; ++i) {
+                    DEBUG_SERIAL_PRINTF("%c", toothPacket.encryptedData.bytes[i]);
+                }
+                DEBUG_SERIAL_PRINTLN("");
 
-                // Debug prints...
-                // DEBUG_SERIAL_PRINTLN("BLE Data Received.");
-                // DEBUG_SERIAL_PRINTF("Data length: %d\r\n", packet.dataLen);
-                // DEBUG_SERIAL_PRINTF("ID: %d\r\nSlowMode: %d\r\nPacket Number: %d\r\nTotal Packets: %d\r\n",
-                //     packet.packetId,
-                //     packet.slowmode,
-                //     packet.packetNumber,
-                //     packet.totalPackets
-                // );
-                // DEBUG_SERIAL_PRINTLN();
                 
                 // Handle different types of packets
                 if (toothPacket.packetID == toothpaste_DataPacket_PacketID_DATA_PACKET) {

@@ -1,7 +1,7 @@
 # DataPacket fields
-toothpaste.DataPacket.IV             max_size:12
+toothpaste.DataPacket.iv             max_size:12
 toothpaste.DataPacket.encryptedData  max_size:200
-toothpaste.DataPacket.TAG            max_size:16
+toothpaste.DataPacket.tag            max_size:16
 
 # Keyboard packets
 toothpaste.KeyboardPacket.message    max_size:190
