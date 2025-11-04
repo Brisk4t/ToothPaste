@@ -8,7 +8,7 @@ import React, {
 import { keyExists, loadBase64 } from "../controllers/Storage";
 import { ECDHContext } from "./ECDHContext";
 import { Packet } from "../controllers/PacketFunctions";
-import { toothpaste, DataPacket } from '../controllers/toothpacket/toothpacket_pb.js';
+import { toothpaste, DataPacket, EncryptedData, KeyboardPacket, MousePacket, RenamePacket, KeycodePacket } from '../controllers/toothpacket/toothpacket_pb.js';
 
 export const BLEContext = createContext();
 export const useBLEContext = () => useContext(BLEContext);
@@ -82,14 +82,38 @@ export function BLEProvider({ children, showOverlay, setShowOverlay }) {
     };
 
     // Encrypt and send untyped data stream (string, array, etc.) with a random IV and GCM tag added, chunk data if too large
-    const sendEncrypted = async (inputArray, prefix=0) => {
+    // inputarray contains the raw data to send in all packet types (encoding into protobuf must be done by the calling function)
+    const sendEncrypted = async (inputPayload, prefix=0) => {
         if (!pktCharacteristic) return;
+
+        var encryptedToothPacket = new EncryptedData();
+
+        if (inputPayload instanceof KeyboardPacket) {
+            encryptedToothPacket.setKeyboardpacket(inputPayload);
+        } 
+        
+        else if (inputPayload instanceof KeycodePacket) {
+            encryptedToothPacket.setKeycodepacket(inputPayload);
+        } 
+        
+        else if (inputPayload instanceof MousePacket) {
+            encryptedToothPacket.setMousepacket(inputPayload);
+        } 
+        
+        else if (inputPayload instanceof RenamePacket) {
+            encryptedToothPacket.setRenamepacket(inputPayload);
+        } 
+        
+        else {
+            console.error("Unknown payload type:", inputPayload.constructor.name);
+            return;
+        }
 
         try {
             var count = 0;
-            console.log("Send starting....", inputArray);
+            console.log("Encrypt starting....", encryptedToothPacket);
 
-            for await (const packet of createEncryptedPackets(0, inputArray, true, prefix)) {
+            for await (const packet of createEncryptedPackets(0, encryptedToothPacket, true, prefix)) {
                 console.log("Sending packet ", count);
                 await pktCharacteristic.writeValueWithoutResponse(
                     //packet.serialize()

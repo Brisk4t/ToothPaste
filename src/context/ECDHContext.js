@@ -154,10 +154,10 @@ export const ECDHProvider = ({ children }) => {
     };
 
     // Encrypt plaintext using AES-GCM with shared secret key
-    const encryptText = async (plaintext, aad) => {
+    const encryptText = async (encryptedData, aad) => {
         const iv = crypto.getRandomValues(new Uint8Array(12)); // 12 byte IV
         const encoder = new TextEncoder();
-        const data = plaintext instanceof Uint8Array ? plaintext : encoder.encode(plaintext);
+        const data = encryptedData instanceof Uint8Array ? encryptedData : encoder.encode(encryptedData);
 
         // Encrypt the data with the AES key from storage
         const encrypted = await crypto.subtle.encrypt(
@@ -178,7 +178,7 @@ export const ECDHProvider = ({ children }) => {
 
         var encryptedPacket = new DataPacket();
         encryptedPacket.setEncrypteddata(ciphertext);
-        encryptedPacket.setDatalen(ciphertext.length);
+        encryptedPacket.setDatalen(ciphertextLength);
         encryptedPacket.setIv(iv);
         encryptedPacket.setTag(tag);
 
@@ -205,9 +205,15 @@ export const ECDHProvider = ({ children }) => {
             data = payload;
         }
 
-        else{
+        else if(payload instanceof String){
             data = encoder.encode(payload); // If data is a string, manually define the prefix byte (packet type)
             stringData = true;
+        }
+
+        else {
+            // Assume payload is a protobuf object, serialize to Uint8Array
+            const byteArray = payload.serializeBinary();
+            data = new Uint8Array(byteArray);
         }
 
         const totalChunks = Math.ceil(data.length / Packet.MAX_DATA_SIZE);
@@ -216,7 +222,7 @@ export const ECDHProvider = ({ children }) => {
         for (let chunkNumber = 0; chunkNumber < totalChunks; chunkNumber++) {
             const chunkData = data.slice(chunkNumber * Packet.MAX_DATA_SIZE, (chunkNumber + 1) * Packet.MAX_DATA_SIZE);
 
-            // Prepend a 0 byte to ensure all encrypted chunks start with 0
+            // Prepend a 0 byte to ensure all encrypted chunks start with 0 if string data
             var outputArray = data;
             if(stringData){
                 outputArray = new Uint8Array(chunkData.length + 1);
@@ -227,7 +233,7 @@ export const ECDHProvider = ({ children }) => {
             //var toothPacket = new DataPacket();
 
             const aad = new Uint8Array([chunkNumber, totalChunks]);
-            const encryptedPacket = await encryptText(outputArray, aad); // Packet with cipherText, iv, tag and datalen
+            const encryptedPacket = await encryptText(outputArray, aad); // Encrypt the encryptedData component of a ToothPacket
             
             encryptedPacket.setPacketid(id);
             encryptedPacket.setSlowmode(slowMode);

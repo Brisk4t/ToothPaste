@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useCallback, useContext } from 'react';
 import { BLEContext } from "../context/BLEContext";
 import { ECDHContext } from "../context/ECDHContext";
+import { KeyboardPacket } from '../controllers/toothpacket/toothpacket_pb.js';
 import {HIDMap} from "./HIDMap.js"
 
 
@@ -96,7 +97,14 @@ export function useInputController() {
         // Update lastSentBuffer early to avoid duplicate sends
         lastSentBuffer.current = current;
 
-        sendEncrypted(payload); // Send the final payload
+        var keyboardPayload = new KeyboardPacket();
+        keyboardPayload.setMessage(payload);
+        keyboardPayload.setLength(payload.length);
+
+        sendEncrypted(keyboardPayload); // Send the final payload
+
+        
+
         console.log("Current:", current);
         console.log("Previous:", previous);
 
