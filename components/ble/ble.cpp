@@ -111,7 +111,7 @@ void InputCharacteristicCallbacks::onWrite(BLECharacteristic* inputCharacteristi
             DEBUG_SERIAL_PRINTLN("Packet queue full! Dropping packet.");
             stateManager->setState(DROP);
             //delete taskParams->rawValue;
-            delete taskParams;
+            //delete taskParams;
     }
   }
 
@@ -328,7 +328,7 @@ void decryptSendString(toothpaste_DataPacket* packet, SecureSession* session) {
   // Todo: Decode encrypted BYTES into an encrypted data packet 
   // Params: ciphertext, tag, iv, public key (to get private key from storage)
 
-  std::vector<uint8_t> decrypted_bytes(packet->dataLen);
+  std::vector<uint8_t> decrypted_bytes((packet->dataLen)+2);
   toothpaste_EncryptedData decrypted = toothpaste_EncryptedData_init_default;
   
   int ret = session->decrypt(packet, decrypted_bytes.data(), clientPubKey.c_str()); // Get the serialized form of the decrypted data
@@ -497,7 +497,7 @@ void packetTask(void* params)
                     }
                 }
 
-                delete taskParams; // Free the parameter struct
+                //delete taskParams; // Free the parameter struct
             }
           
           queuenotify(); // Trigger the notification now that a spot in the queue is freed
