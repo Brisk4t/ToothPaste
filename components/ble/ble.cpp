@@ -379,7 +379,7 @@ void decryptSendString(toothpaste_DataPacket* packet, SecureSession* session) {
       }
       
       case toothpaste_EncryptedData_renamePacket_tag: {
-        std::string textString(decrypted.packetData.keyboardPacket.message, decrypted.packetData.keyboardPacket.length);
+        std::string textString(decrypted.packetData.renamePacket.message, decrypted.packetData.renamePacket.length);
         int ret = session->setDeviceName(textString.c_str()); // Set the device name in preferences
         DEBUG_SERIAL_PRINTF("Device rename status code: %d\n", ret);
         DEBUG_SERIAL_PRINTLN("Rebooting Toothpaste...");
