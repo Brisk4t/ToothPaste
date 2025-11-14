@@ -15,6 +15,7 @@ import {
 
 import { useBLEContext } from "../../context/BLEContext";
 import ToothPaste from "../../assets/ToothPaste.png";
+import { createRenamePacket } from "../../controllers/PacketFunctions";
 
 export function useClickOrLongPress(longPressTime = 2000) {
     const timerRef = useRef(null);
@@ -125,7 +126,9 @@ function ConnectionButton() {
             if(device?.name !== name){
                 console.log("Renaming Device");
                 setName(name+'\0')
-                sendEncrypted(name, 3) // 3 indicated a rename packet
+
+                var renamePacket = createRenamePacket(name);
+                sendEncrypted(renamePacket) // 3 indicated a rename packet
             }
         }
     }, [isEditing]); // Trigger whenever isEditing changes
