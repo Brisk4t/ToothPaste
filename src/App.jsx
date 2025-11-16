@@ -31,6 +31,15 @@ function App() {
     const [showOverlay, setShowOverlay] = useState(false);
     const [showNavbar, setshowNavbar] = useState(true);
     const [activeView, setActiveView] = useState("live"); // control view here
+    const [activeOverlay, setActiveOverlay] = useState(null); // 'ecdh', 'pairing', etc.
+    const [overlayProps, setOverlayProps] = useState({});
+  
+    const overlays = {
+      pair: ECDHOverlay,
+      update: UpdateController,
+    };
+
+    const ActiveOverlay = activeOverlay ? overlays[activeOverlay] : null;
 
     const renderView = () => {
         switch (activeView) {
@@ -38,8 +47,8 @@ function App() {
                 return <BulkSend />;
             case "live":
                 return <LiveCapture />;
-            case "update":
-                return <UpdateController />;
+            // case "update":
+            //     return <UpdateController />;
             default:
                 return <BulkSend />;
         }
@@ -55,7 +64,7 @@ function App() {
             showNavbar={showNavbar}
             setshowNavbar={setshowNavbar}
             onNavigate={setActiveView}
-            onOpenPairing={() => setShowOverlay(true)}
+            onChangeOverlay={setActiveOverlay}
             activeView={activeView}
           />
 
@@ -65,7 +74,9 @@ function App() {
           </main>
 
           {/* Overlay */}
-          <ECDHOverlay showOverlay={showOverlay} setShowOverlay={setShowOverlay} />
+          {ActiveOverlay && (
+            <ActiveOverlay {...overlayProps} onChangeOverlay={setActiveOverlay} />
+          )}
         </div>
       </BLEProvider>
     </ECDHProvider>

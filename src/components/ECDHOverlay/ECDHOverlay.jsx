@@ -8,7 +8,7 @@ import { BLEContext } from '../../context/BLEContext';
 const ec = new EC('p256'); // secp256r1
 
 
-const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
+const ECDHOverlay = ({ onChangeOverlay }) => {
     const { generateECDHKeyPair, decompressKey, importPeerPublicKey, saveSelfKeys: saveKeys, deriveKey, savePeerPublicKey } = useContext(ECDHContext);
     const [keyInput, setkeyInput] = useState("");
     const [sharedSecret, setSharedSecret] = useState(null);
@@ -84,8 +84,6 @@ const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
         keyRef.current?.focus();
     }, []); 
 
-    if (!showOverlay) return null;
-
     return (
         <div style={{
             position: 'fixed',
@@ -117,7 +115,7 @@ const ECDHOverlay = ({ showOverlay, setShowOverlay }) => {
             }}>
                 {/* Close Button*/}
                 <button
-                    onClick={() => setShowOverlay(false)}
+                    onClick={() => onChangeOverlay(null)}
                     style={{
                         position: 'absolute',
                         top: 10,

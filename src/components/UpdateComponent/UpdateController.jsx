@@ -3,7 +3,7 @@ import { ESPLoader, Transport } from "esptool-js";
 import CryptoJS from "crypto-js";
 import { Progress, Typography, Button } from "@material-tailwind/react";
 
-export default function UpdateController(setShowOverlay) {
+export default function UpdateController({onChangeOverlay}) {
   const [connected, setConnected] = useState(false);
   const [status, setStatus] = useState("Idle");
   const [progress, setProgress] = useState(0);
@@ -123,7 +123,7 @@ export default function UpdateController(setShowOverlay) {
             }}>
                 {/* Close Button*/}
                 <button
-                    onClick={() => setShowOverlay(false)}
+                    onClick={() => onChangeOverlay(null)}
                     style={{
                         position: 'absolute',
                         top: 10,

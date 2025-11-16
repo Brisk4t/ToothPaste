@@ -12,15 +12,15 @@ import { toothpaste, DataPacket, EncryptedData, KeyboardPacket, MousePacket, Ren
 
 export const BLEContext = createContext();
 export const useBLEContext = () => useContext(BLEContext);
-
-export function BLEProvider({ children, showOverlay, setShowOverlay }) {
-
-    // Constants
-    const connectionStatus = {
+export const ConnectionStatus = {
         disconnected: 0,
         ready: 1,
         connected: 2
-    };
+};
+
+export function BLEProvider({ children }) {
+
+    // Constants
     const serviceUUID = "19b10000-e8f2-537e-4f6c-d104768a1214"; // ClipBoard service UUID from example
     
     const packetCharacteristicUUID = "6856e119-2c7b-455a-bf42-cf7ddd2c5907"; // String pktCharacteristic UUID
@@ -28,7 +28,7 @@ export function BLEProvider({ children, showOverlay, setShowOverlay }) {
     const macAddressCharacteristicUUID = "19b10002-e8f2-537e-4f6c-d104768a1214"
 
     // BLE Connection Variables
-    const [status, setStatus] = React.useState(connectionStatus.disconnected); // 0 = disconnected, 1 = connected & paired, 2 = connected & not paired
+    const [status, setStatus] = React.useState(ConnectionStatus.disconnected); // 0 = disconnected, 1 = connected & paired, 2 = connected & not paired
     const [device, setDevice] = useState(null);
     const [server, setServer] = useState(null);
     const MACAddress = useRef(null);
@@ -36,16 +36,9 @@ export function BLEProvider({ children, showOverlay, setShowOverlay }) {
     const pktCharRef = useRef(null);
 
     
-    const showOverlayRef = useRef(showOverlay);
     const { loadKeys, createEncryptedPackets } = useContext(ECDHContext);
     const readyToReceive = useRef({ promise: null, resolve: null });
 
-
-
-    // Keep track of the overlay visibility
-    useEffect(() => {
-        showOverlayRef.current = showOverlay;
-    }, [showOverlay]);
 
     // Attach a promise to the readyToReceive ref, this acts as the send semaphore
     const waitForReady = () => {
@@ -148,13 +141,12 @@ export function BLEProvider({ children, showOverlay, setShowOverlay }) {
 
                 // If the device isnt authenticated it needs to be paired first
                 if (authStatus === 0) {
-                    setStatus(connectionStatus.connected);
+                    setStatus(ConnectionStatus.connected);
                 } 
                 
                 // If the device is authenticated we are ready to send
                 else if (authStatus === 1) {
-                    if (showOverlayRef.current) setShowOverlay(false);
-                    setStatus(connectionStatus.ready);
+                    setStatus(ConnectionStatus.ready);
                 }
                 
                 // If there is a promise to be resolved, resolve it
@@ -182,13 +174,8 @@ export function BLEProvider({ children, showOverlay, setShowOverlay }) {
             });
 
             // Set an on disconnect listener
-            device.addEventListener("gattserverdisconnected", () => {
-                // If the device disconnects while the pairing overlay is open, close the overlay
-                if (showOverlayRef.current) {
-                    setShowOverlay(false);
-                }
-                
-                setStatus(connectionStatus.disconnected); // Set status to disconnected
+            device.addEventListener("gattserverdisconnected", () => {  
+                setStatus(ConnectionStatus.disconnected); // Set status to disconnected
                 setDevice(null); // Clear the device object, not doing this causes inconsistent connections when trying to reconnect
 
                 console.log("Clipboard Disconnected");
@@ -226,7 +213,7 @@ export function BLEProvider({ children, showOverlay, setShowOverlay }) {
             // Get the MAC : PubKey mapping from storage, if we don't have it we need to pair first
             if (!(await keyExists(device.macAddress))) {
                 console.error("ECDH keys not found for device", device.macAddress);
-                setStatus(connectionStatus.connected);
+                setStatus(ConnectionStatus.connected);
             }
 
             // Else we can send
@@ -240,7 +227,7 @@ export function BLEProvider({ children, showOverlay, setShowOverlay }) {
             // Only set status to disconnected if the device is not connected,
             // a ble scan cancel might fail but the device could still be connected
             if (!device || !device.gatt.connected) {
-                setStatus(connectionStatus.disconnected);
+                setStatus(ConnectionStatus.disconnected);
             }
         }
     };
@@ -279,7 +266,7 @@ export function BLEProvider({ children, showOverlay, setShowOverlay }) {
                 connectToDevice,
                 readyToReceive,
                 sendEncrypted,
-                sendUnencrypted,
+                sendUnencrypted
             }}
         >
             {children}
