@@ -17,10 +17,10 @@ message DataPacket{
     
 
     // Packet.data
-    bytes IV = 5; // 12 bytes
+    bytes iv = 5; // 12 bytes
     uint32 dataLen = 6; // 4 bytes
     bytes encryptedData = 7; // 200 bytes 
-    bytes TAG = 8; // 16 bytes
+    bytes tag = 8; // 16 bytes
 
 }
 
@@ -36,12 +36,13 @@ message EncryptedData{
     }
     
     PacketType packetType = 1;
-
+    
     oneof packetData{
         KeyboardPacket keyboardPacket = 2;
         KeycodePacket  keycodePacket = 3;
         MousePacket  mousePacket = 4;
         RenamePacket  renamePacket = 5;
+        ConsumerControlPacket consumerControlPacket = 6;
     }
 
 }
@@ -75,6 +76,12 @@ message MousePacket {
   repeated Frame frames = 2; // sequence of (x, y) positions [8 bytes each - max ]
   int32 l_click = 3;         // left click state
   int32 r_click = 4;         // right click state
+}
+
+// Consumer Control Device Data (Volume, Playback, etc.)
+message ConsumerControlPacket{
+    repeated uint32 code = 1;
+    uint32 length = 2;
 }
 
 

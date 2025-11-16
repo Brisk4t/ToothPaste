@@ -9,7 +9,7 @@ import { useInputController } from "../controllers/LiveCaptureInput";
 
 import { ReactComponent as AppleLogo } from "../assets/appleLogo.svg";
 import { ReactComponent as WindowsLogo } from "../assets/windowsLogo.svg";
-import { createMouseStream } from "../controllers/PacketFunctions";
+import { createConsumerControlPacket, createKeyCodePacket, createMouseStream } from "../controllers/PacketFunctions";
 
 export default function LiveCapture() {
     // Input controller hooks
@@ -158,42 +158,6 @@ export default function LiveCapture() {
         sendEncrypted(mousePacket);
 
         console.log("Mouse packet to send: ", mousePacket);
-
-        ///////////
-
-        // // Add 2 padding bytes to align int32 frames on 4-byte boundary
-        // const headerSize = 2; // flag + numFrames
-        // const padding = (4 - (headerSize % 4)) % 4; // padding to next multiple of 4
-        // const buffer = new ArrayBuffer(headerSize + padding + numFrames * 2 * 4 + 8);
-        // const view = new DataView(buffer);
-
-        // let offset = 0;
-
-        // view.setUint8(offset++, flag); // first byte = flag
-        // view.setUint8(offset++, numFrames); // second byte = frame count
-
-        // // insert padding
-        // offset += padding;
-
-        // console.log("Mouse frames to send: ", mouseFrames);
-
-        // // Set int32 x/y frames
-        // for (let i = 0; i < numFrames; i++) {
-        //     view.setInt32(offset, mouseFrames[i].x, true);
-        //     offset += 4;
-        //     view.setInt32(offset, mouseFrames[i].y, true);
-        //     offset += 4;
-        // }
-
-        // // Set left/right clicks
-        // view.setInt32(offset, LClick, true);
-        // offset += 4;
-        // view.setInt32(offset, RClick, true);
-
-        // const keycode = new Uint8Array(buffer);
-        // console.log("Mouse packet as uint8: ", keycode);
-
-        // sendEncrypted(keycode);
         displacementList.current = []; // reset list
     }
 
@@ -268,11 +232,15 @@ export default function LiveCapture() {
         const arr = new ArrayBuffer(10);
         var view = new DataView(arr);
 
-        view.setUint8(0, 4); // first byte = flag
-        view.setUint16(1, controlCode, true); // next two bytes = control code
+
+
+        // view.setUint8(0, 4); // first byte = flag
+        view.setUint16(0, controlCode, true); // next two bytes = control code
 
         var keycode = new Uint8Array(arr);
-        sendEncrypted(keycode);
+
+        var controlPacket = createConsumerControlPacket(controlCode);
+        sendEncrypted(controlPacket);
 
         if (!hold) {
             // If not holding, send a "key release" after a short delay

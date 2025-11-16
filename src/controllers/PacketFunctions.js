@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from "react";
-import { toothpaste, DataPacket, EncryptedData, KeyboardPacket, MousePacket, RenamePacket, KeycodePacket, Frame } from '../controllers/toothpacket/toothpacket_pb.js';
+import { toothpaste, DataPacket, EncryptedData, KeyboardPacket, MousePacket, RenamePacket, KeycodePacket, Frame, ConsumerControlPacket } from '../controllers/toothpacket/toothpacket_pb.js';
 
 // Base class for all packets (optional, for shared logic)
 export class Packet {
@@ -130,6 +130,19 @@ export function createRenamePacket(newName) {
     const encryptedPacket = new EncryptedData();
     encryptedPacket.setPackettype(EncryptedData.PacketType.RENAME);
     encryptedPacket.setRenamepacket(renamePacket);
+
+    return encryptedPacket;
+}
+
+// Return an EncryptedData packet containing a RenamePacket
+export function createConsumerControlPacket(code) {
+    const controlPacket = new ConsumerControlPacket();
+    controlPacket.addCode(code);
+    controlPacket.setLength(1);
+
+    const encryptedPacket = new EncryptedData();
+    encryptedPacket.setPackettype(EncryptedData.PacketType.CONSUMER_CONTROL);
+    encryptedPacket.setConsumercontrolpacket(controlPacket);
 
     return encryptedPacket;
 }
