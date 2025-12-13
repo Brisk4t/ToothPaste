@@ -8,7 +8,7 @@ import {
     ClipboardIcon,
     PlayIcon,
     LinkIcon,
-    ArrowPathIcon,
+    QuestionMarkCircleIcon,
     CpuChipIcon,
     SignalSlashIcon,
     SignalIcon,
@@ -280,7 +280,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                         }`}
                         onClick={() => onNavigate("about")}
                     >
-                        <CpuChipIcon className="h-5 w-5" />
+                        <QuestionMarkCircleIcon className="h-5 w-5" />
                         <Typography variant="h4">About</Typography>
                     </button>
 
