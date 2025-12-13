@@ -8,6 +8,8 @@
 #include <mbedtls/md.h>
 #include <mbedtls/sha256.h>
 #include <mbedtls/base64.h>
+#include "toothpacket.pb.h"
+
 
 #ifndef SECURESESSION_H
 #define SECURESESSION_H
@@ -82,7 +84,7 @@ public:
         const char* base64pubKey
     );
     
-    int decrypt(struct rawDataPacket* packet, uint8_t* plaintext_out, const char* base64pubKey);
+    int decrypt(toothpaste_DataPacket* packet, uint8_t* decrypted_out, const char* base64pubKey);
 
     bool isSharedSecretReady() const { return sharedReady; }
 

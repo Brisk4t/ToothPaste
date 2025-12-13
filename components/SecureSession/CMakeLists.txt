@@ -8,5 +8,5 @@ file(GLOB_RECURSE component_sources
 idf_component_register(
     SRCS ${component_sources}           # All source files found
     INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}"  # Header search path
-    REQUIRES arduino-esp32 serialDebug nvs_flash       # Optional: list dependencies
+    REQUIRES arduino-esp32 serialDebug nvs_flash toothPacket       # Optional: list dependencies
 )

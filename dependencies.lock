@@ -343,7 +343,7 @@ dependencies:
       type: service
     version: 1.2.0
   espressif/esp_secure_cert_mgr:
-    component_hash: 95b490db6944b2a6b32d7af172bb52e5045fe1d37ac8e00f9edfdd0535d64f72
+    component_hash: 421cb5608b9c06c3747be15edde72d67f7f5c899dbabbcd836742df9af0e9134
     dependencies:
     - name: idf
       require: private
@@ -351,7 +351,7 @@ dependencies:
     source:
       registry_url: https://components.espressif.com
       type: service
-    version: 2.5.1
+    version: 2.6.1
   espressif/esp_tinyusb:
     component_hash: 6a50305bc61c7a361da8c0833642be824e92dacb0a6001719a832a4e96e471bf
     dependencies:
@@ -468,10 +468,21 @@ dependencies:
       registry_url: https://components.espressif.com
       type: service
     version: 1.20.1
+  nikas-belogolov/nanopb:
+    component_hash: f87bec16ffb47d5ceb557b7f13acb83cad95046ab155d1af33e488d1b048fddc
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.0'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.0.0
 direct_dependencies:
 - espressif/arduino-esp32
 - espressif/esp_tinyusb
 - idf
-manifest_hash: ee031c94f7a380cf718bd6f399083b29ae1908640bfe0a442fc957fa4019ccc7
+- nikas-belogolov/nanopb
+manifest_hash: 35740120958525cc15b30d29aa6ab2f5235cc519cdb57fd1a1de9bb03e9be39d
 target: esp32s3
 version: 2.0.0

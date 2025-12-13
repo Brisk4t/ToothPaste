@@ -15,5 +15,6 @@ dependencies:
   #   # All dependencies of `main` are public by default.
   #   public: true
   #espressif/tinyusb: ^0.18.0~4
-  espressif/arduino-esp32: "^3.3.0"
-  espressif/esp_tinyusb: "^1.7.0"
+  espressif/arduino-esp32: ^3.3.0
+  espressif/esp_tinyusb: ^1.7.0
+  nikas-belogolov/nanopb: ^1.0.0

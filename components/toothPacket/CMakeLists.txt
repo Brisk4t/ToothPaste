@@ -1,5 +1,5 @@
 # Automatically register all .c and .cpp files in this component
-file(GLOB_RECURSE component_sources 
+file(GLOB_RECURSE component_sources
      "${CMAKE_CURRENT_LIST_DIR}/*.c"
      "${CMAKE_CURRENT_LIST_DIR}/*.cpp"
 )
@@ -8,5 +8,5 @@ file(GLOB_RECURSE component_sources
 idf_component_register(
     SRCS ${component_sources}           # All source files found
     INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}"  # Header search path
-    REQUIRES arduino-esp32 serialDebug espHID SecureSession rgbRMT stateManager bt toothPacket # Optional: list dependencies
+    REQUIRES nanopb      # Optional: list dependencies
 )

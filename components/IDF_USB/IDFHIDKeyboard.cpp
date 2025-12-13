@@ -203,3 +203,45 @@ size_t IDFHIDKeyboard::write(const uint8_t *buffer, size_t size) {
   }
   return n;
 }
+
+size_t IDFHIDKeyboard::sendKeycode(uint8_t* encodedKeys, uint8_t numKeys) {
+  customReport.modifiers = 0;
+  customReport.reserved = 0;
+  memset(customReport.keys, 0, 6);
+  
+  uint8_t keyIndex = 0;
+  
+  for (uint8_t i = 0; i < 6 && keyIndex < 6; i++) {
+    uint8_t k = encodedKeys[i];
+    
+    if (k >= 0x88) {  // Non-printing key (not a modifier)
+      k = k - 0x88;
+      customReport.keys[keyIndex++] = k;
+    } else if (k >= 0x80) {  // Modifier key
+      customReport.modifiers |= (1 << (k - 0x80));
+      // Don't increment keyIndex - modifiers go in the modifier byte
+    } else {  // Printing key (ASCII 0..127)
+      k = _asciimap[k];
+      if (k) {  // Valid key mapping exists
+        if ((k & SHIFT) == SHIFT) {  // Needs shift
+          customReport.modifiers |= 0x02;  // Left shift modifier
+          k &= ~SHIFT;
+        }
+        if ((k & ALT_GR) == ALT_GR) {  // Needs AltGr
+          customReport.modifiers |= 0x40;  // Right Alt
+          k &= ~ALT_GR;
+        }
+        if (k == ISO_REPLACEMENT) {
+          k = ISO_KEY;
+        }
+        customReport.keys[keyIndex++] = k;
+      }
+    }
+  }
+  
+  // Send the customReport
+  IDFHIDKeyboard keyboard; // Use your actual instance
+  keyboard.sendReport(&customReport);
+
+  return 0;
+}

@@ -9,7 +9,6 @@
 #include "IDFHIDSystemControl.h"
 #include "SerialDebug.h"
 
-
 // Needed to enable CDC if defined
 #if ARDUINO_USB_CDC_ON_BOOT
     #include <USBCDC.h>
@@ -48,6 +47,7 @@ size_t sendStringSlow(const char *str, int delayms) {
     sentCount++;
 
     delay(delayms);  // Blocking delay between characters
+    keyboard0.releaseAll(); // Release all keys to avoid sticky keys
   }
 
   return sentCount;
@@ -76,15 +76,23 @@ void stringTest(){
 }
 
 // Press all the keys in the array together and release them after 50ms (max 6)
-void sendKeycode(uint8_t* keys, bool slowMode) {
-    for(int i=0; i<6; i++){
-      keyboard0.press(keys[i]);
-      // vTaskDelay(pdMS_TO_TICKS(5));
-      //keyboard1.press(keys[i]);
+// void sendKeycode(uint8_t* keys, bool slowMode) {
+//     for(int i=0; i<6; i++){
+//       keyboard0.press(keys[i]);
+//       // vTaskDelay(pdMS_TO_TICKS(5));
+//       //keyboard1.press(keys[i]);
+//     }
+//     // vTaskDelay(pdMS_TO_TICKS(5));
+//     keyboard0.releaseAll();
+//     //keyboard1.releaseAll();
+// }
+
+void sendKeycode(uint8_t* encodedKeys, bool slowMode) {
+    keyboard0.sendKeycode(encodedKeys, 6);
+    //keyboard1.sendKeycode(encodedKeys, 6);
+    if(slowMode){
+      vTaskDelay(pdMS_TO_TICKS(SLOWMODE_DELAY_MS));
     }
-    // vTaskDelay(pdMS_TO_TICKS(5));
-    keyboard0.releaseAll();
-    //keyboard1.releaseAll();
 }
 
 void moveMouse(int32_t x, int32_t y, int32_t LClick, int32_t RClick){
@@ -92,8 +100,8 @@ void moveMouse(int32_t x, int32_t y, int32_t LClick, int32_t RClick){
   //Click before moving if the click is in the same report
   if(!(mouse.isPressed(MOUSE_LEFT)) && LClick == 1){
     mouse.press(MOUSE_LEFT);
+    
   }
-
   if(!(mouse.isPressed(MOUSE_RIGHT)) && RClick == 1){
     mouse.press(MOUSE_RIGHT);
   }
@@ -119,6 +127,18 @@ void moveMouse(int32_t x, int32_t y, int32_t LClick, int32_t RClick){
 void consumerControlPress(uint16_t key){
   control.press(key);
   vTaskDelay(pdMS_TO_TICKS(10));
+  consumerControlRelease();
+
+}
+
+// Press a consumer control key
+void consumerControlPress(toothpaste_ConsumerControlPacket& controlPacket){
+  for (size_t i = 0; i < controlPacket.length; i++) {
+    consumerControlPress(controlPacket.code[i]);
+  }
+  vTaskDelay(pdMS_TO_TICKS(10));
+  consumerControlRelease();
+
 }
 
 // Release all consumer control keys
@@ -151,6 +171,23 @@ void moveMouse(uint8_t* mousePacket) {
     int32_t* clicks = ints + numFrames * 2;
     int32_t LClick = clicks[0];
     int32_t RClick = clicks[1];
+
+    // Handle Click
+    //DEBUG_SERIAL_PRINTF("LClick: %d, RClick: %d\n", LClick, RClick);
+    moveMouse(0, 0, LClick, RClick); 
+}
+
+void moveMouse(toothpaste_MousePacket& mousePacket) {
+    // Move mouse for each frame
+    for(uint8_t i = 0; i < mousePacket.num_frames; i++){
+        int32_t x = mousePacket.frames[i].x;
+        int32_t y = mousePacket.frames[i].y;
+        moveMouse(x, y, 0, 0);
+    }
+
+    // Left/right click states come after the frames
+    int32_t LClick = mousePacket.l_click;
+    int32_t RClick = mousePacket.r_click;
 
     // Handle Click
     //DEBUG_SERIAL_PRINTF("LClick: %d, RClick: %d\n", LClick, RClick);

@@ -128,7 +128,7 @@ extern const uint8_t KeyboardLayout_pt_BR[];
 #define KEY_KP_DOT      0xEB
 
 //  Low level key report: up to 6 keys and shift, ctrl etc at once
-typedef struct {
+export typedef struct {
   uint8_t modifiers;
   uint8_t reserved;
   uint8_t keys[6];
@@ -138,6 +138,7 @@ class IDFHIDKeyboard : public IDFHIDDevice, public Print {
 private:
   IDFHID hid;
   KeyReport _keyReport;
+  KeyReport customReport;
   const uint8_t *_asciimap;
   bool shiftKeyReports;
 
@@ -149,6 +150,7 @@ public:
   size_t write(const uint8_t *buffer, size_t size);
   size_t press(uint8_t k);
   size_t release(uint8_t k);
+  size_t sendKeycode(uint8_t* encodedKeys, uint8_t numKeys);
   void releaseAll(void);
   void sendReport(KeyReport *keys);
   void setShiftKeyReports(bool set);

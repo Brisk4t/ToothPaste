@@ -8,6 +8,7 @@
 #include "SerialDebug.h"
 #include "espHID.h"
 #include "secureSession.h"
+#include "toothpacket.pb.h"
 
 #define BLE_DEVICE_DEFAULT_NAME     "Toothpaste"
 #define SERVICE_UUID        "19b10000-e8f2-537e-4f6c-d104768a1214"
@@ -34,7 +35,7 @@ struct NotificationPacket {
 
 struct SharedSecretTaskParams {
       SecureSession* session;
-      std::string* rawValue;
+      std::vector<uint8_t> rawValue;
       const char* base64pubKey;
 };
 
@@ -55,7 +56,7 @@ class InputCharacteristicCallbacks : public BLECharacteristicCallbacks{
 };
 
 void bleSetup(SecureSession* session);
-void generateSharedSecret(SecureSession::rawDataPacket* packet, SecureSession* session);
+void generateSharedSecret(toothpaste_DataPacket* packet, SecureSession* session);
 void disconnect();
 void enablePairingMode();
 void packetTask(void *sessionParams);
