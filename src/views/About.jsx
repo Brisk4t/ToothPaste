@@ -8,20 +8,25 @@ import {
     CheckCircleIcon,
     GlobeAltIcon
 } from "@heroicons/react/24/outline";
+import ToothPaste_Device_V1_Front from '../assets/ToothPaste_Device_V1_Front.png';
 
 export default function About() {
     return (
         <div className="w-full bg-background text-text overflow-x-hidden">
             {/* Hero Section - Image Left (60%) + Text Right (40%) */}
-            <section className="min-h-screen flex items-center justify-center px-6 md:px-12 py-20 snap-start">
+            <section className="min-h-screen flex items-center justify-center px-6 md:px-12 py-5 snap-start">
                 <div className="max-w-7xl w-full grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-center">
                     {/* Image - 60% of space */}
                     <div className="md:col-span-7 flex justify-center">
                         <div className="relative w-full aspect-square bg-gradient-to-br from-primary to-primary-hover rounded-3xl flex items-center justify-center overflow-hidden">
                             <div className="absolute inset-0 bg-opacity-20 backdrop-blur-sm"></div>
-                            <div className="relative z-10 text-center">
-                                <SparklesIcon className="h-32 w-32 text-white mx-auto mb-4" />
-                                <Typography variant="h3" className="text-white font-bold">Your Content Here</Typography>
+                            <div className="relative z-10 flex flex-col items-center justify-center gap-3">
+                                <img 
+                                  src={ToothPaste_Device_V1_Front} 
+                                  alt="device" 
+                                  className="w-2/3 h-2/3 object-contain"
+                                />
+                                <Typography variant="h3" className="text-white font-bold">ToothPaste.</Typography>
                             </div>
                         </div>
                     </div>
@@ -55,7 +60,7 @@ export default function About() {
             </section>
 
             {/* Feature Slide 1 */}
-            <section className="min-h-screen flex items-center justify-center px-6 md:px-12 py-20 snap-start">
+            <section className="min-h-screen flex items-center justify-center px-6 md:px-12 py-12 snap-start">
                 <div className="max-w-6xl w-full">
                     <div className="flex flex-col gap-8">
                         <div className="flex items-center gap-4">
@@ -81,17 +86,26 @@ export default function About() {
             </section>
 
             {/* Feature Slide 2 */}
-            <section className="min-h-screen flex items-center justify-center px-6 md:px-12 py-20 snap-start">
+            <section className="min-h-screen flex items-center justify-center px-6 md:px-12 py-12 snap-start">
                 <div className="max-w-5xl w-full">
                     <div className="flex flex-col gap-8">
                         <div className="flex items-start gap-6">
                             <BoltIcon className="h-12 w-12 text-primary flex-shrink-0 mt-2" />
                             <div>
                                 <Typography variant="h3" className="text-text font-bold mb-3">
-                                    Lightning Fast
+                                    The nitty gritty details
                                 </Typography>
+                                <Typography variant="h4" className="text-2xl text-gray-400 leading-relaxed">
+                                    While convenient, WEB BLE isn't inherently secure. Its susceptible to snooping and Man In The Middle (MITM) attacks.
+                                    Since I wanted to paste passwords over the air, this wouldn't do. 
+                                </Typography>
+                                <br/>
                                 <Typography variant="paragraph" className="text-lg text-gray-400 leading-relaxed">
-                                    Describe how your technology delivers performance and reliability to users.
+                                    ToothPaste uses ECDSA cryptography to exchange information over custom packets, the private keys of the sender and receiver are never exposed over the BLE
+                                    network and without them, any information transmitted is unusable. 
+
+                                    The first time you set up a ToothPaste, the two devices exchange keys over usb, making it nearly impossible to steal the keys during the initial pairing process as well. 
+                                    After that any data sent to a paired ToothPaste device is completly secure.
                                 </Typography>
                             </div>
                         </div>
@@ -99,46 +113,9 @@ export default function About() {
                 </div>
             </section>
 
-            {/* Feature Slide 3 */}
-            <section className="min-h-screen flex items-center justify-center px-6 md:px-12 py-20 snap-start">
-                <div className="max-w-5xl w-full">
-                    <div className="flex flex-col gap-8">
-                        <div className="flex items-start gap-6">
-                            <CheckCircleIcon className="h-12 w-12 text-primary flex-shrink-0 mt-2" />
-                            <div>
-                                <Typography variant="h3" className="text-text font-bold mb-3">
-                                    Easy to Use
-                                </Typography>
-                                <Typography variant="paragraph" className="text-lg text-gray-400 leading-relaxed">
-                                    Explain why your solution is intuitive and accessible to all users.
-                                </Typography>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Feature Slide 4 */}
-            <section className="min-h-screen flex items-center justify-center px-6 md:px-12 py-20 snap-start">
-                <div className="max-w-5xl w-full">
-                    <div className="flex flex-col gap-8">
-                        <div className="flex items-start gap-6">
-                            <GlobeAltIcon className="h-12 w-12 text-primary flex-shrink-0 mt-2" />
-                            <div>
-                                <Typography variant="h3" className="text-text font-bold mb-3">
-                                    Global Reach
-                                </Typography>
-                                <Typography variant="paragraph" className="text-lg text-gray-400 leading-relaxed">
-                                    Describe how your platform connects users across the world seamlessly.
-                                </Typography>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
 
             {/* CTA Footer Slide */}
-            <section className="min-h-screen flex items-center justify-center px-6 md:px-12 py-20 snap-start">
+            <section className="min-h-screen flex items-center justify-center px-6 md:px-12 py-12 snap-start">
                 <div className="max-w-3xl w-full text-center flex flex-col gap-8">
                     <Typography variant="h2" className="text-text font-bold">
                         Ready to Get Started?
