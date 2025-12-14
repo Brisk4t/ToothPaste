@@ -107,6 +107,14 @@ export default function About() {
                                     The first time you set up a ToothPaste, the two devices exchange keys over usb, making it nearly impossible to steal the keys during the initial pairing process as well. 
                                     After that any data sent to a paired ToothPaste device is completly secure.
                                 </Typography>
+                                <Typography variant="paragraph" className="text-lg text-gray-400 leading-relaxed">
+                                    Since ToothPaste shows up as a standard HID keyboard, the receiving system doesnt need any special software or drivers to use it.
+                                </Typography>
+                                <br/>
+                                <Typography variant="paragraph" className="text-xl font-bold text-gray-400 leading-relaxed">
+                                    This is the same principle behind the USB Rubber Ducky, and obvious that means ToothPaste can also be used as a pentesting attack vector ;).
+                                </Typography>
+
                             </div>
                         </div>
                     </div>
