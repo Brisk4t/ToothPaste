@@ -74,7 +74,7 @@ export default function UpdateController({onChangeOverlay}) {
       });
       await esploaderRef.current.after();
 
-      setStatus("✅ Flash complete");
+      setStatus("Flash complete");
       setProgress(100);
     } catch (err) {
       console.log(err);
@@ -157,9 +157,11 @@ export default function UpdateController({onChangeOverlay}) {
                     <Typography variant="h6" className={`text-text font-sans normal-case font-semibold ${connected ? "hidden" : ""}`}>Pair</Typography>
                 </Button>
                 
-                <Typography variant="h6" className={`text-grey-800 font-sans normal-case ${connected ? "hidden" : ""}`}>
-                  Hold down the button on your ToothPaste while plugging it in to a USB port to enter pairing mode
+                <Typography variant="h6" className={`text-gray-700 text-sm text-center ${connected ? "hidden" : ""}`}>
+                  Hold down the button on your ToothPaste while plugging it in to a USB port to enter pairing mode. 
+                  Then click "Pair" and find the device in the list.
                 </Typography>
+
 
 
                 <Button
