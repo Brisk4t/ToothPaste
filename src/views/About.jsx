@@ -1,4 +1,7 @@
 import React, { useState, useContext, useRef, useEffect, useCallback } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { useLoader } from '@react-three/fiber';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { Typography, Button } from "@material-tailwind/react";
 import { 
     ArrowDownIcon, 
@@ -10,6 +13,46 @@ import {
 } from "@heroicons/react/24/outline";
 import ToothPaste_Device_V1_Front from '../assets/ToothPaste_Device_V1_Front.png';
 
+const Model = ({ url }) => {
+  const groupRef = useRef();
+  const gltf = useLoader(GLTFLoader, url);
+
+  useEffect(() => {
+    const handleScroll = (event) => {
+      if (!groupRef.current) return;
+      const deltaY = event.deltaY;
+      const rotationSpeed = 0.001;
+      groupRef.current.rotation.y += deltaY * rotationSpeed;
+    };
+
+    window.addEventListener('wheel', handleScroll);
+    return () => window.removeEventListener('wheel', handleScroll);
+  }, []);
+
+  return (
+    <group ref={groupRef} position={[0, 0, -1]}>
+      {/* The group is the 'box' that the camera looks it, since the model isnt always centered on the origin we rotate the group */}
+                                      
+        <spotLight
+            position={[0, 2, 1]} 
+            angle={0.3}
+            penumbra={0.2} // soft edge
+            intensity={11}
+            castShadow
+        />
+
+        {/* Adjust model parameters to set the tilt inside the 'box' these are not dynamically updated*/}
+      <primitive
+        object={gltf.scene}
+        position={[2.5, -2, 0.6]} // Shift left/right to center around pivot
+        rotation={[0.88, 0, 0]}  // Tilt away from camera
+        scale={1}
+      />
+
+    </group>
+  );
+};
+
 export default function About() {
     return (
         <div className="w-full bg-background text-text overflow-x-hidden">
@@ -19,15 +62,16 @@ export default function About() {
                     {/* Image - 60% of space */}
                     <div className="md:col-span-7 flex justify-center">
                         <div className="relative w-full aspect-square bg-gradient-to-br from-primary to-primary-hover rounded-3xl flex items-center justify-center overflow-hidden">
-                            <div className="absolute inset-0 bg-opacity-20 backdrop-blur-sm"></div>
-                            <div className="relative z-10 flex flex-col items-center justify-center gap-3">
-                                <img 
-                                  src={ToothPaste_Device_V1_Front} 
-                                  alt="device" 
-                                  className="w-2/3 h-2/3 object-contain"
+                            <Canvas style={{ width: '70vw', height: '70vh' }}>
+                                <ambientLight intensity={3}/>
+                                <directionalLight
+                                    position={[0, 2, 5]}  // X, Y, Z in front of the model
+                                    intensity={1}       // Adjust brightness
+                                    castShadow
                                 />
-                                <Typography variant="h3" className="text-white font-bold">ToothPaste.</Typography>
-                            </div>
+                                
+                                <Model url="/ToothPaste_GLB.glb" />
+                            </Canvas>
                         </div>
                     </div>
 
