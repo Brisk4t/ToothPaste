@@ -1,4 +1,3 @@
-const { list } = require("@material-tailwind/react");
 const withMT = require("@material-tailwind/react/utils/withMT");
 module.exports = withMT({
   content: [

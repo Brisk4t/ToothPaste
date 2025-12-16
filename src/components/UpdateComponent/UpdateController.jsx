@@ -3,9 +3,22 @@ import { ESPLoader, Transport } from "esptool-js";
 import CryptoJS from "crypto-js";
 import { Progress, Typography, Button } from "@material-tailwind/react";
 
+// Status enum
+const UpdateStatus = {
+  IDLE: 'Idle',
+  REQUESTING_PORT: 'Requesting serial port...',
+  SYNCING: 'Syncing with chip...',
+  CONNECTED: 'Connected',
+  DOWNLOADING: 'Downloading firmware...',
+  FLASHING: 'Flashing firmware...',
+  COMPLETE: 'Flash complete',
+  DISCONNECTED: 'Disconnected',
+  ERROR: 'Error',
+};
+
 export default function UpdateController({onChangeOverlay}) {
   const [connected, setConnected] = useState(false);
-  const [status, setStatus] = useState("Idle");
+  const [status, setStatus] = useState(UpdateStatus.IDLE);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState(null);
 
@@ -17,7 +30,7 @@ export default function UpdateController({onChangeOverlay}) {
   // Connect to ESP32
   const connect = async () => {
     try {
-      setStatus("Requesting serial port...");
+      setStatus(UpdateStatus.REQUESTING_PORT);
       const port = await navigator.serial.requestPort({});
       transportRef.current = new Transport(port, true);
 
@@ -31,15 +44,15 @@ export default function UpdateController({onChangeOverlay}) {
         },
       });
 
-      setStatus("Syncing with chip...");
+      setStatus(UpdateStatus.SYNCING);
       const chip = await loader.main(); // Official esptool-js call
       esploaderRef.current = loader;
 
-      setStatus(`Connected to ${chip}`);
+      setStatus(`${UpdateStatus.CONNECTED} to ${chip}`);
       setConnected(true);
     } catch (err) {
       console.error(err);
-      setStatus(`Error: ${err.message}`);
+      setStatus(`${UpdateStatus.ERROR}: ${err.message}`);
     }
   };
 
@@ -49,7 +62,7 @@ export default function UpdateController({onChangeOverlay}) {
       if (!esploaderRef.current) throw new Error("Device not connected");
       const progressBars = [];
 
-      setStatus("Downloading firmware...");
+      setStatus(UpdateStatus.DOWNLOADING);
       const result = await fetch(FIRMWARE_URL);
       if (!result.ok) throw new Error("Failed to download firmware");
       
@@ -61,7 +74,7 @@ export default function UpdateController({onChangeOverlay}) {
       console.log(`Firmware size: ${binaryStr.length} bytes`);
       //console.log(`Firmware size: ${esploaderRef.current.flashSizeBytes()} bytes`);
 
-      setStatus("Flashing firmware...");
+      setStatus(UpdateStatus.FLASHING);
       setProgress(0);
 
       await esploaderRef.current.writeFlash({
@@ -74,11 +87,11 @@ export default function UpdateController({onChangeOverlay}) {
       });
       await esploaderRef.current.after();
 
-      setStatus("✅ Flash complete");
+      setStatus(UpdateStatus.COMPLETE);
       setProgress(100);
     } catch (err) {
       console.log(err);
-      setStatus(`Error: ${err.message}`);
+      setStatus(`${UpdateStatus.ERROR}: ${err.message}`);
     }
   };
 
@@ -88,7 +101,7 @@ export default function UpdateController({onChangeOverlay}) {
     transportRef.current = null;
     esploaderRef.current = null;
     setConnected(false);
-    setStatus("Disconnected");
+    setStatus(UpdateStatus.DISCONNECTED);
     setProgress(0);
   };
 
@@ -136,19 +149,20 @@ export default function UpdateController({onChangeOverlay}) {
                 ×
                 </button>
 
-                <Typography variant="h4" className="text-text font-sans normal-case font-semibold">
-                    <span className="text-hover">Connect to Device</span>
-                    <span className="text-text">'Device Name'</span>
+                <Typography variant="h4" className="text-text font-sans normal-case font-semibold mb-4">
+                    <span className="text-text">Update Your ToothPaste</span>
                 </Typography>
                             
-               <Progress value={progress} className="w-full my-4" label="Medium" />
+               <Progress value={progress} className="w-full my-2 bg-gray-800" barProps={{className: "bg-primary"}} label="" />
 
                 <Button
                     // ref={keyRef}
                     onClick={connect}
                     loading={false}
                     disabled={false}
-                    className='w-full h-10 my-4 bg-primary text-text hover:bg-primary-hover focus:bg-primary-focus active:bg-primary-active flex items-center justify-center size-sm disabled:bg-hover'>
+                    className={`w-full h-10 my-4 bg-orange text-text hover:bg-primary-hover 
+                    focus:bg-primary-focus active:bg-primary-active flex items-center justify-center size-sm disabled:bg-hover
+                    ${connected ? "hidden" : ""}`}>
 
                     {/* <KeyIcon className={`h-7 w-7 mr-2  ${isLoading? "hidden":""}`} /> */}
 
@@ -161,13 +175,25 @@ export default function UpdateController({onChangeOverlay}) {
                     onClick={flashFirmware}
                     loading={false}
                     disabled={false}
-                    className='w-full h-10 my-4 bg-primary text-text hover:bg-primary-hover focus:bg-primary-focus active:bg-primary-active flex items-center justify-center size-sm disabled:bg-hover'>
+                    className={`w-full h-10 my-4 bg-primary text-text hover:bg-primary-hover focus:bg-primary-focus 
+                      active:bg-primary-active flex items-center justify-center size-sm disabled:bg-hover
+                      ${!connected ? "hidden" : ""}`}>
 
                     {/* <KeyIcon className={`h-7 w-7 mr-2  ${isLoading? "hidden":""}`} /> */}
 
                     {/* Paste to Device */}
-                    <Typography variant="h6" className={`text-text font-sans normal-case font-semibold ${!connected ? "hidden" : ""}`}>Write</Typography>
+                    <Typography variant="h6" className={`text-text font-sans normal-case font-semibold`}>Write</Typography>
                 </Button>
+
+                <Typography variant="h6" className={`text-gray-700 text-sm text-center ${connected ? "hidden" : ""}`}>
+                  Hold down the button on your ToothPaste while plugging it in to a USB port to enter pairing mode. 
+                  Then click "Pair" and find the device in the list.
+                </Typography>
+
+                <Typography variant="h6" className={`text-gray-700 text-sm text-center ${status === UpdateStatus.COMPLETE ? "" : "hidden"}`}>
+                  Your ToothPaste has been updated successfully! Unplug and replug it to get started.
+                </Typography>
+
 
                 {error && (
                     <div style={{ marginTop: 20, color: 'red' }}>
