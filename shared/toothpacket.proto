@@ -47,6 +47,13 @@ message EncryptedData{
 
 }
 
+// Device Information 
+message InfoPacket{
+    string deviceID = 1;
+    string firmwareVersion = 2;
+}
+
+
 // Arbitrary String Data (processed based on packet type byte)
 message KeyboardPacket{
     string message = 1; // 190 bytes
