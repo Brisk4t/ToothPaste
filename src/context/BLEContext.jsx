@@ -12,8 +12,8 @@ import { Packet } from "../controllers/PacketFunctions.js";
 // import { toothpaste, DataPacket, EncryptedData, KeyboardPacket, MousePacket, RenamePacket, KeycodePacket } from '../controllers/toothpacket/toothpacket_pb.js';
 
 import * as ToothPacketPB from '../controllers/toothpacket/toothpacket_pb.js';
-const KeyboardPacket = new ToothPacketPB.proto.toothpaste.KeyboardPacket();
-const EncryptedData = new ToothPacketPB.proto.toothpaste.EncryptedData();
+// const KeyboardPacket = new ToothPacketPB.proto.toothpaste.KeyboardPacket();
+// const EncryptedData = new ToothPacketPB.proto.toothpaste.EncryptedData();
 
 
 export const BLEContext = createContext();

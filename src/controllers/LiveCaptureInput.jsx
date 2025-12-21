@@ -3,7 +3,7 @@ import { BLEContext } from "../context/BLEContext.jsx";
 import { ECDHContext } from "../context/ECDHContext.jsx";
 
 import * as ToothPacketPB from '../controllers/toothpacket/toothpacket_pb.js';
-const KeyboardPacket = new ToothPacketPB.proto.toothpaste.KeyboardPacket();
+// const KeyboardPacket = new ToothPacketPB.proto.toothpaste.KeyboardPacket();
 
 
 import {HIDMap} from "./HIDMap.js"

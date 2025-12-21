@@ -100,6 +100,7 @@ function ConnectionButton() {
     const { start, end, cancel, longPressed } = useClickOrLongPress(LONG_PRESS_DURATION);
     const [progress, setProgress] = useState(0);
     const [isEditing, setIsEditing] = useState(false);
+    const [wasLongPressed, setWasLongPressed] = useState(false);
     const intervalRef = useRef(null); // track interval across renders
     const longPressTriggered = useRef(false);
 
@@ -121,7 +122,7 @@ function ConnectionButton() {
 
     // Once isEditing becmes false, if the device name was changed by the user, notify the device
     useEffect(() => {
-        if (isEditing === false) {
+        if (isEditing === false && wasLongPressed) {
             // This runs only when isEditing becomes false
             console.log("Editing finished!");
             if(device?.name !== name){
@@ -130,6 +131,7 @@ function ConnectionButton() {
 
                 var renamePacket = createRenamePacket(name);
                 sendEncrypted(renamePacket) // 3 indicated a rename packet
+                setWasLongPressed(false);
             }
         }
     }, [isEditing, device?.name, name, sendEncrypted]); // Trigger whenever these change
@@ -151,6 +153,7 @@ function ConnectionButton() {
                 clearInterval(intervalRef.current);
                 intervalRef.current = null;
                 longPressTriggered.current = true;
+                wasLongPressed(true);
                 callback(); // long press action
             }
         }, 16);

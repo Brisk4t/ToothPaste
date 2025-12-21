@@ -4,8 +4,6 @@ import { ec as EC } from "elliptic";
 import { Packet } from "../controllers/PacketFunctions.js";
 
 import * as ToothPacketPB from '../controllers/toothpacket/toothpacket_pb.js';
-const DataPacket = new ToothPacketPB.proto.toothpaste.DataPacket();
-const EncryptedData = new ToothPacketPB.proto.toothpaste.EncryptedData();
 
 // import { DataPacket, EncryptedData } from '../controllers/toothpacket/toothpacket_pb.js';
 import { enc } from "crypto-js";

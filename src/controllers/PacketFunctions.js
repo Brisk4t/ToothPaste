@@ -1,7 +1,5 @@
-import React, { createContext, useContext, useState } from "react";
-
+import { create } from "@bufbuild/protobuf";
 import * as ToothPacketPB from '../controllers/toothpacket/toothpacket_pb.js';
-const mousePacket = new ToothPacketPB.proto.toothpaste.MousePacket();
 // import { EncryptedData, KeyboardPacket, MousePacket, RenamePacket, KeycodePacket, Frame, ConsumerControlPacket } from '../controllers/toothpacket/toothpacket_pb.js';
 
 // Base class for all packets (optional, for shared logic)
@@ -49,20 +47,20 @@ export class HandshakePacket extends Packet {
 // Return an EncryptedData packet containing a MousePacket
 export function createMousePacket(x, y, leftClick = false, rightClick = false) {
     const frame = new Frame();
-    frame.setX(x);
-    frame.setY(y);
+    frame.X(x);
+    frame.Y(y);
 
-    const mousePacket = new MousePacket();
+    const mousePacket = create(ToothPacketPB.MousePacketSchema, {});
     
-    mousePacket.setFramesList([frame]);
-    mousePacket.setNumFrames(1);
-    mousePacket.setLClick(leftClick);
-    mousePacket.setRClick(rightClick);
+    mousePacket.FramesList = [frame];
+    mousePacket.NumFrames = 1;
+    mousePacket.LClick = leftClick;
+    mousePacket.RClick = rightClick;
 
 
-    const encryptedPacket = new EncryptedData();
-    encryptedPacket.setPackettype(EncryptedData.PacketType.MOUSE);
-    encryptedPacket.setMousepacket(mousePacket);
+    const encryptedPacket = create(ToothPacketPB.EncryptedDataSchema, {});
+    encryptedPacket.Packettype = ToothPacketPB.EncryptedData_PacketType.MOUSE;
+    encryptedPacket.Mousepacket = mousePacket;
 
     return encryptedPacket
 }
@@ -73,24 +71,24 @@ export function createMouseStream(frames, leftClick = false, rightClick = false)
     
     console.log("List of frames to create mouse packet:", frames);
 
-    const mousePacket = new MousePacket();
+    const mousePacket = create(ToothPacketPB.MousePacketSchema, {});
     
     for (let frame of frames) {
-        const pbFrame = new Frame();
-        pbFrame.setX(Math.round(frame.x));
-        pbFrame.setY(Math.round(frame.y));
-        mousePacket.addFrames(pbFrame);
+        const pbFrame = create(ToothPacketPB.FrameSchema, {});
+        pbFrame.X(Math.round(frame.x));
+        pbFrame.Y(Math.round(frame.y));
+        mousePacket.FramesList.push(pbFrame);
     }
 
-    mousePacket.setNumFrames(frames.length);
-    mousePacket.setLClick(Number(leftClick));
-    mousePacket.setRClick(Number(rightClick));
+    mousePacket.NumFrames = frames.length;
+    mousePacket.LClick = Number(leftClick);
+    mousePacket.RClick = Number(rightClick);
 
     console.log("Creating mouse packet with frames:", mousePacket);
 
-    const encryptedPacket = new EncryptedData();
-    encryptedPacket.setPackettype(EncryptedData.PacketType.MOUSE);
-    encryptedPacket.setMousepacket(mousePacket);
+    const encryptedPacket = create(ToothPacketPB.EncryptedDataSchema, {});
+    encryptedPacket.Packettype = ToothPacketPB.EncryptedData_PacketType.MOUSE;
+    encryptedPacket.Mousepacket = mousePacket;
 
     return encryptedPacket
 }
@@ -100,52 +98,51 @@ export function createKeyboardPacket(keyString) {
 
     // Chunk long keyString into manageable pieces 
 
-    const keyboardPacket = new KeyboardPacket();
-    keyboardPacket.setMessage(keyString);
-    keyboardPacket.setLength(keyString.length);
+    const keyboardPacket = create(ToothPacketPB.KeyboardPacketSchema, {});
+    keyboardPacket.Message = keyString;
+    keyboardPacket.Length = keyString.length;
 
-    const encryptedPacket = new EncryptedData();
-    encryptedPacket.setPackettype(EncryptedData.PacketType.KEYBOARD_STRING);
-    encryptedPacket.setKeyboardpacket(keyboardPacket);
+    const encryptedPacket = create(ToothPacketPB.EncryptedDataSchema, {});
+    encryptedPacket.Packettype = ToothPacketPB.EncryptedData_PacketType.KEYBOARD_STRING;
+    encryptedPacket.Keyboardpacket = keyboardPacket;
 
     return encryptedPacket
 }
 
 // Return an EncryptedData packet containing a KeycodePacket
 export function createKeyCodePacket(keycode) {
-    const keycodePacket = new KeycodePacket();
-    keycodePacket.setCode(keycode);
-    keycodePacket.setLength(keycode.length);
+    const keycodePacket = create(ToothPacketPB.KeycodePacketSchema, {});
+    keycodePacket.Code = keycode;
+    keycodePacket.Length = keycode.length;
 
-    const encryptedPacket = new EncryptedData();
-    encryptedPacket.setPackettype(EncryptedData.PacketType.KEYBOARD_KEYCODE);
-    encryptedPacket.setKeycodepacket(keycodePacket);
-
+    const encryptedPacket = create(ToothPacketPB.EncryptedDataSchema, {});
+    encryptedPacket.Packettype = ToothPacketPB.EncryptedData_PacketType.KEYBOARD_KEYCODE;
+    encryptedPacket.Keycodepacket = keycodePacket;
     return encryptedPacket
 }
 
 // Return an EncryptedData packet containing a RenamePacket
 export function createRenamePacket(newName) {
-    const renamePacket = new RenamePacket();
-    renamePacket.setMessage(newName);
-    renamePacket.setLength(newName.length);
+    const renamePacket = create(ToothPacketPB.RenamePacketSchema, {});
+    renamePacket.Message = newName;
+    renamePacket.Length = newName.length;
 
-    const encryptedPacket = new EncryptedData();
-    encryptedPacket.setPackettype(EncryptedData.PacketType.RENAME);
-    encryptedPacket.setRenamepacket(renamePacket);
+    const encryptedPacket = create(ToothPacketPB.EncryptedDataSchema, {});
+    encryptedPacket.Packettype = ToothPacketPB.EncryptedData_PacketType.RENAME;
+    encryptedPacket.Renamepacket = renamePacket;
 
     return encryptedPacket;
 }
 
 // Return an EncryptedData packet containing a RenamePacket
 export function createConsumerControlPacket(code) {
-    const controlPacket = new ConsumerControlPacket();
-    controlPacket.addCode(code);
-    controlPacket.setLength(1);
+    const controlPacket = create(ToothPacketPB.ConsumerControlPacketSchema, {});
+    controlPacket.code = code;
+    controlPacket.Length = 1;
 
-    const encryptedPacket = new EncryptedData();
-    encryptedPacket.setPackettype(EncryptedData.PacketType.CONSUMER_CONTROL);
-    encryptedPacket.setConsumercontrolpacket(controlPacket);
+    const encryptedPacket = create(ToothPacketPB.EncryptedDataSchema, {});
+    encryptedPacket.Packettype = ToothPacketPB.EncryptedData_PacketType.CONSUMER_CONTROL;
+    encryptedPacket.Consumercontrolpacket = controlPacket;
 
     return encryptedPacket;
 }

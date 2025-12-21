@@ -1,9 +1,13 @@
 /* @import "tailwindcss"; */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 
-.body {
+@import "tailwindcss/base";
+
+@import "tailwindcss/components";
+
+@import "tailwindcss/utilities";
+
+
+body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
@@ -12,7 +16,7 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-.code {
+code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
