@@ -1,14 +1,12 @@
-import React, { useEffect, useRef, useState, useContext, useCallback } from "react";
+import React, { useEffect, useRef, useState, useContext, useCallback, useMemo } from "react";
 
 import { Button, Typography } from "@material-tailwind/react";
 import { CursorArrowRaysIcon, PowerIcon, ArrowUpOnSquareStackIcon, PlayPauseIcon, ChevronDoubleUpIcon, ChevronDoubleDownIcon, ForwardIcon, BackwardIcon} from "@heroicons/react/24/outline";
 import { BLEContext } from "../context/BLEContext";
-import "../components/CustomTyping/CustomTyping.css"; // We'll define animations here
+//import "../components/CustomTyping/CustomTyping.css"; // We'll define animations here
 import Keyboard from "../components/Keyboard/Keyboard";
 import { useInputController } from "../controllers/LiveCaptureInput";
 
-import { ReactComponent as AppleLogo } from "../assets/appleLogo.svg";
-import { ReactComponent as WindowsLogo } from "../assets/windowsLogo.svg";
 import { createConsumerControlPacket, createKeyCodePacket, createMouseStream } from "../controllers/PacketFunctions";
 
 export default function LiveCapture() {
@@ -43,16 +41,20 @@ export default function LiveCapture() {
 
     const displacementList = useRef([]);
 
-    // Mouse polling logic
-    setInterval(() => {
-        //if (captureMouse && (tDisplacement.current.x !== 0 || tDisplacement.current.y !== 0)) {
-        if (displacementList.current.length > 0) {
-            //console.log("Sending mouse report: ", tDisplacement.current);
-            console.log("Sending mouse report: ", displacementList.current);
-            //sendMouseReport(tDisplacement.current.x, tDisplacement.current.y, false, false);
-            sendMouseReport(false, false);
-        }
-    }, REPORT_INTERVAL_MS);
+    // Mouse polling logic - wrapped in useEffect to prevent memory leaks in React 19
+    useEffect(() => {
+        const intervalId = setInterval(() => {
+            //if (captureMouse && (tDisplacement.current.x !== 0 || tDisplacement.current.y !== 0)) {
+            if (displacementList.current.length > 0) {
+                //console.log("Sending mouse report: ", tDisplacement.current);
+                console.log("Sending mouse report: ", displacementList.current);
+                //sendMouseReport(tDisplacement.current.x, tDisplacement.current.y, false, false);
+                sendMouseReport(false, false);
+            }
+        }, REPORT_INTERVAL_MS);
+
+        return () => clearInterval(intervalId);
+    }, [captureMouse, sendMouseReport]);
 
     // On click logic
     function onMouseDown(e) {
@@ -199,7 +201,7 @@ export default function LiveCapture() {
                 Icon={Icon}
             />
         );
-}
+    }
 
     // Toggle capturing and sending mouse data
     function CaptureMouseButton() {

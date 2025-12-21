@@ -1,6 +1,6 @@
 import React, { useState, useContext } from "react";
 import "./index.css";
-import "./styles/global.css"; // Ensure global styles are applied
+//import "./styles/global.css"; // Ensure global styles are applied
 import Navbar from "./components/Navigation/Navbar";
 import BulkSend from "./views/BulkSend";
 import LiveCapture from "./views/LiveCapture";

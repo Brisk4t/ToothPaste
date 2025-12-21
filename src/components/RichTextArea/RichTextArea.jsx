@@ -7,7 +7,7 @@ import {
   ListItem,
   IconButton,
   Typography,
-  ListItemPrefix,
+  ListItemStart,
 } from "@material-tailwind/react";
  
 // lexical
@@ -255,7 +255,7 @@ function BlockOptionsDropdownList({
         className="rounded-md py-2"
         onClick={formatParagraph}
       >
-        <ListItemPrefix>
+        <ListItemStart>
           <svg
             strokeWidth="1.5"
             viewBox="0 0 24 24"
@@ -279,7 +279,7 @@ function BlockOptionsDropdownList({
               strokeLinejoin="round"
             ></path>
           </svg>
-        </ListItemPrefix>
+        </ListItemStart>
         Normal
       </ListItem>
       <ListItem
@@ -287,7 +287,7 @@ function BlockOptionsDropdownList({
         className="rounded-md py-2"
         onClick={formatLargeHeading}
       >
-        <ListItemPrefix>
+        <ListItemStart>
           <svg
             strokeWidth="1.5"
             viewBox="0 0 24 24"
@@ -318,7 +318,7 @@ function BlockOptionsDropdownList({
               strokeLinejoin="round"
             ></path>
           </svg>
-        </ListItemPrefix>
+        </ListItemStart>
         Large Heading
       </ListItem>
       <ListItem
@@ -326,7 +326,7 @@ function BlockOptionsDropdownList({
         className="rounded-md py-2"
         onClick={formatSmallHeading}
       >
-        <ListItemPrefix>
+        <ListItemStart>
           <svg
             viewBox="0 0 24 24"
             strokeWidth="1.5"
@@ -364,7 +364,7 @@ function BlockOptionsDropdownList({
               strokeLinejoin="round"
             ></path>
           </svg>
-        </ListItemPrefix>
+        </ListItemStart>
         Small Heading
       </ListItem>
       <ListItem
@@ -372,7 +372,7 @@ function BlockOptionsDropdownList({
         className="rounded-md py-2"
         onClick={formatBulletList}
       >
-        <ListItemPrefix>
+        <ListItemStart>
           <svg
             strokeWidth="1.5"
             viewBox="0 0 24 24"
@@ -424,7 +424,7 @@ function BlockOptionsDropdownList({
               strokeLinejoin="round"
             ></path>
           </svg>
-        </ListItemPrefix>
+        </ListItemStart>
         Bullet List
       </ListItem>
       <ListItem
@@ -432,7 +432,7 @@ function BlockOptionsDropdownList({
         className="rounded-md py-2"
         onClick={formatNumberedList}
       >
-        <ListItemPrefix>
+        <ListItemStart>
           <svg
             viewBox="0 0 24 24"
             strokeWidth="1.5"
@@ -491,7 +491,7 @@ function BlockOptionsDropdownList({
               strokeLinejoin="round"
             ></path>
           </svg>
-        </ListItemPrefix>
+        </ListItemStart>
         Numbered List
       </ListItem>
       <ListItem
@@ -499,7 +499,7 @@ function BlockOptionsDropdownList({
         className="rounded-md py-2"
         onClick={formatQuote}
       >
-        <ListItemPrefix>
+        <ListItemStart>
           <svg
             className="h-5 w-5"
             strokeWidth="1.5"
@@ -521,7 +521,7 @@ function BlockOptionsDropdownList({
               strokeLinecap="round"
             ></path>
           </svg>
-        </ListItemPrefix>
+        </ListItemStart>
         Quote
       </ListItem>
       <ListItem
@@ -529,7 +529,7 @@ function BlockOptionsDropdownList({
         className="rounded-md py-2"
         onClick={formatCode}
       >
-        <ListItemPrefix>
+        <ListItemStart>
           <svg
             strokeWidth="1.5"
             viewBox="0 0 24 24"
@@ -560,7 +560,7 @@ function BlockOptionsDropdownList({
               strokeLinejoin="round"
             ></path>
           </svg>
-        </ListItemPrefix>
+        </ListItemStart>
         Code
       </ListItem>
     </List>
@@ -869,7 +869,7 @@ function ToolbarPlugin() {
       {supportedBlockTypes.has(blockType) && (
         <>
           <Button
-            variant="text"
+            //variant="text"
             onClick={() =>
               setShowBlockOptionsDropDown(!showBlockOptionsDropDown)
             }
@@ -915,7 +915,8 @@ function ToolbarPlugin() {
       ) : (
         <>
           <IconButton
-            variant={isBold ? "filled" : "text"}
+            //variant={isBold ? "filled" : "text"}
+            variant = "solid"
             onClick={() => {
               editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold");
             }}
@@ -938,7 +939,9 @@ function ToolbarPlugin() {
             </svg>
           </IconButton>
           <IconButton
-            variant={isItalic ? "filled" : "text"}
+            //variant={isItalic ? "filled" : "text"}
+            variant = "solid"
+
             onClick={() => {
               editor.dispatchCommand(FORMAT_TEXT_COMMAND, "italic");
             }}
@@ -963,7 +966,8 @@ function ToolbarPlugin() {
             </svg>
           </IconButton>
           <IconButton
-            variant={isCode ? "filled" : "text"}
+            //variant={isCode ? "filled" : "text"}
+            variant = "solid"
             onClick={() => {
               editor.dispatchCommand(FORMAT_TEXT_COMMAND, "code");
             }}
@@ -1003,7 +1007,8 @@ function ToolbarPlugin() {
           </IconButton>
           <IconButton
             onClick={insertLink}
-            variant={isLink ? "filled" : "text"}
+            //variant={isLink ? "filled" : "text"}
+            variant = "solid"
             aria-label="Insert Link"
             className= "text-text"
           >

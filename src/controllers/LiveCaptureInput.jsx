@@ -1,7 +1,11 @@
 import { useRef, useState, useEffect, useCallback, useContext } from 'react';
-import { BLEContext } from "../context/BLEContext";
-import { ECDHContext } from "../context/ECDHContext";
-import { KeyboardPacket } from '../controllers/toothpacket/toothpacket_pb.js';
+import { BLEContext } from "../context/BLEContext.jsx";
+import { ECDHContext } from "../context/ECDHContext.jsx";
+
+import * as ToothPacketPB from '../controllers/toothpacket/toothpacket_pb.js';
+const KeyboardPacket = new ToothPacketPB.proto.toothpaste.KeyboardPacket();
+
+
 import {HIDMap} from "./HIDMap.js"
 import { createKeyboardPacket, createKeyCodePacket } from './PacketFunctions.js';
 

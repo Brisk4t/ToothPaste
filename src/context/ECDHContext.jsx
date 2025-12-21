@@ -1,8 +1,13 @@
-import React, { createContext, useState, useEffect, useRef } from "react";
-import { saveBase64, loadBase64 } from "../controllers/Storage";
+import React, { createContext, useState, useEffect, useRef, useMemo } from "react";
+import { saveBase64, loadBase64 } from "../controllers/Storage.js";
 import { ec as EC } from "elliptic";
-import { Packet } from "../controllers/PacketFunctions";
-import { toothpaste, DataPacket, EncryptedData } from '../controllers/toothpacket/toothpacket_pb.js';
+import { Packet } from "../controllers/PacketFunctions.js";
+
+import * as ToothPacketPB from '../controllers/toothpacket/toothpacket_pb.js';
+const DataPacket = new ToothPacketPB.proto.toothpaste.DataPacket();
+const EncryptedData = new ToothPacketPB.proto.toothpaste.EncryptedData();
+
+// import { DataPacket, EncryptedData } from '../controllers/toothpacket/toothpacket_pb.js';
 import { enc } from "crypto-js";
 
 const ec = new EC("p256"); // Define the elliptic curve (secp256r1)
@@ -276,23 +281,23 @@ export const ECDHProvider = ({ children }) => {
     };
 
     // Context Provider return
+    const contextValue = useMemo(() => ({
+        keyPair,
+        generateECDHKeyPair,
+        saveSelfKeys: saveKeys,
+        compressKey,
+        decompressKey,
+        importPeerPublicKey,
+        deriveKey,
+        savePeerPublicKey,
+        encryptText,
+        decryptText,
+        createEncryptedPackets,
+        loadKeys,
+    }), []);
+
     return (
-        <ECDHContext.Provider
-            value={{
-                keyPair,
-                generateECDHKeyPair,
-                saveSelfKeys: saveKeys,
-                compressKey,
-                decompressKey,
-                importPeerPublicKey,
-                deriveKey,
-                savePeerPublicKey,
-                encryptText,
-                decryptText,
-                createEncryptedPackets,
-                loadKeys,
-            }}
-        >
+        <ECDHContext.Provider value={contextValue}>
             {children}
         </ECDHContext.Provider>
     );

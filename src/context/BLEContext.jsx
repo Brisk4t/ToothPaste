@@ -4,11 +4,17 @@ import React, {
     useState,
     useRef,
     useEffect,
+    useMemo,
 } from "react";
-import { keyExists, loadBase64 } from "../controllers/Storage";
-import { ECDHContext } from "./ECDHContext";
-import { Packet } from "../controllers/PacketFunctions";
-import { toothpaste, DataPacket, EncryptedData, KeyboardPacket, MousePacket, RenamePacket, KeycodePacket } from '../controllers/toothpacket/toothpacket_pb.js';
+import { keyExists, loadBase64 } from "../controllers/Storage.js";
+import { ECDHContext } from "./ECDHContext.jsx";
+import { Packet } from "../controllers/PacketFunctions.js";
+// import { toothpaste, DataPacket, EncryptedData, KeyboardPacket, MousePacket, RenamePacket, KeycodePacket } from '../controllers/toothpacket/toothpacket_pb.js';
+
+import * as ToothPacketPB from '../controllers/toothpacket/toothpacket_pb.js';
+const KeyboardPacket = new ToothPacketPB.proto.toothpaste.KeyboardPacket();
+const EncryptedData = new ToothPacketPB.proto.toothpaste.EncryptedData();
+
 
 export const BLEContext = createContext();
 export const useBLEContext = () => useContext(BLEContext);
@@ -256,19 +262,19 @@ export function BLEProvider({ children }) {
     const getCharacteristicWithRetry = async (service, characteristicUUID, attempts = 3) =>
         retryAsyncCall((characteristicUUID) => service.getCharacteristic(characteristicUUID), characteristicUUID, attempts, "Retrying characteristic discovery...");
 
+    const contextValue = useMemo(() => ({
+        device,
+        server,
+        pktCharacteristic,
+        status,
+        connectToDevice,
+        readyToReceive,
+        sendEncrypted,
+        sendUnencrypted,
+    }), [device, server, pktCharacteristic, status, connectToDevice, readyToReceive, sendEncrypted, sendUnencrypted]);
+
     return (
-        <BLEContext.Provider
-            value={{
-                device,
-                server,
-                pktCharacteristic,
-                status,
-                connectToDevice,
-                readyToReceive,
-                sendEncrypted,
-                sendUnencrypted
-            }}
-        >
+        <BLEContext.Provider value={contextValue}>
             {children}
         </BLEContext.Provider>
     );

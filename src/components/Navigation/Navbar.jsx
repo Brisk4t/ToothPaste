@@ -132,7 +132,7 @@ function ConnectionButton() {
                 sendEncrypted(renamePacket) // 3 indicated a rename packet
             }
         }
-    }, [isEditing]); // Trigger whenever isEditing changes
+    }, [isEditing, device?.name, name, sendEncrypted]); // Trigger whenever these change
 
     // Wrapper for start that also increments progress
     const handleStart = (callback) => {
@@ -226,7 +226,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                 onChangeOverlay(null);
                 break;
         }
-    })
+    }, [activeOverlay, status, onChangeOverlay]);
     return (
         <div className="w-full bg-shelf text-white">
             <div className="flex justify-between h-24 items-center px-4">

@@ -158,7 +158,7 @@ const Keyboard = ({ keyhistoryref, deviceStatus }) => {
 
         return (
             <Button
-                variant="outlined"
+                variant="outline"
                 onClick={handleToggle}
                 className={`p-3 border border-hover text-text 
                     ${showKeyboard ? "bg-white text-shelf" : "bg-shelf "}`}

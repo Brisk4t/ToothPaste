@@ -157,7 +157,7 @@ const Keyboard = ({ listenerRef, deviceStatus }) => {
 
         return (
             <Button
-                variant="outlined"
+                variant="outline"
                 onClick={handleToggle}
                 className={`hidden lg:block p-3 border border-gray-500 text-text 
                     ${showKeyboard ? "bg-white text-shelf" : "bg-shelf "}`}

@@ -2,15 +2,14 @@
   height: calc(100vh - 14rem); /* Dynamic height like your textarea */
   width: 100%;
   padding: 15px;
-  color: var(--color-text);
+  color:#FFFF;
   font-family: 'Inter', sans-serif;
-  border: 1px solid var(--color-hover);
+  border: 1px solid;
   border-radius: 8px;
   font-size: 1.2rem;
   line-height: 1.25;
   overflow-y: auto;
   position: relative;
-  cursor: text;
   box-sizing: border-box;
   white-space: pre-wrap; /* Preserve whitespace and newlines */
   word-break: break-word;
@@ -29,7 +28,7 @@
 .custom-caret {
   width: 2px;
   height: 1em;
-  background-color: currentColor;
+  background-color: #FFFF;
   display: inline-block;
   vertical-align: text-bottom; /* or use middle or bottom as needed */
   animation: blink 1.5s ease-in infinite;

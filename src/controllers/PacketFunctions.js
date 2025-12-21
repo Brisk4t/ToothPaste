@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState } from "react";
-import { toothpaste, DataPacket, EncryptedData, KeyboardPacket, MousePacket, RenamePacket, KeycodePacket, Frame, ConsumerControlPacket } from '../controllers/toothpacket/toothpacket_pb.js';
+
+import * as ToothPacketPB from '../controllers/toothpacket/toothpacket_pb.js';
+const mousePacket = new ToothPacketPB.proto.toothpaste.MousePacket();
+// import { EncryptedData, KeyboardPacket, MousePacket, RenamePacket, KeycodePacket, Frame, ConsumerControlPacket } from '../controllers/toothpacket/toothpacket_pb.js';
 
 // Base class for all packets (optional, for shared logic)
 export class Packet {
