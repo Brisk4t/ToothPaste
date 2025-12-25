@@ -2,7 +2,7 @@ import React, { createContext, useState, useEffect, useRef, useMemo } from "reac
 import { saveBase64, loadBase64 } from "../controllers/Storage.js";
 import { ec as EC } from "elliptic";
 import { Packet } from "../controllers/PacketFunctions.js";
-import { create } from "@bufbuild/protobuf";
+import { create, toBinary, fromBinary } from "@bufbuild/protobuf";
 
 import * as ToothPacketPB from '../controllers/toothpacket/toothpacket_pb.js';
 
@@ -209,10 +209,10 @@ export const ECDHProvider = ({ children }) => {
         const tag = encryptedBytes.slice(ciphertextLength);
 
         var dataPacket = create(ToothPacketPB.DataPacketSchema, {});
-        dataPacket.Encrypteddata = ciphertext;
-        dataPacket.Datalen = ciphertextLength;
-        dataPacket.Iv = iv;
-        dataPacket.Tag = tag;
+        dataPacket.encryptedData = ciphertext;
+        dataPacket.dataLen = ciphertextLength;
+        dataPacket.iv = iv;
+        dataPacket.tag = tag;
 
         return dataPacket;
     };
@@ -230,22 +230,23 @@ export const ECDHProvider = ({ children }) => {
     // create and encrypt packet -> returns an iterator of one or more packets where payload size < max_data_size
     const createEncryptedPackets = async function* (id, payload, slowMode = true, packetPrefix=0) {
         // Ensure payload is EncryptedData instance
-        if(!(payload instanceof EncryptedData)){
-            throw new Error("Payload is not an EncryptedData instance");
-        }
+        // if(!(payload instanceof EncryptedData)){
+        //     throw new Error("Payload is not an EncryptedData instance");
+        // }
         
         // Serialize payload to Uint8Array
-        const byteArray = payload.serializeBinary();
+        //const byteArray = payload.serializeBinary();
+        const byteArray = toBinary(ToothPacketPB.EncryptedDataSchema, payload);
         var data = new Uint8Array(byteArray);
         
         //const aad = new Uint8Array([chunkNumber, totalChunks]);
         const encryptedPacket = await encryptText(data, null); // Encrypt the encryptedData component of a ToothPacket and get DataPacket
         
         // Set packet metadata
-        encryptedPacket.setPacketid(id);
-        encryptedPacket.setSlowmode(slowMode);
-        encryptedPacket.setPacketnumber(1);
-        encryptedPacket.setTotalpackets(1);
+        encryptedPacket.packetID = id;
+        encryptedPacket.slowMode = slowMode;
+        encryptedPacket.packetNumber = 1;
+        encryptedPacket.totalPackets = 1;
 
         yield encryptedPacket;
 

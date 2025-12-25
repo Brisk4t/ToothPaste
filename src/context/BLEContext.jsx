@@ -62,22 +62,27 @@ export function BLEProvider({ children }) {
 
     // Send a text string as a byte array without encryption
     const sendUnencrypted = async (inputString) => {
+        console.log("Sending unencrypted data:", inputString);
         try {
             const encoder = new TextEncoder();
             const textData = encoder.encode(inputString); // Encode the input string into a byte array
 
             // protobuf packets
             const unencryptedPacket = create(ToothPacketPB.DataPacketSchema, {});
-            unencryptedPacket.Encrypteddata = textData;
-            unencryptedPacket.Packetid = 1;
-            unencryptedPacket.Slowmode = true;
-            unencryptedPacket.Packetnumber = 1;
-            unencryptedPacket.Datalen = textData.length;
-            unencryptedPacket.Tag = new Uint8Array(16); // Empty tag for unencrypted packet
-            unencryptedPacket.Iv = new Uint8Array(12); // Empty IV for unencrypted packet
+            unencryptedPacket.encryptedData = textData;
+            unencryptedPacket.packetID = 1;
+            unencryptedPacket.slowMode = true;
+            unencryptedPacket.packetNumber = 1;
+            unencryptedPacket.dataLen = textData.length;
+            unencryptedPacket.tag = new Uint8Array(16); // Empty tag for unencrypted packet
+            unencryptedPacket.iv = new Uint8Array(12); // Empty IV for unencrypted packet
 
-            await pktCharRef.current.writeValueWithoutResponse(toBinary(ToothPacketPB.DataPacketSchema, unencryptedPacket));
-            //await pktCharRef.current.writeValueWithoutResponse(packetData);
+            console.log("Unencrypted Packet:", unencryptedPacket);
+            const packetData = toBinary(ToothPacketPB.DataPacketSchema, unencryptedPacket);
+
+            console.log("Packet data to send:", packetData);
+
+            await pktCharRef.current.writeValueWithoutResponse(packetData);
         } catch (error) {
             console.error("Error sending AUTH packet", error);
         }
@@ -88,10 +93,10 @@ export function BLEProvider({ children }) {
     const sendEncrypted = async (inputPayload, prefix=0) => {
         if (!pktCharacteristic) return;
 
-        if (!(inputPayload instanceof EncryptedData)) {
-            console.error("Input payload is not an EncryptedData packet");
-            return;
-        }
+        // if (!(inputPayload instanceof ToothPacketPB.EncryptedDataSchema)) {
+        //     console.error("Input payload is not an EncryptedData packet");
+        //     return;
+        // }
 
         try {
             var count = 0;
