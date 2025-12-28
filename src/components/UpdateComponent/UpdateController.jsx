@@ -106,7 +106,7 @@ export default function UpdateController({onChangeOverlay}) {
   };
 
   return (
-        <div className="fixed inset-0 bg-hover/50 flex flex-col justify-center items-center z-[9999]" onClick={() => onChangeOverlay(null)}>
+        <div className="fixed inset-0 bg-hover/80 flex flex-col justify-center items-center z-[9999]" onClick={() => onChangeOverlay(null)}>
             <div className="bg-shelf p-5 rounded-lg w-11/12 max-w-md flex flex-col justify-center items-center shadow-lg relative" onClick={(e) => e.stopPropagation()}>
                 {/* Close Button*/}
                 <button
@@ -120,7 +120,9 @@ export default function UpdateController({onChangeOverlay}) {
                     <span className="text-text">Update Your ToothPaste</span>
                 </Typography>
                             
-               <Progress value={progress} className="w-full my-2 bg-hover" barProps={{className: "bg-primary"}} label="" />
+               <Progress value={progress} className="w-full my-2 bg-hover" barProps={{className: "bg-primary"}} label="">
+                    <Progress.Bar />
+                </Progress>
 
                 <Button
                     // ref={keyRef}

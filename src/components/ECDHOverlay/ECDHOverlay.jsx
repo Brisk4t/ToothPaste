@@ -85,46 +85,13 @@ const ECDHOverlay = ({ onChangeOverlay }) => {
     }, []); 
 
     return (
-        <div style={{
-            position: 'fixed',
-            top: 0, left: 0,
-            width: '100vw', height: '100vh',
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            
-            display: 'flex',
-            flexDirection:"column",
-            justifyContent: 'center',
-            alignItems:'center',
-
-            zIndex: 9999,
-        }}>
-            <div style={{
-                background: 'var(--color-shelf)',
-                padding: 20,
-                borderRadius: 8,
-                width: '90%',
-                maxWidth: 500,
-                
-                display: 'flex',
-                flexDirection:"column",
-
-                justifyContent: 'center',
-                alignItems:'center',
-                boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
-                position: 'relative'
-            }}>
+        <div className="fixed inset-0 bg-hover/60 flex flex-col justify-center items-center z-[9999]" onClick={() => onChangeOverlay(null)}>
+            <div className="bg-shelf p-5 rounded-lg w-11/12 max-w-lg flex flex-col justify-center items-center shadow-lg relative" onClick={(e) => e.stopPropagation()}>
                 {/* Close Button*/}
                 <button
                     onClick={() => onChangeOverlay(null)}
-                    style={{
-                        position: 'absolute',
-                        top: 10,
-                        right: 10,
-                        background: 'none',
-                        border: 'none',
-                        fontSize: 20,
-                        cursor: 'pointer'
-                    }}>
+                    className="absolute top-2.5 right-2.5 bg-transparent border-0 text-2xl cursor-pointer text-text"
+                >
                 ×
                 </button>
 
@@ -139,7 +106,7 @@ const ECDHOverlay = ({ onChangeOverlay }) => {
                     value={keyInput}
                     onChange={(e) => setkeyInput(e.target.value)}
                     onKeyDown={handleSubmit}
-                    className='w-full h-10 opacity-1 color-text bg-shelf border border-hover rounded-md p-2 my-4 focus:outline-none focus:border-primary-hover focus:ring-1 focus:ring-primary-hover'
+                    className='w-full h-10 opacity-1 color-text bg-shelf border border-3 border-hover rounded-md p-2 my-4 focus:outline-none focus:border-primary focus:ring-primary-hover'
                 />
 
                 <Button
@@ -147,7 +114,7 @@ const ECDHOverlay = ({ onChangeOverlay }) => {
                     onClick={handleSubmit}
                     loading={isLoading.toString()}
                     disabled={keyInput.trim().length < 44 || !pktCharacteristic || isLoading}
-                    className='w-full h-10 my-4 bg-primary text-text hover:bg-primary-hover focus:bg-primary-focus active:bg-primary-active flex items-center justify-center size-sm disabled:bg-hover'>
+                    className='w-full h-10 my-4 bg-primary text-text hover:bg-primary-hover focus:bg-primary-focus active:bg-primary-active flex items-center justify-center size-sm'>
 
                     <KeyIcon className={`h-7 w-7 mr-2  ${isLoading? "hidden":""}`} />
 
@@ -155,8 +122,26 @@ const ECDHOverlay = ({ onChangeOverlay }) => {
                     <Typography variant="h6" className={`text-text font-sans normal-case font-semibold ${isLoading? "hidden":""}`}>Pair</Typography>
                 </Button>
 
+                <Typography variant="h6" className={`text-text text-sm text-center mb-5`}>
+                    How to Pair your ToothPaste Device:
+                </Typography>
+
+                <Typography variant="h6" className={`text-text text-sm text-left mb-1`}> 
+                    1. Click the Pairing Key text input above to highlight it.
+                </Typography>
+
+                <Typography variant="h6" className={`text-text text-sm text-center mb-10`}>
+                    2. Hold the Button on your ToothPaste for 10 seconds until the LED starts blinking.
+                </Typography>
+
+
+
+                <Typography variant="h6" className={`text-primary text-sm text-center mt-2`}>     
+                    The device will input the pairing key into the text box, wait for it finish and the device will be paired.  
+                </Typography>
+
                 {error && (
-                    <div style={{ marginTop: 20, color: 'red' }}>
+                    <div className="mt-5 text-red-500">
                         {error}
                     </div>
                 )}
