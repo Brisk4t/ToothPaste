@@ -43,6 +43,7 @@ message EncryptedData{
         MousePacket  mousePacket = 4;
         RenamePacket  renamePacket = 5;
         ConsumerControlPacket consumerControlPacket = 6;
+        MouseJigglePacket mouseJigglePacket = 7;
     }
 
 }

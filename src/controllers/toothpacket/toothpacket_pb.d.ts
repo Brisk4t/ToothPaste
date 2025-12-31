@@ -145,6 +145,12 @@ export declare type EncryptedData = Message<"toothpaste.EncryptedData"> & {
      */
     value: ConsumerControlPacket;
     case: "consumerControlPacket";
+  } | {
+    /**
+     * @generated from field: toothpaste.MouseJigglePacket mouseJigglePacket = 7;
+     */
+    value: MouseJigglePacket;
+    case: "mouseJigglePacket";
   } | { case: undefined; value?: undefined };
 };
 

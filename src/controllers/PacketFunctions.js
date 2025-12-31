@@ -171,3 +171,19 @@ export function createConsumerControlPacket(code) {
 
     return encryptedPacket;
 }
+
+// Return an EncryptedData packet containing a MouseJigglePacket
+export function createMouseJigglePacket(enable) {
+    const jigglePacket = create(ToothPacketPB.MouseJigglePacketSchema, {});
+    jigglePacket.enable = enable;
+
+    const encryptedPacket = create(ToothPacketPB.EncryptedDataSchema, {
+        packetType: ToothPacketPB.EncryptedData_PacketType.COMPOSITE,
+        packetData: {
+        case: "mouseJigglePacket",
+        value: jigglePacket,
+        },
+    });
+
+    return encryptedPacket;
+}

@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState, useContext, useCallback, useMemo } from "react";
 
 import { Button, Typography } from "@material-tailwind/react";
-import { CursorArrowRaysIcon, PowerIcon, ArrowUpOnSquareStackIcon, PlayPauseIcon, ChevronDoubleUpIcon, ChevronDoubleDownIcon, ForwardIcon, BackwardIcon} from "@heroicons/react/24/outline";
+import { CursorArrowRaysIcon, CursorArrowRippleIcon, PowerIcon, ArrowUpOnSquareStackIcon, PlayPauseIcon, ChevronDoubleUpIcon, ChevronDoubleDownIcon, ForwardIcon, BackwardIcon} from "@heroicons/react/24/outline";
 import { BLEContext } from "../context/BLEContext";
 //import "../components/CustomTyping/CustomTyping.css"; // We'll define animations here
 import Keyboard from "../components/Keyboard/Keyboard";
 import { useInputController } from "../controllers/LiveCaptureInput";
 
-import { createConsumerControlPacket, createKeyCodePacket, createMouseStream } from "../controllers/PacketFunctions";
+import { createConsumerControlPacket, createKeyCodePacket, createMouseStream, createMouseJigglePacket } from "../controllers/PacketFunctions";
 
 export default function LiveCapture() {
     // Input controller hooks
@@ -26,6 +26,7 @@ export default function LiveCapture() {
     } = useInputController();
 
     const [macMode, setMacMode] = useState(false); // Does WIN key send WIN or COMMAND key
+    const [jiggling, setJiggling] = useState(false);
 
     // Contexts
     const { status, sendEncrypted } = useContext(BLEContext);
@@ -38,6 +39,8 @@ export default function LiveCapture() {
     const REPORT_INTERVAL_MS = 100;
     const SCALE_FACTOR = 0.2; // Scale factor for mouse movement
     const [captureMouse, setCaptureMouse] = useState(false);
+
+    
 
     const displacementList = useRef([]);
 
@@ -165,11 +168,11 @@ export default function LiveCapture() {
 
     // Reusable IconToggleButton component
     function IconToggleButton({
-        title,
-        toggled,
-        onClick,
-        Icon,
-        className = ""
+        title, // Tooltip text
+        toggled, // Set the button UI state
+        onClick, // Click handler
+        Icon, // Icon component
+        className = "" // Additional classes
     }) {
         return (
             <div
@@ -226,6 +229,24 @@ export default function LiveCapture() {
                 toggled={commandPassthrough}
                 onClick={handleToggle}
                 Icon={ArrowUpOnSquareStackIcon}
+            />
+        );
+    }
+
+    // Toggle how pasting and other command shortcuts are handled
+    function MouseJiggleButton() {
+        const handleToggle = () => {
+            const mouseJigglePacket = createMouseJigglePacket(!jiggling);
+            sendEncrypted(mouseJigglePacket);
+            setJiggling((prev) => !prev);
+        };
+
+        return (
+            <IconToggleButton
+                title="Start / Stop Mouse Jiggling"
+                toggled={jiggling}
+                onClick={handleToggle}
+                Icon={CursorArrowRippleIcon}
             />
         );
     }
@@ -302,6 +323,7 @@ export default function LiveCapture() {
                     Icon={PowerIcon} 
                     onClick={() => sendControlCode(0x0030)} 
                 />
+                <MouseJiggleButton />
 
             </div>
         );
