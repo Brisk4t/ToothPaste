@@ -90,19 +90,27 @@ export default function About() {
 
     return (
         <div ref={containerRef} className="w-full bg-background text-text overflow-hidden fixed inset-0">
-            {/* Fixed 3D Model Container */}
-            <div className="absolute inset-0 md:col-span-7 flex justify-center pointer-events-none z-0">
-                <div className="relative w-full aspect-square bg-none from-primary to-primary-hover rounded-3xl flex items-center justify-center overflow-hidden">
-                    <Canvas style={{ width: '70vw', height: '70vh' }}>
-                        <ambientLight intensity={3}/>
-                        <directionalLight
-                            position={[0, 2, 5]}  // X, Y, Z in front of the model
-                            intensity={1}       // Adjust brightness
-                            castShadow
-                        />
-                        
-                        <Model url="/ToothPaste.glb" scrollProgress={scrollProgress} />
-                    </Canvas>
+            {/* 3D Model Container - Dynamic positioning and brightness */}
+            <div 
+                className="absolute inset-0 pointer-events-none transition-all duration-500"
+                style={{
+                  zIndex: currentSlide === 0 ? 5 : 0,
+                  opacity: currentSlide === 0 ? 1 : 0.3,
+                }}
+            >
+                <div className={`relative w-full h-full flex items-center transition-all duration-500 ${currentSlide === 0 ? 'md:justify-start md:pl-0' : 'md:justify-center'}`}>
+                    <div className={`relative transition-all duration-1000 ${currentSlide === 0 ? 'w-3/5 h-full' : 'w-full h-full'}`}>
+                        <Canvas style={{ width: '100%', height: '100%' }}>
+                            <ambientLight intensity={currentSlide === 0 ? 3 : 1}/>
+                            <directionalLight
+                                position={[0, 2, 5]}
+                                intensity={currentSlide === 0 ? 1 : 0.4}
+                                castShadow
+                            />
+                            
+                            <Model url="/ToothPaste.glb" scrollProgress={scrollProgress} />
+                        </Canvas>
+                    </div>
                 </div>
             </div>
 
@@ -116,7 +124,7 @@ export default function About() {
                 }}
             >
                 <div className="max-w-7xl w-full grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-center">
-                    {/* Spacer for text placement - 60% of space */}
+                    {/* Spacer for model - 60% of space on hero */}
                     <div className="md:col-span-7"></div>
 
                     {/* Text Blob - 40% of space */}
