@@ -33,6 +33,8 @@ void moveMouse(int32_t x, int32_t y, int32_t LClick, int32_t RClick);
 void moveMouse(uint8_t* mousePacket);
 void moveMouse(toothpaste_MousePacket&);
 void smoothMoveMouse(int dx, int dy, int steps, int interval);
+void startJiggle();
+void stopJiggle();
 
 //Consumer Control functions
 void consumerControlPress(uint16_t key);

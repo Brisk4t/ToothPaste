@@ -16,6 +16,11 @@
 #endif
 
 int syscount = 1;
+bool mouseJiggleEnabled = false;
+
+
+// Task handle for jiggle task (NULL when not running)
+TaskHandle_t jiggleTaskHandle = nullptr;
 
 IDFHIDKeyboard keyboard0(0); // Boot Keyboard
 IDFHIDMouse mouse(1);
@@ -192,6 +197,58 @@ void moveMouse(toothpaste_MousePacket& mousePacket) {
     // Handle Click
     //DEBUG_SERIAL_PRINTF("LClick: %d, RClick: %d\n", LClick, RClick);
     moveMouse(0, 0, LClick, RClick); 
+}
+
+
+
+// Persistent RTOS task for mouse jiggle
+void jiggleTask(void* params)
+{
+  while (true) {
+    jiggleMouse();
+  }
+  // Task is deleted externally via vTaskDelete()
+}
+
+// Start the jiggle task
+void startJiggle()
+{
+  if (jiggleTaskHandle == nullptr) {
+    xTaskCreatePinnedToCore(
+      jiggleTask,
+      "JiggleWorker",
+      1024,
+      nullptr,
+      1,
+      &jiggleTaskHandle,
+      1
+    );
+  }
+}
+
+// Stop the jiggle task
+void stopJiggle()
+{
+  if (jiggleTaskHandle != nullptr) {
+    vTaskDelete(jiggleTaskHandle);
+    jiggleTaskHandle = nullptr;
+  }
+}
+
+// Simple mouse jiggle function to prevent screen sleep
+void jiggleMouse(){
+  
+  // Use CPU timer ticks for efficient pseudo-random values (no malloc/heavy RNG overhead)
+  uint64_t ticks = esp_timer_get_time();
+  
+  // Generate random offsets from timer ticks: range -3 to 3
+  int32_t x = (int32_t)((ticks % 7) - 3);
+  int32_t y = (int32_t)(((ticks >> 16) % 7) - 3);
+  
+  moveMouse(x, y, 0, 0);
+  vTaskDelay(pdMS_TO_TICKS(50));
+  moveMouse(-x, -y, 0, 0);
+  vTaskDelay(pdMS_TO_TICKS(50));
 }
 
 // ##################### Delay Functions #################### //
