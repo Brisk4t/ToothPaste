@@ -87,6 +87,7 @@ typedef struct _toothpaste_MousePacket {
     toothpaste_Frame frames[20]; /* sequence of (x, y) positions [8 bytes each - max ] */
     int32_t l_click; /* left click state */
     int32_t r_click; /* right click state */
+    int32_t wheel; /* wheel movement */
 } toothpaste_MousePacket;
 
 /* Consumer Control Device Data (Volume, Playback, etc.) */
@@ -161,7 +162,7 @@ extern "C" {
 #define toothpaste_RenamePacket_init_default     {"", 0}
 #define toothpaste_KeycodePacket_init_default    {{0, {0}}, 0}
 #define toothpaste_Frame_init_default            {0, 0}
-#define toothpaste_MousePacket_init_default      {0, 0, {toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default}, 0, 0}
+#define toothpaste_MousePacket_init_default      {0, 0, {toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default}, 0, 0, 0}
 #define toothpaste_ConsumerControlPacket_init_default {0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0}
 #define toothpaste_MouseJigglePacket_init_default {0}
 #define toothpaste_NotificationPacket_init_default {0}
@@ -171,7 +172,7 @@ extern "C" {
 #define toothpaste_RenamePacket_init_zero        {"", 0}
 #define toothpaste_KeycodePacket_init_zero       {{0, {0}}, 0}
 #define toothpaste_Frame_init_zero               {0, 0}
-#define toothpaste_MousePacket_init_zero         {0, 0, {toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero}, 0, 0}
+#define toothpaste_MousePacket_init_zero         {0, 0, {toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero}, 0, 0, 0}
 #define toothpaste_ConsumerControlPacket_init_zero {0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0}
 #define toothpaste_MouseJigglePacket_init_zero   {0}
 #define toothpaste_NotificationPacket_init_zero  {0}
@@ -197,6 +198,7 @@ extern "C" {
 #define toothpaste_MousePacket_frames_tag        2
 #define toothpaste_MousePacket_l_click_tag       3
 #define toothpaste_MousePacket_r_click_tag       4
+#define toothpaste_MousePacket_wheel_tag         5
 #define toothpaste_ConsumerControlPacket_code_tag 1
 #define toothpaste_ConsumerControlPacket_length_tag 2
 #define toothpaste_MouseJigglePacket_enable_tag  1
@@ -266,7 +268,8 @@ X(a, STATIC,   SINGULAR, INT32,    y,                 2)
 X(a, STATIC,   SINGULAR, UINT32,   num_frames,        1) \
 X(a, STATIC,   REPEATED, MESSAGE,  frames,            2) \
 X(a, STATIC,   SINGULAR, INT32,    l_click,           3) \
-X(a, STATIC,   SINGULAR, INT32,    r_click,           4)
+X(a, STATIC,   SINGULAR, INT32,    r_click,           4) \
+X(a, STATIC,   SINGULAR, INT32,    wheel,             5)
 #define toothpaste_MousePacket_CALLBACK NULL
 #define toothpaste_MousePacket_DEFAULT NULL
 #define toothpaste_MousePacket_frames_MSGTYPE toothpaste_Frame
@@ -314,12 +317,12 @@ extern const pb_msgdesc_t toothpaste_NotificationPacket_msg;
 #define TOOTHPASTE_TOOTHPACKET_PB_H_MAX_SIZE     toothpaste_EncryptedData_size
 #define toothpaste_ConsumerControlPacket_size    66
 #define toothpaste_DataPacket_size               257
-#define toothpaste_EncryptedData_size            513
+#define toothpaste_EncryptedData_size            524
 #define toothpaste_Frame_size                    22
 #define toothpaste_KeyboardPacket_size           198
 #define toothpaste_KeycodePacket_size            199
 #define toothpaste_MouseJigglePacket_size        2
-#define toothpaste_MousePacket_size              508
+#define toothpaste_MousePacket_size              519
 #define toothpaste_NotificationPacket_size       0
 #define toothpaste_RenamePacket_size             198
 

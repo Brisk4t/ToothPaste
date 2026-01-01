@@ -29,7 +29,7 @@ void stringTest();
 void genericInput();
 
 //Mouse functions
-void moveMouse(int32_t x, int32_t y, int32_t LClick, int32_t RClick);
+void moveMouse(int32_t x, int32_t y, int32_t LClick, int32_t RClick, int32_t wheel);
 void moveMouse(uint8_t* mousePacket);
 void moveMouse(toothpaste_MousePacket&);
 void smoothMoveMouse(int dx, int dy, int steps, int interval);

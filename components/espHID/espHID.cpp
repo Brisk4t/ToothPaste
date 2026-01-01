@@ -99,7 +99,8 @@ void sendKeycode(uint8_t* encodedKeys, bool slowMode) {
     }
 }
 
-void moveMouse(int32_t x, int32_t y, int32_t LClick, int32_t RClick){
+// Move the mouse by dx and dy, with optional left/right click states
+void moveMouse(int32_t x, int32_t y, int32_t LClick, int32_t RClick, int32_t wheel){
   
   //Click before moving if the click is in the same report
   if(!(mouse.isPressed(MOUSE_LEFT)) && LClick == 1){
@@ -112,7 +113,7 @@ void moveMouse(int32_t x, int32_t y, int32_t LClick, int32_t RClick){
   
   // vTaskDelay(pdMS_TO_TICKS(5));
   //smoothMoveMouse(x, y, 20, 5); // Move the mouse by dx and dy over 20 steps and SLOWMODE_DELAY_MS ms between each step
-  mouse.move(x, y);
+  mouse.move(x, y, wheel, 0);
   // vTaskDelay(pdMS_TO_TICKS(5));
 
   // Release after moving the mouse
@@ -154,7 +155,7 @@ void genericInput(){
   //syscontrol.press(syscount++);
 }
 
-
+// Unpack a mouse packet from a byte array and move the mouse accordingly
 void moveMouse(uint8_t* mousePacket) {
     if(!mousePacket) return;
 
@@ -168,7 +169,7 @@ void moveMouse(uint8_t* mousePacket) {
     for(uint8_t i = 0; i < numFrames; i++){
         int32_t x = ints[i*2];
         int32_t y = ints[i*2 + 1];
-        moveMouse(x, y, 0, 0);
+        moveMouse(x, y, 0, 0, 0);
     }
 
     // Left/right click states come after the frames
@@ -178,15 +179,16 @@ void moveMouse(uint8_t* mousePacket) {
 
     // Handle Click
     //DEBUG_SERIAL_PRINTF("LClick: %d, RClick: %d\n", LClick, RClick);
-    moveMouse(0, 0, LClick, RClick); 
+    moveMouse(0, 0, LClick, RClick, 0); 
 }
 
+// Unpack a toothpacket_MousePacket and move the mouse accordingly
 void moveMouse(toothpaste_MousePacket& mousePacket) {
     // Move mouse for each frame
     for(uint8_t i = 0; i < mousePacket.num_frames; i++){
         int32_t x = mousePacket.frames[i].x;
         int32_t y = mousePacket.frames[i].y;
-        moveMouse(x, y, 0, 0);
+        moveMouse(x, y, 0, 0, 0);
     }
 
     // Left/right click states come after the frames
@@ -195,7 +197,7 @@ void moveMouse(toothpaste_MousePacket& mousePacket) {
 
     // Handle Click
     //DEBUG_SERIAL_PRINTF("LClick: %d, RClick: %d\n", LClick, RClick);
-    moveMouse(0, 0, LClick, RClick); 
+    moveMouse(0, 0, LClick, RClick, mousePacket.wheel); 
 }
 
 
@@ -247,9 +249,9 @@ void jiggleMouse(){
   int32_t x = (int32_t)((ticks % 7) - 3);
   int32_t y = (int32_t)(((ticks >> 16) % 7) - 3);
   
-  moveMouse(x, y, 0, 0);
+  moveMouse(x, y, 0, 0, 0);
   vTaskDelay(pdMS_TO_TICKS(1000));
-  moveMouse(-x, -y, 0, 0);
+  moveMouse(-x, -y, 0, 0, 0);
   vTaskDelay(pdMS_TO_TICKS(1000));
 }
 
