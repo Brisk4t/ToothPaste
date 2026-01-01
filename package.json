@@ -1,7 +1,7 @@
 {
-  "name": "bleserver",
+  "name": "ToothPasteWeb",
   "version": "0.1.0",
-  "homepage": "",
+  "homepage": "https://toothpasteapp.com",
   "private": true,
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -36,7 +36,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "protoc": "npx protoc --es_out=./src/controllers/toothpacket --proto_path=./shared ./shared/toothpacket.proto"
+    "protoc": "npx protoc --es_out=./src/controllers/toothpacket --proto_path=./shared ./shared/toothpacket.proto",
+    "deploy": "gh-pages -d dist --repo https://github.com/Brisk4t/ToothPasteWeb.git"
   },
   "eslintConfig": {
     "extends": [
