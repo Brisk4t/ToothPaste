@@ -12,25 +12,31 @@ import {
 } from "@heroicons/react/24/outline";
 import ToothPaste_Device_V1_Front from '../assets/ToothPaste_Device_V1_Front.png';
 
-const Model = ({ url, scrollProgress }) => {
+const Model = ({ url, scrollDeltaRef }) => {
     const groupRef = useRef();
     const gltf = useLoader(GLTFLoader, url);
-    const targetRotation = useRef(0); // Rotation position at rest (once scrolling stops)
+    const targetRotation = useRef(0); // Rotation position at rest (once scrolling stops)  
+    const autorotationDirection = useRef(1); // +1 = clockwise, -1 = counterclockwise
+    const rotationSpeed = 0.001; // Base rotation speed
 
     // Register a callback to be called on every frame update
     useFrame(() => {
         if (!groupRef.current) return;
+        
+        // Continuously rotate slowly + adjust based on scroll delta
+        targetRotation.current += rotationSpeed * autorotationDirection.current; // Slow continuous rotation in direction of last scroll
 
+        // If there was scroll input, adjust target rotation accordingly
+        if (scrollDeltaRef.current !== 0) {
+            autorotationDirection.current = Math.sign(scrollDeltaRef.current);
+            targetRotation.current += scrollDeltaRef.current * 0.001;
+            scrollDeltaRef.current = 0;
+        }
         // Linear interpolation towards target rotation -> a + (b - a) * t
         groupRef.current.rotation.y = groupRef.current.rotation.y + // a
                                       (targetRotation.current - groupRef.current.rotation.y) * // b 
-                                      0.08; // t: lower = smoother, higher = snappier
+                                      0.05; // t: lower = smoother, higher = snappier
     });
-
-
-    useEffect(() => {
-        targetRotation.current = scrollProgress * 0.001;
-    }, [scrollProgress]);
 
     return (
         <group ref={groupRef} position={[0, 0, -1]}>
@@ -58,7 +64,7 @@ const Model = ({ url, scrollProgress }) => {
 
 export default function About() {
     const [currentSlide, setCurrentSlide] = useState(0);
-    const [scrollProgress, setScrollProgress] = useState(0);
+    const scrollDeltaRef = useRef(0);
     const containerRef = useRef(null);
     const maxSlides = 4;
     const scrollThreshold = useRef(0);
@@ -80,12 +86,9 @@ export default function About() {
                 }
                 scrollThreshold.current = 0;
             }
-
-            // Still update scrollProgress for the 3D model rotation
-            setScrollProgress(prev => {
-                const newProgress = prev + event.deltaY;
-                return newProgress;
-            });
+            
+            // Accumulate scroll delta for model rotation - reset after each frame
+            scrollDeltaRef.current += event.deltaY;
         };
 
         window.addEventListener('wheel', handleWheel, { passive: false });
@@ -116,7 +119,7 @@ export default function About() {
                             intensity={currentSlide === 0 ? 1 : 0.4}
                             castShadow
                         />
-                        <Model url="/ToothPaste.glb" scrollProgress={scrollProgress} />
+                        <Model url="/ToothPaste.glb" scrollDeltaRef={scrollDeltaRef} />
                     </Canvas>
                 </div>
             </div>
