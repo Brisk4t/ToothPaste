@@ -37,7 +37,7 @@ export default function LiveCapture() {
     const lastReportTime = useRef(0);
     const tDisplacement = useRef({ x: 0, y: 0 }); // Total displacement since last report
     const REPORT_INTERVAL_MS = 100;
-    const SCALE_FACTOR = 0.2; // Scale factor for mouse movement
+    const SCALE_FACTOR = 1; // Scale factor for mouse movement
     const [captureMouse, setCaptureMouse] = useState(false);
 
     
