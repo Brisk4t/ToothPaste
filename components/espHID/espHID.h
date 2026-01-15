@@ -22,7 +22,7 @@ void sendString(void* arg, bool slowMode = true);
 void sendStringDelay(void *arg, int delay);
 
 // Keycode Functions
-void sendKeycode(uint8_t* keys, bool slowMode);
+void sendKeycode(uint8_t* keys, bool slowMode, bool autoRelease);
 bool keycodePacketCallback(pb_istream_t *stream, const pb_field_t *field, void **arg);
 
 void stringTest();

@@ -48,9 +48,9 @@ size_t sendStringSlow(const char *str, int delayms) {
 
     keyboard0.print(ch);  // Send single character
     //keyboard1.print(ch);  // Send single character
-    sentCount++;
 
-    delay(delayms);  // Blocking delay between characters
+    vTaskDelay(pdMS_TO_TICKS(delayms)); // Delay between characters
+    sentCount++;
     keyboard0.releaseAll(); // Release all keys to avoid sticky keys
   }
 
@@ -91,12 +91,15 @@ void stringTest(){
 //     //keyboard1.releaseAll();
 // }
 
-void sendKeycode(uint8_t* encodedKeys, bool slowMode) {
+void sendKeycode(uint8_t* encodedKeys, bool slowMode, bool autoRelease) {
     keyboard0.sendKeycode(encodedKeys, 6);
     //keyboard1.sendKeycode(encodedKeys, 6);
     if(slowMode){
       vTaskDelay(pdMS_TO_TICKS(SLOWMODE_DELAY_MS));
     }
+
+    keyboard0.releaseAll();
+
 }
 
 // Move the mouse by dx and dy, with optional left/right click states

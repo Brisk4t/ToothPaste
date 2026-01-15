@@ -25,17 +25,17 @@ NotificationPacket notificationPacket = {
 };
 
 // Create the persistent RTOS packet handler task
-void createPacketTask(SecureSession* sec){
+void createPacketTask(SecureSession* sec) {
   // Start the persistent RTOS task
   xTaskCreatePinnedToCore(
-        packetTask,
-        "PacketWorker",
-        8192,
-        sec, // Persistent task shares 1 ECDH session
-        1,
-        nullptr,
-        1
-    );
+    packetTask,
+    "PacketWorker",
+    8192,
+    sec, // Persistent task shares 1 ECDH session
+    1,
+    nullptr,
+    1
+  );
 }
 
 // Handle Connect
@@ -83,8 +83,8 @@ InputCharacteristicCallbacks::InputCharacteristicCallbacks(SecureSession* sessio
 
 // Callback handler for BLE Input Characteristic onWrite events
 void InputCharacteristicCallbacks::onWrite(BLECharacteristic* inputCharacteristic)
-{    
-  
+{
+
   const uint8_t* bleData = inputCharacteristic->getData();
   size_t bleLen = inputCharacteristic->getLength();
   //std::string rawValue = std::string(inputCharacteristic->getValue().c_str(), inputCharacteristic->getLength()); // Convert to std::string for easier handling
@@ -107,11 +107,11 @@ void InputCharacteristicCallbacks::onWrite(BLECharacteristic* inputCharacteristi
 
     // Queue the received packet params in the task queue (should never failed due to BLE notification semaphore blocking, failure indicates sender is forcing data)
     if (xQueueSend(packetQueue, &taskParams, 0) != pdTRUE) {
-            // Queue full, drop packet or handle error
-            DEBUG_SERIAL_PRINTLN("Packet queue full! Dropping packet.");
-            stateManager->setState(DROP);
-            //delete taskParams->rawValue;
-            delete taskParams;
+      // Queue full, drop packet or handle error
+      DEBUG_SERIAL_PRINTLN("Packet queue full! Dropping packet.");
+      stateManager->setState(DROP);
+      //delete taskParams->rawValue;
+      delete taskParams;
     }
   }
 
@@ -122,19 +122,19 @@ void InputCharacteristicCallbacks::onWrite(BLECharacteristic* inputCharacteristi
 void bleSetup(SecureSession* session)
 {
   createPacketTask(session); // Create the persistent RTOS packet handler task
-  
+
   // Get the device name and start advertising 
   String deviceName;
   session->getDeviceName(deviceName); // Get the device name from memory
-  
+
   DEBUG_SERIAL_PRINTF("Device Name is: %s", deviceName.c_str());
-  if(deviceName.length() < 1){
+  if (deviceName.length() < 1) {
     BLEDevice::init(BLE_DEVICE_DEFAULT_NAME);
   }
-  else{
+  else {
     BLEDevice::init(deviceName.c_str()); // If the device name isn't set, fallback to default
   }
-  
+
   //BLEDevice::setPower(ESP_PWR_LVL_N3); // low power for heat
   // Create the BLE Server
   bluServer = BLEDevice::createServer();
@@ -150,10 +150,10 @@ void bleSetup(SecureSession* session)
     BLECharacteristic::PROPERTY_WRITE_NR |  // Client can Write without Response
     BLECharacteristic::PROPERTY_NOTIFY |    // Server can async notify
     BLECharacteristic::PROPERTY_INDICATE);  // Server can notify with ACK
-  
+
   // Register the callback for the input data characteristic
   inputCharacteristic->setCallbacks(new InputCharacteristicCallbacks(session));
-  
+
   // Create the HID Ready Semaphore Characteristic
   semaphoreCharacteristic = pService->createCharacteristic(
     HID_SEMAPHORE_CHARCTERISTIC,
@@ -162,7 +162,7 @@ void bleSetup(SecureSession* session)
   // Create a MAC address characteristic
   macCharacteristic = pService->createCharacteristic(
     MAC_CHARACTERISTIC_UUID,
-    BLECharacteristic::PROPERTY_READ   |
+    BLECharacteristic::PROPERTY_READ |
     BLECharacteristic::PROPERTY_NOTIFY
   );
 
@@ -172,7 +172,7 @@ void bleSetup(SecureSession* session)
   // Convert to 6-byte array
   uint8_t initialValue[6];
   for (int i = 0; i < 6; i++) {
-      initialValue[i] = (mac >> (8 * (5 - i))) & 0xFF;
+    initialValue[i] = (mac >> (8 * (5 - i))) & 0xFF;
   }
 
   // Set the BLE characteristic value
@@ -193,9 +193,9 @@ void bleSetup(SecureSession* session)
 // Notify the semaphore characteristic
 void notifyClient(const uint8_t* data, int length) {
   DEBUG_SERIAL_PRINTF("Semaphore Data: %s, Data Length: %d\n", data, length);
-  if(length > 32) return; // Can't send too much data through this channel
+  if (length > 32) return; // Can't send too much data through this channel
 
-  semaphoreCharacteristic->setValue((uint8_t*) data, length);  // Set the data to be notified
+  semaphoreCharacteristic->setValue((uint8_t*)data, length);  // Set the data to be notified
   semaphoreCharacteristic->notify();                           // Notify the semaphor characteristic
 }
 
@@ -208,12 +208,12 @@ void notifyClient() {
 }
 
 // Notify the semaphore characteristic if the RTOS task queue is not full
-void queuenotify(){
+void queuenotify() {
   if (uxQueueSpacesAvailable(packetQueue) == 0) {
     DEBUG_SERIAL_PRINTLN("Queue is full!");
     return;
-  } 
-  
+  }
+
   else {
     notificationPacket.packetType = RECV_READY;
     notifyClient();
@@ -324,13 +324,13 @@ SecureSession::rawDataPacket unpack(void* rawPacketBytes) {
 void decryptSendString(toothpaste_DataPacket* packet, SecureSession* session) {
   // Allocate plaintext buffer and decrypt
   //uint8_t* plaintext = new uint8_t[SecureSession::MAX_DATA_LEN];
-  
+
   // Todo: Decode encrypted BYTES into an encrypted data packet 
   // Params: ciphertext, tag, iv, public key (to get private key from storage)
 
-  std::vector<uint8_t> decrypted_bytes((packet->dataLen)+2);
+  std::vector<uint8_t> decrypted_bytes((packet->dataLen) + 2);
   toothpaste_EncryptedData decrypted = toothpaste_EncryptedData_init_default;
-  
+
   int ret = session->decrypt(packet, decrypted_bytes.data(), clientPubKey.c_str()); // Get the serialized form of the decrypted data
 
   DEBUG_SERIAL_PRINTF("Decryption return code: %d\n", ret);
@@ -343,11 +343,11 @@ void decryptSendString(toothpaste_DataPacket* packet, SecureSession* session) {
   for (size_t i = 0; i < decrypted_bytes.size(); ++i) {
     DEBUG_SERIAL_PRINTF("%c", decrypted_bytes[i]);
   }
-  
+
   DEBUG_SERIAL_PRINTLN("");
-  
+
   // Deserialize the decrypted data into a protobuf packet
-  pb_istream_t stream = pb_istream_from_buffer(decrypted_bytes.data(), decrypted_bytes.size()-2); 
+  pb_istream_t stream = pb_istream_from_buffer(decrypted_bytes.data(), decrypted_bytes.size() - 2);
   if (!pb_decode(&stream, toothpaste_EncryptedData_fields, &decrypted)) {
     printf("Decoding encrypted data failed: %s\n", PB_GET_ERROR(&stream));
     return;
@@ -359,54 +359,60 @@ void decryptSendString(toothpaste_DataPacket* packet, SecureSession* session) {
   {
     // Reset the state so that we don't blink forever in an error state
     stateManager->setState(READY);
-    switch(decrypted.which_packetData){
-      case toothpaste_EncryptedData_keyboardPacket_tag: {
-        std::string textString(decrypted.packetData.keyboardPacket.message, decrypted.packetData.keyboardPacket.length);
-        sendString(textString.data(), packet->slowMode);
-        break;
-      }
+    switch (decrypted.which_packetData) {
+    case toothpaste_EncryptedData_keyboardPacket_tag:
+    {
+      std::string textString(decrypted.packetData.keyboardPacket.message, decrypted.packetData.keyboardPacket.length);
+      sendString(textString.data(), packet->slowMode);
+      break;
+    }
 
-      case toothpaste_EncryptedData_keycodePacket_tag: {
-        //std::vector<uint8_t> keycode(decrypted.packetData.keycodePacket.code.bytes, decrypted.packetData.keycodePacket.code.size);
-        sendKeycode(decrypted.packetData.keycodePacket.code.bytes, packet->slowMode);
-        break;
-      }
+    case toothpaste_EncryptedData_keycodePacket_tag:
+    {
+      //std::vector<uint8_t> keycode(decrypted.packetData.keycodePacket.code.bytes, decrypted.packetData.keycodePacket.code.size);
+      sendKeycode(decrypted.packetData.keycodePacket.code.bytes, packet->slowMode, true);
+      break;
+    }
 
-      case toothpaste_EncryptedData_mousePacket_tag: {
-        //std::vector<uint8_t> mouseCode(decrypted.packetData.mousePacket);
-        moveMouse(decrypted.packetData.mousePacket);
-        break;
-      }
-      
-      case toothpaste_EncryptedData_renamePacket_tag: {
-        std::string textString(decrypted.packetData.renamePacket.message, decrypted.packetData.renamePacket.length);
-        int ret = session->setDeviceName(textString.c_str()); // Set the device name in preferences
-        DEBUG_SERIAL_PRINTF("Device rename status code: %d\n", ret);
-        DEBUG_SERIAL_PRINTLN("Rebooting Toothpaste...");
-        esp_restart();
-        break;  
-      }
+    case toothpaste_EncryptedData_mousePacket_tag:
+    {
+      //std::vector<uint8_t> mouseCode(decrypted.packetData.mousePacket);
+      moveMouse(decrypted.packetData.mousePacket);
+      break;
+    }
 
-      case toothpaste_EncryptedData_consumerControlPacket_tag: {
-        //std::vector<uint8_t> keycode(decrypted.packetData.keycodePacket.code.bytes, decrypted.packetData.keycodePacket.code.size);
-        consumerControlPress(decrypted.packetData.consumerControlPacket);
-        break;
-      }
+    case toothpaste_EncryptedData_renamePacket_tag:
+    {
+      std::string textString(decrypted.packetData.renamePacket.message, decrypted.packetData.renamePacket.length);
+      int ret = session->setDeviceName(textString.c_str()); // Set the device name in preferences
+      DEBUG_SERIAL_PRINTF("Device rename status code: %d\n", ret);
+      DEBUG_SERIAL_PRINTLN("Rebooting Toothpaste...");
+      esp_restart();
+      break;
+    }
 
-      case toothpaste_EncryptedData_mouseJigglePacket_tag: {
-        bool enable = decrypted.packetData.mouseJigglePacket.enable;
-        if(enable){
-          startJiggle();
-        }
-        else{
-          stopJiggle();
-        }
-        break;
-      }
+    case toothpaste_EncryptedData_consumerControlPacket_tag:
+    {
+      //std::vector<uint8_t> keycode(decrypted.packetData.keycodePacket.code.bytes, decrypted.packetData.keycodePacket.code.size);
+      consumerControlPress(decrypted.packetData.consumerControlPacket);
+      break;
+    }
 
-      default:
-        DEBUG_SERIAL_PRINTF("Unknown Packet Type: %d", decrypted.which_packetData);
-        break;
+    case toothpaste_EncryptedData_mouseJigglePacket_tag:
+    {
+      bool enable = decrypted.packetData.mouseJigglePacket.enable;
+      if (enable) {
+        startJiggle();
+      }
+      else {
+        stopJiggle();
+      }
+      break;
+    }
+
+    default:
+      DEBUG_SERIAL_PRINTF("Unknown Packet Type: %d", decrypted.which_packetData);
+      break;
     }
     notificationPacket.packetType = RECV_READY;
   }
@@ -456,70 +462,71 @@ void authenticateClient(toothpaste_DataPacket* packet, SecureSession* session) {
 void packetTask(void* params)
 {
 
-    // Share the same securesession for the whole task
-    SecureSession* session = static_cast<SecureSession*>(params);
-    while (true) {
-        SharedSecretTaskParams* taskParams = nullptr; // The queue fills in this pointer as packets become available
+  // Share the same securesession for the whole task
+  SecureSession* session = static_cast<SecureSession*>(params);
+  while (true) {
+    SharedSecretTaskParams* taskParams = nullptr; // The queue fills in this pointer as packets become available
 
-        // Wait indefinitely for next packet pointer
-        if (xQueueReceive(packetQueue, &taskParams, portMAX_DELAY) == pdTRUE) {
-            if (taskParams) {
-                //std::string* rawValue = taskParams->rawValue;
-                //SecureSession::rawDataPacket packet = unpack(rawValue);
+    // Wait indefinitely for next packet pointer
+    if (xQueueReceive(packetQueue, &taskParams, portMAX_DELAY) == pdTRUE) {
+      if (taskParams) {
+        //std::string* rawValue = taskParams->rawValue;
+        //SecureSession::rawDataPacket packet = unpack(rawValue);
 
-                // Decode protobuf
-                DEBUG_SERIAL_PRINTF("Decoding protobuf from %d bytes\n\r", taskParams->rawValue.size());
+        // Decode protobuf
+        DEBUG_SERIAL_PRINTF("Decoding protobuf from %d bytes\n\r", taskParams->rawValue.size());
 
-                DEBUG_SERIAL_PRINT("Raw Data (chars): ");
-                for (size_t i = 0; i < taskParams->rawValue.size(); ++i) {
-                    DEBUG_SERIAL_PRINTF("%c", taskParams->rawValue[i]);
-                }
-                DEBUG_SERIAL_PRINTLN("");
-
-                toothpaste_DataPacket toothPacket = toothpaste_DataPacket_init_default;
-                pb_istream_t istream = pb_istream_from_buffer(taskParams->rawValue.data(), taskParams->rawValue.size());
-                if (!pb_decode(&istream, toothpaste_DataPacket_fields, &toothPacket)) {
-                    printf("Decoding toothPacket failed: %s\n", PB_GET_ERROR(&istream));
-                }
-
-                //delete rawValue; // Free string memory
-
-                // Debug prints...
-                DEBUG_SERIAL_PRINTLN("BLE Data Received.");
-                DEBUG_SERIAL_PRINTF("Data length: %ld\r\n", toothPacket.dataLen);
-                DEBUG_SERIAL_PRINTF("ID: %d\r\nSlowMode: %d\r\nPacket Number: %ld\r\nTotal Packets: %ld\r\n",
-                    toothPacket.packetID,
-                    toothPacket.slowMode,
-                    toothPacket.packetNumber,
-                    toothPacket.totalPackets
-                );
-                DEBUG_SERIAL_PRINTLN();
-              
-                // Print raw data as characters (not useful for excrypted data but good for debugging using unencrypted packets)
-                DEBUG_SERIAL_PRINT("Raw Data (chars): ");
-                for (size_t i = 0; i < toothPacket.dataLen; ++i) {
-                    DEBUG_SERIAL_PRINTF("%c", toothPacket.encryptedData.bytes[i]);
-                }
-                DEBUG_SERIAL_PRINTLN("");
-
-                
-                // Handle different types of packets
-                if (toothPacket.packetID == toothpaste_DataPacket_PacketID_DATA_PACKET) {
-                    decryptSendString(&toothPacket, session);
-                }
-                else if (toothPacket.packetID == toothpaste_DataPacket_PacketID_AUTH_PACKET) {
-                    if (stateManager->getState() == PAIRING) {
-                        generateSharedSecret(&toothPacket, session);
-                    } else {
-                        authenticateClient(&toothPacket, session);
-                    }
-                }
-
-                delete taskParams; // Free the parameter struct
-            }
-          
-          queuenotify(); // Trigger the notification now that a spot in the queue is freed
-
+        DEBUG_SERIAL_PRINT("Raw Data (chars): ");
+        for (size_t i = 0; i < taskParams->rawValue.size(); ++i) {
+          DEBUG_SERIAL_PRINTF("%c", taskParams->rawValue[i]);
         }
+        DEBUG_SERIAL_PRINTLN("");
+
+        toothpaste_DataPacket toothPacket = toothpaste_DataPacket_init_default;
+        pb_istream_t istream = pb_istream_from_buffer(taskParams->rawValue.data(), taskParams->rawValue.size());
+        if (!pb_decode(&istream, toothpaste_DataPacket_fields, &toothPacket)) {
+          printf("Decoding toothPacket failed: %s\n", PB_GET_ERROR(&istream));
+        }
+
+        //delete rawValue; // Free string memory
+
+        // Debug prints...
+        DEBUG_SERIAL_PRINTLN("BLE Data Received.");
+        DEBUG_SERIAL_PRINTF("Data length: %ld\r\n", toothPacket.dataLen);
+        DEBUG_SERIAL_PRINTF("ID: %d\r\nSlowMode: %d\r\nPacket Number: %ld\r\nTotal Packets: %ld\r\n",
+          toothPacket.packetID,
+          toothPacket.slowMode,
+          toothPacket.packetNumber,
+          toothPacket.totalPackets
+        );
+        DEBUG_SERIAL_PRINTLN();
+
+        // Print raw data as characters (not useful for excrypted data but good for debugging using unencrypted packets)
+        DEBUG_SERIAL_PRINT("Raw Data (chars): ");
+        for (size_t i = 0; i < toothPacket.dataLen; ++i) {
+          DEBUG_SERIAL_PRINTF("%c", toothPacket.encryptedData.bytes[i]);
+        }
+        DEBUG_SERIAL_PRINTLN("");
+
+
+        // Handle different types of packets
+        if (toothPacket.packetID == toothpaste_DataPacket_PacketID_DATA_PACKET) {
+          decryptSendString(&toothPacket, session);
+        }
+        else if (toothPacket.packetID == toothpaste_DataPacket_PacketID_AUTH_PACKET) {
+          if (stateManager->getState() == PAIRING) {
+            generateSharedSecret(&toothPacket, session);
+          }
+          else {
+            authenticateClient(&toothPacket, session);
+          }
+        }
+
+        delete taskParams; // Free the parameter struct
+      }
+
+      queuenotify(); // Trigger the notification now that a spot in the queue is freed
+
     }
+  }
 }
