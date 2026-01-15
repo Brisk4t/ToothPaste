@@ -7,7 +7,7 @@ import * as ToothPacketPB from '../controllers/toothpacket/toothpacket_pb.js';
 
 
 import {HIDMap} from "./HIDMap.js"
-import { createKeyboardPacket, createKeyCodePacket } from './PacketFunctions.js';
+import { createKeyboardPacket, createKeyboardStream, createKeyCodePacket } from './PacketFunctions.js';
 
 
 export function useInputController() {
@@ -101,13 +101,8 @@ export function useInputController() {
         // Update lastSentBuffer early to avoid duplicate sends
         lastSentBuffer.current = current;
 
-        // var keyboardPayload = new KeyboardPacket();
-        // keyboardPayload.setMessage(payload);
-        // keyboardPayload.setLength(payload.length);
-
-
-        var packet = createKeyboardPacket(payload);
-        sendEncrypted(packet); // Send the final payload
+        var packetStream = createKeyboardStream(payload);
+        sendEncrypted(packetStream); // Send the final payload
 
     }, [createEncryptedPackets, pktCharacteristic, readyToReceive]);
 
