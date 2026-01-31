@@ -110,8 +110,8 @@ export function BLEProvider({ children }) {
                     toBinary(ToothPacketPB.DataPacketSchema, packet)
                 );
 
-                await waitForReady(); // Attach a promise to the ref
-                await readyToReceive.current.promise; // Wait in this iteration of the loop till the promise is consumed
+                // await waitForReady(); // Attach a promise to the ref
+                // await readyToReceive.current.promise; // Wait in this iteration of the loop till the promise is consumed
             }
         } catch (error) {
             console.error("Error sending encrypted packet", error);

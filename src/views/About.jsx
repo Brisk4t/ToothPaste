@@ -2,14 +2,13 @@ import React, { useState, useContext, useRef, useEffect, useCallback } from 'rea
 import { Canvas, useLoader, useFrame } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { Typography, Button } from "@material-tailwind/react";
+import { FaGithub } from 'react-icons/fa';
 import {
     ArrowDownIcon,
-    SparklesIcon,
     LockClosedIcon,
     BoltIcon,
-    CheckCircleIcon,
-    GlobeAltIcon
 } from "@heroicons/react/24/outline";
+
 import ToothPaste_Device_V1_Front from '../assets/ToothPaste_Device_V1_Front.png';
 
 const Model = ({ url, scrollDeltaRef }) => {
@@ -136,29 +135,53 @@ export default function About() {
             >
                 <div className="max-w-7xl w-full grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-center">
                     {/* Spacer for model - 60% of space on hero */}
-                    <div className="md:col-span-7"></div>
+                    <div className="md:col-span-6"></div>
 
                     {/* Text Blob - 40% of space */}
-                    <div className="md:col-span-5 flex flex-col justify-center gap-6">
+                    <div className="md:col-span-6 flex flex-col justify-center gap-6">
                         <div>
-                            <Typography variant="h2" className="text-text font-bold leading-tight mb-4">
+                            <Typography type="h3" className="text-text font-bold leading-tight mb-16">
                                 Simple. Seamless. Secure.
                             </Typography>
-                            <Typography variant="h3" className="text-lg text-white leading-relaxed">
-                                ToothPaste is a Bluetooth Low Energy (BLE) based device that allows you to securely paste text from your computer to any paired device.
-                            </Typography>
-                            <br />
-                            <Typography variant="paragraph" className="text-lg text-white leading-relaxed">
-                                No need for special drivers or applications. Just pair ToothPaste with your computer and start pasting text effortlessly right through your browser.
-                            </Typography>
+                            <br/>
+                            
+                            <div className="mb-5">
+                                <Typography type="h3" className="text-lg text-white leading-relaxed inline">ToothPaste </Typography>
+                                <Typography type="lead" className="text-sm font-extralight text-white leading-relaxed inline">is a Bluetooth Low Energy (BLE) based device that allows you to securely paste text from your computer to any paired device.</Typography>
+                            </div>
+
+                            <div className="flex flex-col gap-1 my-16">
+                                <Typography type="h4" className="text-lg font text-white leading-relaxed"> 
+                                    That's it.
+                                </Typography>
+
+                                <Typography type="paragraph" className="text-xl font-extralight text-white leading-relaxed"> 
+                                    It <span className="text-secondary font-medium">won't</span> replace your password manager.
+                                </Typography>
+                                <Typography type="paragraph" className="text-xl font-extralight text-white leading-relaxed">        
+                                    It <span className="text-secondary font-medium">won't</span> solve world hunger.
+                                </Typography>
+                                <Typography type="paragraph" className="text-xl font-extralight text-white leading-relaxed"> 
+                                    And it <span className="text-secondary font-medium">definitely cannot</span> think for itself. Yet.
+                                </Typography>
+                            </div>
+
+
+
+                            <br/>
+                            <div>
+                                <Typography variant="paragraph" className="text-lg font text-white leading-relaxed">
+                                    Because sometimes you just want to type                                
+                                </Typography>
+                                <Typography variant="paragraph" className="text-xl font-extralight text-gray-500">
+                                    ASuperSecurePasswordThatNoOneCanGuess¯\_(ツ)_/¯;);)1234
+                                </Typography>
+                                <Typography variant="paragraph" className="text-lg text-white leading-relaxed">
+                                    and you're in a rush.......                                
+                                </Typography>
+                            </div>
                         </div>
-                        <Button
-                            size="lg"
-                        // className="w-fit bg-primary text-text hover:bg-primary-hover font-semibold normal-case"
-                        >
-                            Learn More
-                        </Button>
-                        <div className="flex items-center gap-2 text-white mt-4">
+                        <div className="flex items-center gap-2 text-white mt-20">
                             <ArrowDownIcon className="h-5 w-5 animate-bounce" />
                             <Typography variant="small">Scroll to explore</Typography>
                         </div>
@@ -195,6 +218,10 @@ export default function About() {
                                 ToothPaste provides a simple, secure, and offline solution to this problem.
                             </Typography>
                         </div>
+                    </div>
+                    <div className="flex items-center justify-center gap-2 text-white mt-20">
+                        <ArrowDownIcon className="h-5 w-5 animate-bounce" />
+                        <Typography type="h4">What makes it secure?</Typography>
                     </div>
                 </div>
             </section>
@@ -239,42 +266,46 @@ export default function About() {
                             </div>
                         </div>
                     </div>
+                    <div className="flex items-center justify-center gap-2 text-white mt-20">
+                        <ArrowDownIcon className="h-5 w-5 animate-bounce" />
+                        <Typography type="h4">Like what you see?</Typography>
+                    </div>
                 </div>
             </section>
 
 
             {/* CTA Footer Slide */}
             <section
-                className="absolute inset-0 min-h-screen flex items-center justify-center px-6 md:px-12 py-12 z-10"
+                className="absolute inset-0 min-h-screen flex items-center justify-center px-6 md:px-12 py-32 z-10"
                 style={{
                     opacity: getSectionOpacity(3),
                     transition: 'opacity 0.3s ease-in-out',
                     pointerEvents: getSectionOpacity(3) > 0.5 ? 'auto' : 'none'
                 }}
             >
-                <div className="max-w-3xl w-full text-center flex flex-col gap-8">
-                    <Typography variant="h2" className="text-text font-bold">
-                        Ready to Get Started?
+                <div className="max-w-6xl w-full text-center flex flex-col gap-8">
+                    <Typography type="h2" className="text-text font-bold">
+                        Want to learn more?
                     </Typography>
-                    <Typography variant="paragraph" className="text-lg text-white">
-                        Join thousands of users who have already transformed their workflow.
+
+
+
+                    <Typography type="paragraph" className="text-text text-2xl text-white">
+                        ToothPaste is currently closed source while I finalize the hardware and software design.
+                        However, if you're interested in collaborating, contributing, or just want to chat about the project feel free to reach out!
                     </Typography>
+                    
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                        
                         <Button
-                            className='w-full h-10 my-4 bg-primary text-text hover:bg-primary-hover focus:bg-primary-focus active:bg-primary-active flex items-center justify-center size-sm disabled:bg-hover'
-
-                        // className="bg-primary text-text hover:bg-primary-hover font-semibold normal-case"
-                        >
-                            Get Started
-                        </Button>
-                        <Button
-                            className='w-full h-10 my-4 bg-primary text-text hover:bg-primary-hover focus:bg-primary-focus active:bg-primary-active flex items-center justify-center size-sm disabled:bg-hover'
-
-                        // className="border-secondary text-text hover:bg-primary hover:text-text font-semibold normal-case"
-                        >
-                            Contact Us
+                            size="lg"
+                            className='w-full h-10 my-4 bg-primary text-text items-center 
+                            justify-center' onClick={() => window.open('https://github.com/Brisk4t', '_blank')}>
+                            <FaGithub className="mr-2 h-5 w-5" />
+                            My GitHub
                         </Button>
                     </div>
+
                 </div>
             </section>
         </div>

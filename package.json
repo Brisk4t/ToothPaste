@@ -28,6 +28,7 @@
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-error-boundary": "^6.0.0",
+    "react-icons": "^5.5.0",
     "secure-web-storage": "^1.0.2",
     "three": "^0.182.0",
     "web-vitals": "^5.1.0"
