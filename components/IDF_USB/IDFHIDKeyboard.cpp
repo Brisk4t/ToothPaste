@@ -245,3 +245,11 @@ size_t IDFHIDKeyboard::sendKeycode(uint8_t* encodedKeys, uint8_t numKeys) {
 
   return 0;
 }
+
+// bool IDFHIDKeyboard::lock() {
+//   return hid.lock();
+// }
+
+// bool IDFHIDKeyboard::unlock() {
+//   return hid.unlock();
+// }

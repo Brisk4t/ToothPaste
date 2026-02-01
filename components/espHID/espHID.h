@@ -27,6 +27,7 @@ bool keycodePacketCallback(pb_istream_t *stream, const pb_field_t *field, void *
 
 void stringTest();
 void genericInput();
+void startKeyboard();
 
 //Mouse functions
 void moveMouse(int32_t x, int32_t y, int32_t LClick, int32_t RClick, int32_t wheel);

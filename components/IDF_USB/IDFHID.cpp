@@ -74,7 +74,8 @@ bool IDFHID::SendReport(uint8_t id, const void *data, size_t len, uint32_t timeo
   lock(); // Lock the semaphore until notified of report completion
   uint8_t effective_id = ((tinyusb_interface_protocol != HID_ITF_PROTOCOL_NONE) && (tud_hid_n_get_protocol(itf) == HID_PROTOCOL_BOOT)) ? 0 : id;
   printf("Effective ID: %d %d\n\r", effective_id, itf);
-  
+  // DEBUG_SERIAL_PRINTF("Time sending queued keyboard character: %lld us\n", esp_timer_get_time());
+
   return tud_hid_n_report(itf, 0, data, len);
 
 }

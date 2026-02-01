@@ -15,11 +15,22 @@
     USBCDC USBSerial; 
 #endif
 
+
+#define MAX_QUEUE_STRING_LEN 256
+typedef struct {
+  char data[MAX_QUEUE_STRING_LEN];
+} QueueStringItem;
+
+QueueHandle_t reportQueue = xQueueCreate(18, sizeof(QueueStringItem)); // Queue to manage HID inputs
+
+
 int syscount = 1;
 bool mouseJiggleEnabled = false;
+bool keyboardStarted = false;
 
 // Task handle for jiggle task (NULL when not running)
 TaskHandle_t jiggleTaskHandle = nullptr;
+TaskHandle_t keyboardTaskHandle = nullptr;
 
 IDFHIDKeyboard keyboard0(0); // Boot Keyboard
 IDFHIDMouse mouse(1);
@@ -33,6 +44,7 @@ void hidSetup()
 
   // if(ARDUINO_USB_CDC_ON_BOOT) USBSerial.begin(); 
   keyboard0.begin();
+  startKeyboard();
   //keyboard1.begin();
   // mouse.begin();
   // control.begin();
@@ -60,12 +72,16 @@ size_t sendStringSlow(const char *str, int delayms) {
 // Send a string - slowMode is enabled by default
 void sendString(const char *str, bool slowMode)
 {
-  if(!slowMode){
-    keyboard0.print(str);
-    //keyboard1.print(str);
-  }
-  else
-    sendStringSlow(str, SLOWMODE_DELAY_MS);
+  // if(!slowMode){
+  //   keyboard0.print(str);
+  //   //keyboard1.print(str);
+  // }
+  // else
+  //   sendStringSlow(str, SLOWMODE_DELAY_MS);
+  QueueStringItem item;
+  strncpy(item.data, str, MAX_QUEUE_STRING_LEN - 1);
+  item.data[MAX_QUEUE_STRING_LEN - 1] = '\0';
+  xQueueSend(reportQueue, &item, 0);
 }
 
 // Cast a pointer to a string pointer and send the string 
@@ -215,6 +231,38 @@ void jiggleTask(void* params)
   vTaskDelete(NULL);  // Delete self
 }
 
+
+void keyboardTask(void* params)
+{
+  QueueStringItem item;
+  
+  while (keyboardStarted) {
+    if(xQueueReceive(reportQueue, &item, portMAX_DELAY) == pdTRUE){
+      sendStringSlow(item.data, 1);
+    }
+  }
+  // Task exits gracefully when flag is set to false
+  vTaskDelete(NULL);  // Delete self
+}
+
+
+// Start the persistent keyboard queue task
+void startKeyboard()
+{
+  if (keyboardTaskHandle == nullptr) {
+    keyboardStarted = true;  // Set flag before creating task
+    xTaskCreatePinnedToCore(
+      keyboardTask,
+      "KeyboardWorker",
+      8096,
+      nullptr,
+      1,
+      &keyboardTaskHandle,
+      1
+    );
+  }
+}
+
 // Start the jiggle task
 void startJiggle()
 {
@@ -282,15 +330,17 @@ void sendStringDelay(void *arg, int delayms){
 //------------------------TINYUSB Callbacks------------------------------//
 
 // Callback triggered by TinyUSB once the HOST consumes the current report
-void tud_hid_report_complete_cb(uint8_t instance, uint8_t const *report, size_t len) {
+void tud_hid_report_complete_cb(uint8_t instance, uint8_t const *report, uint16_t len) {
   DEBUG_SERIAL_PRINTLN("Report complete callback entered");
   switch(instance){
     case 0:
-      keyboard0.unlock();
+      // keyboard0.unlock();
+      ESP_LOGI("HID", "Keyboard 0 report complete");
       break;
 
     case 1:
-      mouse.unlock();
+      // keyboard0.unlock();
+      ESP_LOGI("HID", "Keyboard 1 report complete");
       break;
 
     case 2:

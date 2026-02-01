@@ -38,6 +38,7 @@ void createPacketTask(SecureSession* sec) {
   );
 }
 
+
 // Handle Connect
 void DeviceServerCallbacks::onConnect(BLEServer* bluServer)
 {
@@ -84,7 +85,7 @@ InputCharacteristicCallbacks::InputCharacteristicCallbacks(SecureSession* sessio
 // Callback handler for BLE Input Characteristic onWrite events
 void InputCharacteristicCallbacks::onWrite(BLECharacteristic* inputCharacteristic)
 {
-
+  int64_t t0 = esp_timer_get_time();
   const uint8_t* bleData = inputCharacteristic->getData();
   size_t bleLen = inputCharacteristic->getLength();
   //std::string rawValue = std::string(inputCharacteristic->getValue().c_str(), inputCharacteristic->getLength()); // Convert to std::string for easier handling
@@ -106,6 +107,9 @@ void InputCharacteristicCallbacks::onWrite(BLECharacteristic* inputCharacteristi
     }
 
     // Queue the received packet params in the task queue (should never failed due to BLE notification semaphore blocking, failure indicates sender is forcing data)
+    int64_t elapsed = esp_timer_get_time() - t0;
+    DEBUG_SERIAL_PRINTF("Packet Queuing took %lld us\n", elapsed);
+    
     if (xQueueSend(packetQueue, &taskParams, 0) != pdTRUE) {
       // Queue full, drop packet or handle error
       DEBUG_SERIAL_PRINTLN("Packet queue full! Dropping packet.");
@@ -121,8 +125,9 @@ void InputCharacteristicCallbacks::onWrite(BLECharacteristic* inputCharacteristi
 // Create the BLE Device
 void bleSetup(SecureSession* session)
 {
+  
   createPacketTask(session); // Create the persistent RTOS packet handler task
-
+  startKeyboard();
   // Get the device name and start advertising 
   String deviceName;
   session->getDeviceName(deviceName); // Get the device name from memory
@@ -328,16 +333,19 @@ void decryptSendString(toothpaste_DataPacket* packet, SecureSession* session) {
   // Todo: Decode encrypted BYTES into an encrypted data packet 
   // Params: ciphertext, tag, iv, public key (to get private key from storage)
 
+  // int64_t t0 = esp_timer_get_time();
+ 
+  // Average decryption time: ~ 13000us (13ms)
   std::vector<uint8_t> decrypted_bytes((packet->dataLen) + 2);
   toothpaste_EncryptedData decrypted = toothpaste_EncryptedData_init_default;
+ 
 
   int ret = session->decrypt(packet, decrypted_bytes.data(), clientPubKey.c_str()); // Get the serialized form of the decrypted data
 
-  DEBUG_SERIAL_PRINTF("Decryption return code: %d\n", ret);
+  // int64_t elapsed = esp_timer_get_time() - t0;
+
+  // DEBUG_SERIAL_PRINTF("Packet Decryption took %lld us\n", elapsed);
   DEBUG_SERIAL_PRINTF("Decrypted data length: %d\n", decrypted_bytes.size());
-  DEBUG_SERIAL_PRINT("Decrypted data: ");
-
-
 
   DEBUG_SERIAL_PRINT("Raw Data (chars): ");
   for (size_t i = 0; i < decrypted_bytes.size(); ++i) {
@@ -346,14 +354,14 @@ void decryptSendString(toothpaste_DataPacket* packet, SecureSession* session) {
 
   DEBUG_SERIAL_PRINTLN("");
 
+  // Average protobuf deserialization time: ~ 150us (0.15ms)
   // Deserialize the decrypted data into a protobuf packet
   pb_istream_t stream = pb_istream_from_buffer(decrypted_bytes.data(), decrypted_bytes.size() - 2);
   if (!pb_decode(&stream, toothpaste_EncryptedData_fields, &decrypted)) {
     printf("Decoding encrypted data failed: %s\n", PB_GET_ERROR(&stream));
     return;
   }
-
-
+  
   // If the decryption succeeds type the plaintext over HID    
   if (ret == 0)
   {
@@ -473,15 +481,8 @@ void packetTask(void* params)
         //std::string* rawValue = taskParams->rawValue;
         //SecureSession::rawDataPacket packet = unpack(rawValue);
 
+        DEBUG_SERIAL_PRINTF("Time entering packet decode: %lld us\n", esp_timer_get_time());
         // Decode protobuf
-        DEBUG_SERIAL_PRINTF("Decoding protobuf from %d bytes\n\r", taskParams->rawValue.size());
-
-        DEBUG_SERIAL_PRINT("Raw Data (chars): ");
-        for (size_t i = 0; i < taskParams->rawValue.size(); ++i) {
-          DEBUG_SERIAL_PRINTF("%c", taskParams->rawValue[i]);
-        }
-        DEBUG_SERIAL_PRINTLN("");
-
         toothpaste_DataPacket toothPacket = toothpaste_DataPacket_init_default;
         pb_istream_t istream = pb_istream_from_buffer(taskParams->rawValue.data(), taskParams->rawValue.size());
         if (!pb_decode(&istream, toothpaste_DataPacket_fields, &toothPacket)) {
@@ -521,6 +522,9 @@ void packetTask(void* params)
             authenticateClient(&toothPacket, session);
           }
         }
+
+        DEBUG_SERIAL_PRINTF("Time exiting packet decode: %lld us\n", esp_timer_get_time());
+
 
         delete taskParams; // Free the parameter struct
       }
