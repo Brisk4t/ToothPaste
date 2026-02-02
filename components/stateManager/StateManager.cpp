@@ -1,6 +1,8 @@
 #include "StateManager.h"
 #include "NeoPixelRMT.h"
 
+// ToothPaste's led + button state manager
+
 static void changeLed(DeviceState state); // Forward declaration
 StateManager* stateManager = nullptr;
 
@@ -32,6 +34,7 @@ DeviceState StateManager::getState() const {
     return currentState;
 }
 
+// Set the device state to NOT_CONNECTED 
 static void setNotConnected(void* args) {
     stateManager->setState(NOT_CONNECTED);
 }

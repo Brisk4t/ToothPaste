@@ -1,5 +1,5 @@
 #ifndef RGB_LED_PIN 
-#define RGB_LED_PIN GPIO_NUM_48 // Default pin for the RGB LED, can be changed in constructor
+#define RGB_LED_PIN GPIO_NUM_12 // Default pin for the RGB LED, can be changed in constructor
 #endif
 
 #ifndef NEOPIXELRMT_H

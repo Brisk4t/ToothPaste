@@ -1,6 +1,8 @@
 #pragma once
 #define TOOTHPASTE_DEBUG_ENABLED 1
 
+// TODO: Migrate to esp_log
+
 #if TOOTHPASTE_DEBUG_ENABLED
   #define DEBUG_SERIAL_BEGIN(...) Serial.begin(__VA_ARGS__)
   #define DEBUG_SERIAL_PRINT(...) Serial.print(__VA_ARGS__)

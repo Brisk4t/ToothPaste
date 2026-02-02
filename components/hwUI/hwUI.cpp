@@ -2,6 +2,9 @@
 #define HWUI_H
 #include "hwUI.h"
 
+
+// Button handling code for one-button interface
+// Credit: Jeff Saltzman
 // https://forum.arduino.cc/t/adding-a-double-click-case-statement/283504/3
 
 // Button timing variables

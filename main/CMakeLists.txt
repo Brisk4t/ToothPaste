@@ -11,8 +11,3 @@ idf_component_register(
     INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}"  # Header search path
     REQUIRES espHID ble hwUI rgbRMT SecureSession serialDebug stateManager arduino-esp32 tinyusb       # Optional: list dependencies
 )
-
-# idf_component_get_property(tusb_lib espressif__tinyusb COMPONENT_LIB)
-
-# target_include_directories(${tusb_lib} PUBLIC "${COMPONENT_DIR}/tusb")
-# target_sources(${tusb_lib} PUBLIC "${COMPONENT_DIR}/tusb/usb_descriptors.c")
