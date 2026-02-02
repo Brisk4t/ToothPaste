@@ -330,8 +330,7 @@ void decryptSendString(toothpaste_DataPacket* packet, SecureSession* session) {
       // A keyboard text packet (string data)
       case toothpaste_EncryptedData_keyboardPacket_tag:
       {
-        std::string textString(, decrypted.packetData.keyboardPacket.length);
-        sendString(decrypted.packetData.keyboardPacket.message, packet->slowMode);
+        sendString(decrypted.packetData.keyboardPacket.message, decrypted.packetData.keyboardPacket.length, packet->slowMode);
         break;
       }
 

@@ -148,7 +148,7 @@ void moveMouse(int32_t x, int32_t y, int32_t LClick, int32_t RClick, int32_t whe
 void consumerControlPress(uint16_t key){
   control.press(key);
   vTaskDelay(pdMS_TO_TICKS(10));
-  consumerControlRelease();
+  control.release();
 
 }
 
