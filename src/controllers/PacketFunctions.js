@@ -118,9 +118,6 @@ export function createKeyboardStream(keyStrings) {
     // Handle both single string and array of strings
     let fullString = Array.isArray(keyStrings) ? keyStrings.join('') : keyStrings;
     
-    // Filter out emoji and non-standard characters
-    fullString = fullString.replace(/[\p{Emoji}\p{Emoji_Component}]/gu, '');
-    
     const packets = [];
     const chunkSize = 100; // Max characters per packet
     
