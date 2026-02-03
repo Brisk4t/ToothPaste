@@ -115,7 +115,7 @@ export default function About() {
                         <ambientLight intensity={currentSlide === 0 ? 2 : 1} />
                         <directionalLight
                             position={[0, 2, 5]}
-                            intensity={currentSlide === 0 ? 1 : 0.4}
+                            intensity={currentSlide === 0 ? 1 : 0.1}
                             castShadow
                         />
                         <Model url="/ToothPaste.glb" scrollDeltaRef={scrollDeltaRef} />
@@ -170,20 +170,22 @@ export default function About() {
 
                             <br/>
                             <div>
-                                <Typography variant="paragraph" className="text-lg font text-white leading-relaxed">
+                                <Typography type="paragraph" className="text-lg font text-white leading-relaxed">
                                     Because sometimes you just want to type                                
                                 </Typography>
-                                <Typography variant="paragraph" className="text-xl font-extralight text-gray-500">
+                                <br/>
+                                <Typography type="paragraph" className="text-xl font-extralight text-gray-500">
                                     ASuperSecurePasswordThatNoOneCanGuess¯\_(ツ)_/¯;);)1234
                                 </Typography>
-                                <Typography variant="paragraph" className="text-lg text-white leading-relaxed">
+                                <br/>
+                                <Typography type="paragraph" className="text-lg text-white leading-relaxed">
                                     and you're in a rush.......                                
                                 </Typography>
                             </div>
                         </div>
                         <div className="flex items-center gap-2 text-white mt-20">
                             <ArrowDownIcon className="h-5 w-5 animate-bounce" />
-                            <Typography variant="small">Scroll to explore</Typography>
+                            <Typography type="medium">Scroll to explore</Typography>
                         </div>
                     </div>
                 </div>
@@ -207,7 +209,7 @@ export default function About() {
                             </Typography>
                         </div>
                         
-                        <Typography type="h4" className="text-3xl text-white leading-relaxed">
+                        <Typography type="h4" className="text-3xl font-light text-white leading-relaxed">
                             As a student and tinkerer, I often found myself needing to paste information to devices that I didn't want to connect to the internet or install apps on.
                         </Typography>
                         
@@ -223,7 +225,7 @@ export default function About() {
                                     Vulnerable systems I'm definitely not trying to hack.
                                 </Typography>
                             </div>
-                            <div className="flex col-span-2 items-start gap-4">
+                            <div className="flex col-span-2 items-start gap-4 text-right">
                                 <Typography type="h4" className="text-lg text-white leading-relaxed">
                                    Usually this involves emailing myself, using cloud clipboard services, or texting myself.
                                 </Typography>
@@ -232,7 +234,7 @@ export default function About() {
                     </div>
                     <div className="flex items-center justify-center gap-2 text-white mt-20">
                         <ArrowDownIcon className="h-5 w-5 animate-bounce" />
-                        <Typography type="h4">What makes it secure?</Typography>
+                        <Typography type="medium">What makes it secure?</Typography>
                     </div>
                 </div>
             </section>
@@ -279,7 +281,7 @@ export default function About() {
                     </div>
                     <div className="flex items-center justify-center gap-2 text-white mt-20">
                         <ArrowDownIcon className="h-5 w-5 animate-bounce" />
-                        <Typography type="h4">Like what you see?</Typography>
+                        <Typography type="medium">Like what you see?</Typography>
                     </div>
                 </div>
             </section>
@@ -298,8 +300,6 @@ export default function About() {
                     <Typography type="h2" className="text-text font-bold">
                         Want to learn more?
                     </Typography>
-
-
 
                     <Typography type="paragraph" className="text-text text-2xl text-white">
                         ToothPaste is currently closed source while I finalize the hardware and software design.
