@@ -167,22 +167,40 @@ export default function LiveCapture() {
         toggled, // Set the button UI state
         onClick, // Click handler
         Icon, // Icon component
+        hoverText = "", // Text to show on hover
+        hoverBgColor = "bg-primary", // Background color on hover
         className = "" // Additional classes
     }) {
+        const [isHovered, setIsHovered] = React.useState(false);
+
+        const getButtonStyle = () => {
+            if (isHovered) {
+                return `absolute right-0 top-0 w-auto px-3 ${hoverBgColor} text-white flex-row-reverse`;
+            }
+            return `w-10 ${toggled ? "bg-white text-shelf" : "bg-shelf text-text"}`;
+        };
+
         return (
-            <div
-                title={title}
-                onClick={onClick}
-                className={`border border-hover h-10 w-10 flex justify-center items-center p-2 rounded-lg transition-colors cursor-pointer ${
-                    toggled ? "bg-white text-shelf" : "bg-shelf text-text"
-                } ${className}`}
-            >
-                {Icon && <Icon className="h-5 w-5" />}
+            <div className={`relative w-10 h-10`}>
+                <div
+                    title={title}
+                    onClick={onClick}
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
+                    className={`border border-hover h-10 flex justify-center items-center p-2 rounded-lg transition-all cursor-pointer ${getButtonStyle()} ${className}`}
+                >
+                    {Icon && <Icon className="h-5 w-5" />}
+                    {isHovered && hoverText && (
+                        <span className="mr-2 whitespace-nowrap text-sm font-medium">
+                            {hoverText}
+                        </span>
+                    )}
+                </div>
             </div>
         );
     }
 
-    function MediaToggleButton({ title, onClick, Icon }) {
+    function MediaToggleButton({ title, onClick, Icon, hoverText = "" }) {
         const [toggled, setToggled] = React.useState(false);
 
         const handleClick = () => {
@@ -197,6 +215,7 @@ export default function LiveCapture() {
                 toggled={toggled}
                 onClick={handleClick}
                 Icon={Icon}
+                hoverText={hoverText}
             />
         );
     }
@@ -207,10 +226,11 @@ export default function LiveCapture() {
 
         return (
             <IconToggleButton
-                title="Enable / Disable sending mouse movement"
+                title="Enable / Disable mouse capture"
                 toggled={captureMouse}
                 onClick={handleToggle}
                 Icon={CursorArrowRaysIcon}
+                hoverText="Enable / Disable mouse capture"
             />
         );
     }
@@ -220,10 +240,11 @@ export default function LiveCapture() {
         const handleToggle = () => setCommandPassthrough((prev) => !prev);
         return (
             <IconToggleButton
-                title="When this is enabled shortcuts like Ctrl+V are sent as is, when disabled Ctrl+V pastes the data in your clipboard as text"
+                title="Capture Shortcuts"
                 toggled={commandPassthrough}
                 onClick={handleToggle}
                 Icon={ArrowUpOnSquareStackIcon}
+                hoverText="Capture Shortcuts (e.g. Ctrl+V)"
             />
         );
     }
@@ -242,6 +263,7 @@ export default function LiveCapture() {
                 toggled={jiggling}
                 onClick={handleToggle}
                 Icon={CursorArrowRippleIcon}
+                hoverText="Start / Stop Mouse Jiggling"
             />
         );
     }
@@ -273,36 +295,41 @@ export default function LiveCapture() {
     function LeftButtonColumn() {
         return (
             <div className="flex flex-col space-y-2">
-                
+                <div>
                     <MediaToggleButton
                         title="Play / Pause media"
                         onClick={() => {sendControlCode(0x00CD)}}
                         Icon={PlayPauseIcon}
                         />
-                
+                </div>
+                <div>
                     <MediaToggleButton
                         title="Volume Up"
                         onClick={() => {sendControlCode(0x00E9)}}
                         Icon={ChevronDoubleUpIcon}
                         />
-                
+                </div>
+                <div>
                     <MediaToggleButton
                         title="Volume Down"
                         onClick={() => {sendControlCode(0x00EA)}}
                         Icon={ChevronDoubleDownIcon}
                         />
-                
+                </div>
+                <div>
                     <MediaToggleButton
                         title="Next"
                         onClick={() => {sendControlCode(0x00B5)}}
                         Icon={ForwardIcon}
                         />
-                
+                </div>
+                <div>
                     <MediaToggleButton
                         title="Previous"
                         onClick={() => {sendControlCode(0x00B6)}}
                         Icon={BackwardIcon}
                         />
+                </div>
             </div>
         );
     }
@@ -311,15 +338,22 @@ export default function LiveCapture() {
     function RightButtonColumn() {
         return (
             <div className="flex flex-col space-y-2">
-                <CaptureMouseButton />
-                <CommandPassthroughButton />
-                <MediaToggleButton 
-                    title="Power Button"
-                    Icon={PowerIcon} 
-                    onClick={() => sendControlCode(0x0030)} 
-                />
-                <MouseJiggleButton />
-
+                <div>
+                    <CaptureMouseButton />
+                </div>
+                <div>
+                    <CommandPassthroughButton />
+                </div>
+                <div>
+                    <MediaToggleButton 
+                        title="Power Button"
+                        Icon={PowerIcon} 
+                        onClick={() => sendControlCode(0x0030)} 
+                    />
+                </div>
+                <div>
+                    <MouseJiggleButton />
+                </div>
             </div>
         );
     }
