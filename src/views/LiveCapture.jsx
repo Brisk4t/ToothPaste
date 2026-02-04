@@ -168,16 +168,23 @@ export default function LiveCapture() {
         onClick, // Click handler
         Icon, // Icon component
         hoverText = "", // Text to show on hover
-        hoverBgColor = "bg-primary", // Background color on hover
-        className = "" // Additional classes
+        className = "", // Additional classes
+        expandDirection = "left" // Direction to expand on hover: "left" or "right"
     }) {
         const [isHovered, setIsHovered] = React.useState(false);
+        const isDisconnected = status === 0; // ConnectionStatus.disconnected
 
         const getButtonStyle = () => {
+            const bgColor = "bg-shelf";
+            const hoverBgColor = isDisconnected ? "bg-secondary" : "bg-primary"; // Background color on hover
+
+
             if (isHovered) {
-                return `absolute right-0 top-0 w-auto px-3 ${hoverBgColor} text-white flex-row-reverse`;
+                const positionClass = expandDirection === "right" ? "left-0" : "right-0";
+                const flexOrder = expandDirection === "right" ? "" : "flex-row-reverse";
+                return `absolute ${positionClass} top-0 w-auto px-3 ${hoverBgColor} text-white ${flexOrder}`;
             }
-            return `w-10 ${toggled ? "bg-white text-shelf" : "bg-shelf text-text"}`;
+            return `w-10 ${toggled ? "bg-white text-shelf" : `${bgColor} text-text`}`;
         };
 
         return (
@@ -191,7 +198,7 @@ export default function LiveCapture() {
                 >
                     {Icon && <Icon className="h-5 w-5" />}
                     {isHovered && hoverText && (
-                        <span className="mr-2 whitespace-nowrap text-sm font-medium">
+                        <span className="mx-2 whitespace-nowrap text-sm font-medium">
                             {hoverText}
                         </span>
                     )}
@@ -200,7 +207,7 @@ export default function LiveCapture() {
         );
     }
 
-    function MediaToggleButton({ title, onClick, Icon, hoverText = "" }) {
+    function MediaToggleButton({ title, onClick, Icon, expandDirection = "left" }) {
         const [toggled, setToggled] = React.useState(false);
 
         const handleClick = () => {
@@ -215,7 +222,8 @@ export default function LiveCapture() {
                 toggled={toggled}
                 onClick={handleClick}
                 Icon={Icon}
-                hoverText={hoverText}
+                hoverText={title}
+                expandDirection={expandDirection}
             />
         );
     }
@@ -300,6 +308,7 @@ export default function LiveCapture() {
                         title="Play / Pause media"
                         onClick={() => {sendControlCode(0x00CD)}}
                         Icon={PlayPauseIcon}
+                        expandDirection="right"
                         />
                 </div>
                 <div>
@@ -307,6 +316,7 @@ export default function LiveCapture() {
                         title="Volume Up"
                         onClick={() => {sendControlCode(0x00E9)}}
                         Icon={ChevronDoubleUpIcon}
+                        expandDirection="right"
                         />
                 </div>
                 <div>
@@ -314,6 +324,7 @@ export default function LiveCapture() {
                         title="Volume Down"
                         onClick={() => {sendControlCode(0x00EA)}}
                         Icon={ChevronDoubleDownIcon}
+                        expandDirection="right"
                         />
                 </div>
                 <div>
@@ -321,6 +332,7 @@ export default function LiveCapture() {
                         title="Next"
                         onClick={() => {sendControlCode(0x00B5)}}
                         Icon={ForwardIcon}
+                        expandDirection="right"
                         />
                 </div>
                 <div>
@@ -328,6 +340,7 @@ export default function LiveCapture() {
                         title="Previous"
                         onClick={() => {sendControlCode(0x00B6)}}
                         Icon={BackwardIcon}
+                        expandDirection="right"
                         />
                 </div>
             </div>
