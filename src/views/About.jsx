@@ -193,9 +193,9 @@ export default function About() {
 
                 {/* Content Grid with Model Breaking Out */}
                 <div className="flex-1 relative">
-                    <div className="grid grid-cols-5 gap-8 h-full items-center">
+                    <div className="grid grid-cols-2 gap-8 h-full items-center">
                         {/* Left Third */}
-                        <div className="flex flex-col col-span-2 gap-6">
+                        <div className="flex flex-col col-span-1 gap-6">
                             <Typography type="h4" className="text-2xl font-light text-white leading-relaxed">
                                 As a student and tinkerer, I often found myself needing to paste information to devices that I didn't want to connect to the internet or install apps on.
                             </Typography>
@@ -213,11 +213,11 @@ export default function About() {
                             </div>
                         </div>
                         
-                        {/* Center - Model breaks out with negative margins */}
-                        <div className="flex items-center justify-center"></div>
+                        {/* Center - Model breaks out with negative margins
+                        <div className="flex items-center justify-center"></div> */}
                         
                         {/* Right Third */}
-                        <div className="flex flex-col col-span-2 gap-10">
+                        <div className="flex flex-col col-span-1 gap-10">
                             <Typography type="h4" className="text-lg font-light text-white leading-relaxed">
                             Usually this involves emailing myself, using cloud clipboard services, or texting myself.
                             </Typography>
