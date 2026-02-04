@@ -343,6 +343,14 @@ export default function LiveCapture() {
                         expandDirection="right"
                         />
                 </div>
+                <div>
+                    <MediaToggleButton 
+                        title="Press 'Power' button"
+                        Icon={PowerIcon} 
+                        onClick={() => sendControlCode(0x0030)}
+                        expandDirection="right" 
+                    />
+                </div>
             </div>
         );
     }
@@ -356,13 +364,6 @@ export default function LiveCapture() {
                 </div>
                 <div>
                     <CommandPassthroughButton />
-                </div>
-                <div>
-                    <MediaToggleButton 
-                        title="Power Button"
-                        Icon={PowerIcon} 
-                        onClick={() => sendControlCode(0x0030)} 
-                    />
                 </div>
                 <div>
                     <MouseJiggleButton />
