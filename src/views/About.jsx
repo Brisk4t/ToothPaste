@@ -6,10 +6,15 @@ import { FaGithub } from 'react-icons/fa';
 import {
     ArrowDownIcon,
     LockClosedIcon,
-    BoltIcon,
+    EyeIcon,
+    ArrowsRightLeftIcon,
+    ArrowRightEndOnRectangleIcon,
+    EyeSlashIcon,
+    ComputerDesktopIcon,
+    QuestionMarkCircleIcon
 } from "@heroicons/react/24/outline";
 
-import ToothPaste_Device_V1_Front from '../assets/ToothPaste_Device_V1_Front.png';
+import ToothPaste from "/ToothPaste.svg";
 
 const Model = ({ url, scrollDeltaRef }) => {
     const groupRef = useRef();
@@ -38,11 +43,11 @@ const Model = ({ url, scrollDeltaRef }) => {
     });
 
     return (
-        <group ref={groupRef} position={[0, 0, -1]}>
+        <group ref={groupRef} position={[0, -0.1, -1]}>
             {/* The group is the 'box' that the camera looks it, since the model isnt always centered on the origin we rotate the box */}
 
             <spotLight
-                position={[0, 2, 1]}
+                position={[0, 3, 1]}
                 angle={0.3}
                 penumbra={0.2} // soft edge
                 intensity={11}
@@ -52,9 +57,9 @@ const Model = ({ url, scrollDeltaRef }) => {
             {/* Adjust model parameters to set the tilt inside the 'box' these are not dynamically updated, they change only if the model needs to be changed*/}
             <primitive
                 object={gltf.scene}
-                position={[2.5, -2, 0.6]} // Shift left/right to center around pivot
+                position={[3, -2.3, 0.6]} // Shift left/right to center around pivot
                 rotation={[0.88, 0, 0]}  // Tilt away from camera
-                scale={1}
+                scale={1.2}
             />
 
         </group>
@@ -119,6 +124,9 @@ export default function About() {
                             intensity={currentSlide === 0 ? 1 : 0.1}
                             castShadow
                         />
+                        {/* Positioning Helpers */}
+                        {/* <axesHelper args={[5]} />
+                        <gridHelper args={[10, 10]} /> */}
                         <Model url="/ToothPaste.glb" scrollDeltaRef={scrollDeltaRef} />
                     </Canvas>
                 </div>
@@ -139,47 +147,21 @@ export default function About() {
                     <div className="md:col-span-6"></div>
 
                     {/* Text Blob - 40% of space */}
-                    <div className="md:col-span-6 flex flex-col justify-center gap-6">
+                    <div className="md:col-span-6 flex flex-col justify-center">
                         <div>
-                            <Typography type="h3" className="text-text font-bold leading-tight mb-16">
-                                Simple. Seamless. Secure.
-                            </Typography>
-                            <br/>
-                            
-                            <div className="mb-5">
-                                <Typography type="h3" className="text-lg text-white leading-relaxed inline">ToothPaste </Typography>
-                                <Typography type="lead" className="text-sm font-extralight text-white leading-relaxed inline">is a Bluetooth Low Energy (BLE) based device that allows you to securely paste text from your computer to any paired device.</Typography>
+                            <div className="mb-12">
+                                <Typography type="h2" className="text-lg text-primary leading-relaxed inline">ToothPaste </Typography>
+                                <Typography type="paragraph" className="text-2xl font-light text-white leading-relaxed inline">is a Bluetooth Low Energy (BLE) based device that allows you to securely paste text from your computer to any paired device.</Typography>
                             </div>
-
-                            <div className="flex flex-col gap-1 my-16">
-                                <Typography type="h4" className="text-lg font text-white leading-relaxed"> 
-                                    That's it.
-                                </Typography>
-
-                                <Typography type="paragraph" className="text-xl font-extralight text-white leading-relaxed"> 
-                                    It <span className="text-secondary font-medium">won't</span> replace your password manager.
-                                </Typography>
-                                <Typography type="paragraph" className="text-xl font-extralight text-white leading-relaxed">        
-                                    It <span className="text-secondary font-medium">won't</span> solve world hunger.
-                                </Typography>
-                                <Typography type="paragraph" className="text-xl font-extralight text-white leading-relaxed"> 
-                                    And it <span className="text-secondary font-medium">definitely cannot</span> think for itself. Yet.
-                                </Typography>
-                            </div>
-
-
-
                             <br/>
                             <div>
-                                <Typography type="paragraph" className="text-lg font text-white leading-relaxed">
+                                <Typography type="h5" className="text-lg font text-white leading-relaxed mb-0">
                                     Because sometimes you just want to type                                
                                 </Typography>
-                                <br/>
-                                <Typography type="paragraph" className="text-xl font-extralight text-gray-500">
-                                    ASuperSecurePasswordThatNoOneCanGuess¯\_(ツ)_/¯;);)1234
+                                <Typography type="h4" className="text-xl font-light text-gray-500 my-0">
+                                    ASuperSecurePasswordThatNoOneCanGuess;-)
                                 </Typography>
-                                <br/>
-                                <Typography type="paragraph" className="text-lg text-white leading-relaxed">
+                                <Typography type="h5" className="text-lg text-white leading-relaxed">
                                     and you're in a rush.......                                
                                 </Typography>
                             </div>
@@ -194,7 +176,7 @@ export default function About() {
 
             {/* Feature Slide 1 */}
             <section
-                className="absolute inset-0 min-h-screen flex flex-col px-6 md:px-12 py-12 z-10"
+                className="absolute inset-0 flex flex-col px-6 md:px-12 py-12 z-10 pb-32"
                 style={{
                     opacity: getSectionOpacity(1),
                     transition: 'opacity 0.3s ease-in-out',
@@ -202,8 +184,8 @@ export default function About() {
                 }}
             >
                 {/* Title Row */}
-                <div className="flex items-center justify-center gap-4 mb-12">
-                    <LockClosedIcon className="h-12 w-12 text-primary flex-shrink-0" />
+                <div className="flex items-center justify-center gap-4 mb-12 flex-shrink-0">
+                    <QuestionMarkCircleIcon className="h-12 w-12 text-primary flex-shrink-0" />
                     <Typography type="h2" className="text-text font-bold">
                         Why?
                     </Typography>
@@ -232,29 +214,30 @@ export default function About() {
                         </div>
                         
                         {/* Center - Model breaks out with negative margins */}
-                        <div className="flex items-center justify-center -mx-8"></div>
+                        <div className="flex items-center justify-center"></div>
                         
                         {/* Right Third */}
                         <div className="flex flex-col col-span-2 gap-10">
-                            <Typography type="h4" className="text-lg text-white leading-relaxed">
+                            <Typography type="h4" className="text-lg font-light text-white leading-relaxed">
                             Usually this involves emailing myself, using cloud clipboard services, or texting myself.
                             </Typography>
                             <Typography type="h4" className="text-lg text-white leading-relaxed">
                             ToothPaste makes this process seamless and secure by allowing me to quickly paste text directly to any nearby paired device.
                             </Typography>
-                            
-                            <div className="flex items-center justify-center gap-2 text-white mt-auto">
-                                <ArrowDownIcon className="h-5 w-5 animate-bounce" />
-                                <Typography type="medium">What makes it secure?</Typography>
-                            </div>
                         </div>
                     </div>
+                </div>
+
+                {/* Centered Scroll Prompt at Bottom - Absolute positioned within section */}
+                <div className="absolute bottom-8 left-0 right-0 flex items-center justify-center gap-2 text-white">
+                    <ArrowDownIcon className="h-5 w-5 animate-bounce" />
+                    <Typography type="medium">What makes it secure?</Typography>
                 </div>
             </section>
 
             {/* Feature Slide 2 */}
             <section
-                className="absolute inset-0 min-h-screen flex flex-col px-6 md:px-12 py-12 z-10"
+                className="absolute inset-0 flex flex-col px-6 md:px-12 py-12 z-10 pb-32"
                 style={{
                     opacity: getSectionOpacity(2),
                     transition: 'opacity 0.3s ease-in-out',
@@ -262,51 +245,72 @@ export default function About() {
                 }}
             >
                 {/* Title Row */}
-                <div className="flex items-start justify-center gap-4 mb-12">
-                    <BoltIcon className="h-12 w-12 text-primary flex-shrink-0 mt-2" />
+                <div className="flex items-start justify-center gap-4 mb-12 flex-shrink-0">
+                    <LockClosedIcon className="h-12 w-12 text-primary flex-shrink-0" />
                     <Typography type="h2" className="text-text font-bold">
                         The nitty gritty details
                     </Typography>
                 </div>
 
-                {/* Content Grid with Model Breaking Out */}
-                <div className="flex-1 relative">
-                    <div className="grid grid-cols-5 gap-8 h-full items-center">
-                        {/* Left Third */}
-                        <div className="flex flex-col col-span-2 gap-6">
-                            <Typography type="h4" className="text-lg text-white font-light leading-relaxed">
-                                While convenient, WEB BLE isn't inherently secure. It's susceptible to snooping and Man In The Middle (MITM) attacks.
-                            </Typography>
-                            <Typography type="h4" className="text-lg text-white leading-relaxed">
-                                Since I wanted to paste passwords over the air, <span className="text-secondary">this wouldn't do.</span> 
-                            </Typography>
+                {/* Content Grid with Model Breaking Out - Rows first, columns inside */}
+                <div className="flex-1 relative flex items-center justify-center">
+                    <div className="grid grid-rows-5 gap-20">
+                        {/* Row 1-2: Top text */}
+                        <div className="row-span-2 grid grid-cols-5 gap-8">
+                            <div className="col-span-2 flex flex-col justify-end">
+                                <Typography type="h4" className="text-lg text-white font-light leading-relaxed">
+                                    While convenient, WEB BLE isn't inherently secure. It's susceptible to snooping and <br/><span className="text-secondary">Man In The Middle (MITM)</span> attacks.
+                                </Typography>
+                            </div>
+                            <div className="flex items-center justify-center"></div>
+                            <div className="col-span-2 flex flex-col justify-end">
+                                <Typography type="h4" className="text-lg font-light text-white leading-relaxed">
+                                    ToothPaste uses <span className="font-bold">ECDSA Cryptography</span> to exchange information over custom packets. Even if a <span className="italic">certain someone</span> can sniff out the data, it will be unusable.
+                                </Typography>
+                            </div>
                         </div>
-                        
-                        {/* Center - Model breaks out with negative margins */}
-                        <div className="flex items-center justify-center -mx-8"></div>
-                        
-                        {/* Right Third */}
-                        <div className="flex flex-col col-span-2 gap-6">
-                            <Typography type="paragraph" className="text-lg text-white leading-relaxed">
-                                ToothPaste uses <span className="text-xl font-bold">ECDSA Cryptography</span> to exchange information over custom packets, the private keys of the sender and receiver are never exposed over the BLE network and without them, any information transmitted is unusable.
-                            </Typography>
-                            <Typography type="paragraph" className="text-lg text-white leading-relaxed">
-                                Since ToothPaste shows up as a standard HID keyboard, the receiving system doesn't need any special software or drivers to use it.
-                            </Typography>
-                            
-                            <div className="flex items-center justify-center gap-2 text-white mt-auto">
-                                <ArrowDownIcon className="h-5 w-5 animate-bounce" />
-                                <Typography type="medium">Like what you see?</Typography>
+
+                        {/* Row 3: Icons */}
+                        <div className="grid grid-cols-5 gap-8">
+                            <div className="col-span-2 flex items-center justify-between px-20">
+                                <ComputerDesktopIcon className="h-12 w-12" /> <ArrowsRightLeftIcon className="h-12 w-12 mx-4" /> <EyeIcon className="h-12 w-12 text-secondary" /> 
+                                <ArrowsRightLeftIcon className="h-12 w-12 mx-4" /> <img src={ToothPaste} alt="ToothPaste" className="h-12 w-12" />
+                            </div>
+                            <div className="flex items-center justify-center"></div>
+                            <div className="col-span-2 flex items-center justify-between px-20">
+                                <ComputerDesktopIcon className="h-12 w-12" /> <ArrowsRightLeftIcon className="h-12 w-12 mx-4" /> <EyeSlashIcon className="h-12 w-12 text-primary" /> 
+                                <ArrowsRightLeftIcon className="h-12 w-12 mx-4" /> <img src={ToothPaste} alt="ToothPaste" className="h-12 w-12" />
+                            </div>
+                        </div>
+
+                        {/* Row 4-5: Bottom text */}
+                        <div className="row-span-2 grid grid-cols-5 gap-8">
+                            <div className="col-span-2 flex flex-col justify-start">
+                                <Typography type="h4" className="text-lg text-white leading-relaxed">
+                                    Since I wanted to paste passwords over the air, <span className="text-secondary">this wouldn't do.</span> 
+                                </Typography>
+                            </div>
+                            <div className="flex items-center justify-center"></div>
+                            <div className="col-span-2 flex flex-col justify-start">
+                                <Typography type="h4" className="text-lg font-light text-white leading-relaxed">
+                                    A ToothPaste shows up as a standard HID keyboard, so the receiving system doesn't need any special software or drivers to use it.
+                                </Typography>
                             </div>
                         </div>
                     </div>
+                </div>
+
+                {/* Centered Scroll Prompt at Bottom - Absolute positioned within section */}
+                <div className="absolute bottom-8 left-0 right-0 flex items-center justify-center gap-2 text-white">
+                    <ArrowDownIcon className="h-5 w-5 animate-bounce" />
+                    <Typography type="medium">Like what you see?</Typography>
                 </div>
             </section>
 
 
             {/* CTA Footer Slide */}
             <section
-                className="absolute inset-0 min-h-screen flex flex-col px-6 md:px-12 py-12 z-10"
+                className="absolute inset-0 flex flex-col items-center justify-center px-6 md:px-12 z-10"
                 style={{
                     opacity: getSectionOpacity(3),
                     transition: 'opacity 0.3s ease-in-out',
@@ -321,14 +325,14 @@ export default function About() {
                 </div>
 
                 {/* Content Grid with Model Breaking Out */}
-                <div className="flex-1 relative">
-                    <div className="grid grid-cols-3 gap-8 h-full items-center">
+                <div className="relative">
+                    <div className="grid grid-cols-5 gap-8 items-center">
                         {/* Left Third */}
                         <div></div>
                         
                         {/* Center - Model breaks out with negative margins + CTA text */}
-                        <div className="flex flex-col gap-8 text-center items-center justify-center -mx-8">
-                            <Typography type="paragraph" className="text-lg text-white">
+                        <div className="flex flex-col col-span-3 gap-8 text-center items-center justify-center">
+                            <Typography type="h5" className="text-lg text-white">
                                 ToothPaste is currently closed source while I finalize the hardware and software design.
                                 However, if you're interested in collaborating, contributing, or just want to chat about the project feel free to reach out!
                             </Typography>
