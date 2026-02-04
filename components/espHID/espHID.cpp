@@ -9,6 +9,9 @@
 #include "IDFHIDSystemControl.h"
 #include "SerialDebug.h"
 
+// TODO: ESP_LOGI("HID", "Interface 1 report complete"); this string gets stuck reports only on interface 0
+
+
 // Needed to enable CDC if defined
 #if ARDUINO_USB_CDC_ON_BOOT
     #include <USBCDC.h>
@@ -76,7 +79,7 @@ void sendString(const char *str, bool slowMode)
 void sendString(const char *str, uint8_t stringLen, bool slowMode)
 {
   QueueStringItem item;
-  size_t copyLen = (stringLen < MAX_QUEUE_STRING_LEN) ? stringLen : MAX_QUEUE_STRING_LEN - 1;
+  size_t copyLen = stringLen;
   memcpy(item.data, str, copyLen);
   item.data[copyLen] = '\0';
   xQueueSend(reportQueue, &item, 0);
@@ -140,8 +143,6 @@ void moveMouse(int32_t x, int32_t y, int32_t LClick, int32_t RClick, int32_t whe
   if (mouse.isPressed(MOUSE_RIGHT) && RClick == 2) {
       mouse.release(MOUSE_RIGHT);
   }
-  
-  // vTaskDelay(pdMS_TO_TICKS(5));
 }
 
 // Press a consumer control key
@@ -232,7 +233,7 @@ void keyboardTask(void* params)
   
   while (keyboardStarted) {
     if(xQueueReceive(reportQueue, &item, portMAX_DELAY) == pdTRUE){
-      sendStringSlow(item.data, 5);
+      sendStringSlow(item.data, SLOWMODE_DELAY_MS);
     }
   }
   // Task exits gracefully when flag is set to false
@@ -325,16 +326,17 @@ void sendStringDelay(void *arg, int delayms){
 //   switch(instance){
 //     case 0:
 //       // keyboard0.unlock();
-//       ESP_LOGI("HID", "Keyboard 0 report complete");
+//       ESP_LOGI("HID", "Interface 0 report complete");
 //       break;
 
 //     case 1:
 //       // keyboard0.unlock();
-//       ESP_LOGI("HID", "Keyboard 1 report complete");
+//       ESP_LOGI("HID", "Interface 1 report complete");
 //       break;
 
 //     case 2:
-//       control.unlock();
+//       // control.unlock();
+//       ESP_LOGI("HID", "Interface 2 report complete");
 //       break;
 
 //     default:

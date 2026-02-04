@@ -107,7 +107,7 @@ extern "C" void app_main() {
         if (buttonEvent == 1) { // Single click
           printf("Single Click");
           if (stateManager->getState() == PAIRING) {
-              sendString(base64pubKey);
+              sendString(base64pubKey, 45, true); // Resend public key over HID
           } else {
               //sendKeycode(keycode, true);
               //sendString("Teststring1234", true);
