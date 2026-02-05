@@ -518,10 +518,13 @@ export default function LiveCapture() {
                         onFocus={() => setIsFocused(true)}
                         onBlur={() => setIsFocused(false)}
                         // Keyboard event handlers
-                        // onKeyDown={(e) => {
-                        //     handleKeyDown(e);
-                        //     mobileInputRef.current.value = "";
-                        // }}
+                        onKeyDown={(e) => {
+                            if(e.key === "Unidentified") {
+                                e.preventDefault(); // Prevent default to avoid unwanted characters
+                            }
+                            handleKeyDown(e);
+                            mobileInputRef.current.value = "";
+                        }}
                         // onKeyUp={(e) => {
                         //     handleKeyUp(e);
                         //     mobileInputRef.current.value = "";
