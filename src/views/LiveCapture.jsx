@@ -386,12 +386,12 @@ export default function LiveCapture() {
 
             <Keyboard listenerRef={inputRef} deviceStatus={status}></Keyboard>
 
-            <div className="flex flex-col flex-1 my-4 rounded-xl transition-all border border-hover focus:border-shelf relative group ">         
-                <div className="absolute top-2 left-2">
+            <div className="flex flex-col flex-1 my-4 rounded-xl transition-all border border-hover focus-within:border-shelf bg-shelf focus-within:bg-background relative group ">         
+                <div className="absolute top-2 left-2 z-10">
                     <LeftButtonColumn />
                 </div>
                 
-                <div className="absolute top-2 right-2">
+                <div className="absolute top-2 right-2 z-10">
                     <RightButtonColumn />
                 </div>
 
@@ -413,33 +413,7 @@ export default function LiveCapture() {
                     Capturing inputs...
                 </Typography>
 
-                {/* <div
-                    ref={inputRef}
-                    tabIndex={0}
-                    onKeyDown={handleKeyDown}
-                    onKeyUp={handleKeyUp}
-                    contentEditable={true}
-                    suppressContentEditableWarning={true}
-                    onInput={handleInput} // mock a keydown event by slicing the input buffer and then clearing it
-                    onPointerDown={onPointerDown}
-                    onPointerMove={onPointerMove}
-                    onPointerUp={onPointerUp}
-                    onPointerCancel={onPointerCancel}
-                    onPointerEnter={onPointerEnter}
-                    onBeforeInput={handleOnBeforeInput}
-                    onPaste={onPaste}
-                    
-                    onCompositionStart = {handleCompositionStart}
-                    onCompositionUpdate={handleCompositionUpdate}
-                    onCompositionEnd = {handleCompositionEnd} // prevent composition events from modifying the buffer
-
-
-                    className="flex flex-1 w-full p-4 rounded-xl
-                            text-hover text-4xl bg-shelf focus:bg-background focus:bg-background focus:outline-none whitespace-pre-wrap font-sans overflow-y-auto"
-                >
-                    <span className="" />
-                </div> */}
-
+                {/* Hidden input for event capture */}
                 <input
                     id="live-capture-input"
                     ref={inputRef}
@@ -450,7 +424,6 @@ export default function LiveCapture() {
                     autoComplete="off"
                     spellCheck="false"
                     data-lpignore="true"
-                    //{...{ autocapitalize: "none" }} // forces lowercase HTML attribute
 
                     // Focus handlers
                     onFocus={() => setIsFocused(true)}
@@ -460,22 +433,26 @@ export default function LiveCapture() {
                     onKeyUp={handleKeyUp}
                     onPaste={handlePaste}
                     // Mouse event handlers
-                    onMouseDown={onMouseDown} // When a mouse button is pressed
-                    onMouseUp={onMouseUp} // When a mouse button is released
+                    onMouseDown={onMouseDown}
+                    onMouseUp={onMouseUp}
                     onPointerMove={onPointerMove}
                     onPointerCancel={onPointerCancel}
                     onPointerEnter={onPointerEnter}
                     onBeforeInput={handleOnBeforeInput}
                     onWheel={onWheel}
-                    onContextMenu={(e) => e.preventDefault()} // Prevent right-clicks from opening the default context menu inside this input
+                    onContextMenu={(e) => e.preventDefault()}
                     // IME event handlers
                     onChange={handleOnChange}
                     onCompositionStart={handleCompositionStart}
                     onCompositionUpdate={() => {}}
                     onCompositionEnd={handleCompositionEnd}
-                    className="flex flex-1 w-full p-4 rounded-xl caret-transparent
-                            text-shelf focus:text-background text-4xl bg-shelf focus:bg-background focus:outline-none whitespace-pre-wrap font-sans overflow-y-auto"
+                    className="absolute inset-0 opacity-0 cursor-text pointer-events-auto"
                 ></input>
+
+                {/* Event routing overlay div */}
+                <div
+                    className="absolute inset-0 rounded-xl z-5 pointer-events-none"
+                />
             </div>
         </div>
     );
