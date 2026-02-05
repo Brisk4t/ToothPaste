@@ -513,19 +513,51 @@ export default function LiveCapture() {
                         spellCheck="false"
 
                         // Focus handlers
-                        onFocus={() => setIsFocused(true)}
-                        onBlur={() => setIsFocused(false)}
+                        onFocus={() => {
+                            console.log("Mobile input: onFocus fired");
+                            setIsFocused(true);
+                        }}
+                        onBlur={() => {
+                            console.log("Mobile input: onBlur fired");
+                            setIsFocused(false);
+                        }}
                         // Keyboard event handlers
-                        onKeyDown={handleKeyDown}
-                        onKeyUp={handleKeyUp}
-                        onPaste={handlePaste}
-                        onBeforeInput={handleOnBeforeInput}
-                        onContextMenu={(e) => e.preventDefault()}
+                        onKeyDown={(e) => {
+                            console.log("Mobile input: onKeyDown fired", e.key);
+                            handleKeyDown(e);
+                        }}
+                        onKeyUp={(e) => {
+                            console.log("Mobile input: onKeyUp fired", e.key);
+                            handleKeyUp(e);
+                        }}
+                        onPaste={(e) => {
+                            console.log("Mobile input: onPaste fired");
+                            handlePaste(e);
+                        }}
+                        onBeforeInput={(e) => {
+                            console.log("Mobile input: onBeforeInput fired", e.data);
+                            handleOnBeforeInput(e);
+                        }}
+                        onContextMenu={(e) => {
+                            console.log("Mobile input: onContextMenu fired");
+                            e.preventDefault();
+                        }}
                         // IME event handlers
-                        onChange={handleOnChange}
-                        onCompositionStart={handleCompositionStart}
-                        onCompositionUpdate={() => {}}
-                        onCompositionEnd={handleCompositionEnd}
+                        onChange={(e) => {
+                            console.log("Mobile input: onChange fired", e.target.value);
+                            handleOnChange(e);
+                        }}
+                        onCompositionStart={(e) => {
+                            console.log("Mobile input: onCompositionStart fired");
+                            handleCompositionStart(e);
+                        }}
+                        onCompositionUpdate={(e) => {
+                            console.log("Mobile input: onCompositionUpdate fired");
+                        }}
+                        onCompositionEnd={(e) => {
+                            console.log("Mobile input: onCompositionEnd fired");
+                            handleCompositionEnd(e);
+                        }}
                         className="absolute inset-0 opacity-0 cursor-text pointer-events-auto"
                     ></input>
 
