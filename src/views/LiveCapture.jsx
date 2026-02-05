@@ -205,6 +205,7 @@ export default function LiveCapture() {
                 <div
                     title={title}
                     onClick={ isDisconnected? null : handleClick}
+                    onMouseDown={(e) => e.preventDefault()}
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
                     className={`border border-hover h-10 flex justify-center items-center p-2 rounded-lg transition-all cursor-pointer select-none ${getButtonStyle()} ${className}`}
