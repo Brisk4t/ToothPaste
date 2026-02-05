@@ -9,6 +9,7 @@ import Touchpad from "../components/Touchpad/Touchpad";
 import { useInputController } from "../controllers/LiveCaptureInput";
 
 import { createConsumerControlPacket, createKeyCodePacket, createMouseStream, createMouseJigglePacket } from "../controllers/PacketFunctions";
+import { HIDMap } from "../controllers/HIDMap";
 
 export default function LiveCapture() {
     // Input controller hooks
@@ -225,19 +226,23 @@ export default function LiveCapture() {
     }
 
     // Helper function to send keyboard shortcuts
-    function sendKeyboardShortcut(keys) {
-        keys.forEach(keyCode => {
-            const keyPacket = createKeyCodePacket(keyCode, true); // key down
-            sendEncrypted(keyPacket);
-        });
+    function sendKeyboardShortcut(keySequence) {
+        const modifierKeys = ["ControlLeft", "ControlRight", "AltLeft", "AltRight", "ShiftLeft", "ShiftRight", "MetaLeft", "MetaRight"];
+        const modifiers = keySequence.filter(k => modifierKeys.includes(k));
+        const mainKey = keySequence.find(k => !modifierKeys.includes(k));
         
-        // Release all keys
-        setTimeout(() => {
-            keys.forEach(keyCode => {
-                const keyPacket = createKeyCodePacket(keyCode, false); // key up
-                sendEncrypted(keyPacket);
-            });
-        }, 50);
+        const syntheticEvent = {
+            key: mainKey,
+            ctrlKey: modifiers.some(k => k.includes("Control")),
+            altKey: modifiers.some(k => k.includes("Alt")),
+            shiftKey: modifiers.some(k => k.includes("Shift")),
+            metaKey: modifiers.some(k => k.includes("Meta")),
+            preventDefault: () => {}
+        };
+        
+        console.log("Sending synthetic keyboard shortcut:", syntheticEvent);
+
+        handleKeyDown(syntheticEvent);
     }
 
     // Reusable IconToggleButton component
@@ -370,7 +375,7 @@ export default function LiveCapture() {
     function sendControlCode(controlCode, hold = false) {
         const arr = new ArrayBuffer(10);
         var view = new DataView(arr);
-        
+
         // view.setUint8(0, 4); // first byte = flag
         view.setUint16(0, controlCode, true); // next two bytes = control code
 
@@ -605,24 +610,24 @@ export default function LiveCapture() {
                 rightButtonColumn={<RightButtonColumn />}
                 shortcuts={[
                     [
-                        { label: "Ctrl+A", keys: ["ControlLeft", "KeyA"] },
-                        { label: "Ctrl+C", keys: ["ControlLeft", "KeyC"] },
-                        { label: "Ctrl+V", keys: ["ControlLeft", "KeyV"] },
-                        { label: "Ctrl+X", keys: ["ControlLeft", "KeyX"] },
+                        { label: "Ctrl+A", keys: ["ControlLeft", "a"] },
+                        { label: "Ctrl+C", keys: ["ControlLeft", "c"] },
+                        { label: "Ctrl+V", keys: ["ControlLeft", "v"] },
+                        { label: "Ctrl+X", keys: ["ControlLeft", "x"] },
                         { label: "Delete", keys: ["Delete"] },
                     ],
                     [
-                        { label: "Ctrl+Z", keys: ["ControlLeft", "KeyZ"] },
-                        { label: "Ctrl+Y", keys: ["ControlLeft", "KeyY"] },
-                        { label: "Ctrl+S", keys: ["ControlLeft", "KeyS"] },
+                        { label: "Ctrl+Z", keys: ["ControlLeft", "z"] },
+                        { label: "Ctrl+Y", keys: ["ControlLeft", "y"] },
+                        { label: "Ctrl+S", keys: ["ControlLeft", "s"] },
                         { label: "Alt+Tab", keys: ["AltLeft", "Tab"] },
                         { label: "Esc", keys: ["Escape"] },
                     ],
                     [
                         { label: "Ctrl+Alt+Del", keys: ["ControlLeft", "AltLeft", "Delete"] },
                         { label: "Ctrl+Shift+Esc", keys: ["ControlLeft", "ShiftLeft", "Escape"] },
-                        { label: "Win+V", keys: ["MetaLeft", "KeyV"] },
-                        { label: "Win+Shift+S", keys: ["MetaLeft", "ShiftLeft", "KeyS"] },
+                        { label: "Win+V", keys: ["MetaLeft", "v"] },
+                        { label: "Win+Shift+S", keys: ["MetaLeft", "ShiftLeft", "s"] },
                         { label: "Enter", keys: ["Enter"] },
                     ],
                 ]}

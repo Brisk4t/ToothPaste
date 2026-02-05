@@ -127,6 +127,7 @@ export function useInputController() {
 
     // Intercept keydown events
     function handleKeyDown(e) {
+        console.log("Key down event: ", e.key, " | Ctrl: ", e.ctrlKey, " | Alt: ", e.altKey, " | Shift: ", e.shiftKey);
         // TODO: Handle Combos in a function
         // TODO: Handle just modifiers (hold ctrl to stop tracking cursor)
         // TODO: 
