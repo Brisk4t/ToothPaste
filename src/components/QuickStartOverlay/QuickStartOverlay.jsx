@@ -143,19 +143,6 @@ const stepsMap = {
     about: [
         WELCOME_STEP,
         { ...NAV_MENU_STEP, spotlightRadius: 120, spotlightGridColumn: 5, spotlightGridRow: 1, gradientIntensity: 0.6 },
-        // {
-        //     title: 'About ToothPaste',
-        //     description: 'Learn more about ToothPaste, including how it works, security features, and how to get started with your own device.',
-        //     targetSelector: null,
-        //     gridColumn: 4,
-        //     gridRow: 4,
-        //     columnSpan: 3,
-        //     rowSpan: 2,
-        //     spotlightRadius: 100,
-        //     spotlightGridColumn: 5,
-        //     spotlightGridRow: 5,
-        //     gradientIntensity: 0.6,
-        // },
         { ...CONNECTION_STATUS_STEP, spotlightRadius: 150, spotlightGridColumn: 9, spotlightGridRow: 2, gradientIntensity: 0.7 },
     ],
 };
