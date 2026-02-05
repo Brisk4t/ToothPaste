@@ -549,6 +549,13 @@ export default function LiveCapture() {
                         spellCheck="false"
                         onFocus={() => setIsAutofillFocused(true)}
                         onBlur={() => setIsAutofillFocused(false)}
+                        onKeyDown={handleKeyDown}
+                        onKeyUp={handleKeyUp}
+                        onPaste={handlePaste}
+                        onBeforeInput={handleOnBeforeInput}
+                        onChange={handleOnChange}
+                        onCompositionStart={handleCompositionStart}
+                        onCompositionEnd={handleCompositionEnd}
                         className="absolute inset-0 opacity-0 cursor-text pointer-events-auto"
                         placeholder=""
                     ></input>
