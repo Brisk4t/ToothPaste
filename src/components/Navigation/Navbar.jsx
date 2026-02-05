@@ -245,72 +245,79 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                 </div>
 
                 {/* Center: Desktop menu */}
-                <div className="hidden lg:flex flex-1 justify-center space-x-5">
-                    <button
-                        disabled={status === 2}
-                        className={`flex items-center space-x-1 p-2 gap-2 rounded disabled:text-hover disabled:hover:bg-transparent ${
-                            activeView === "live" ? "disabled:border-hover border border-text" : "hover:bg-hover"
-                        }`}
-                        onClick={() => onNavigate("live")}
-                    >
-                        <PlayIcon className="h-5 w-5" />
-                        <Typography variant="h4">Live Capture</Typography>
-                    </button>
-
-                    <button
-                        disabled={status === 2}
-                        className={`flex items-center space-x-1 p-2 gap-2 rounded disabled:text-hover disabled:hover:bg-transparent ${
-                            activeView === "paste" ? "disabled:border-hover border border-text" : "hover:bg-hover"
-                        }`}
-                        onClick={() => onNavigate("paste")}
-                    >
-                        <ClipboardIcon className="h-5 w-5" />
-                        <Typography variant="h4">Paste</Typography>
-                    </button>
-                    
-                    <button
-                        disabled={status === 2}
-                        className={`flex items-center space-x-1 p-2 gap-2 rounded disabled:text-hover disabled:hover:bg-transparent ${
-                            activeView === "update" ? "disabled:border-hover border border-text" : "hover:bg-hover"
-                        }`}
-                        onClick={() => onChangeOverlay("update")}
-                    >
-                        <CpuChipIcon className="h-5 w-5" />
-                        <Typography variant="h4">Update</Typography>
-                    </button>
-
-                    <button
-                        disabled={false}
-                        className="flex items-center space-x-1 p-2 gap-2 rounded hover:bg-hover"
-                        onClick={() => onChangeOverlay("quickstart")}
-                        title="Show Quick Start Guide"
-                    >
-                        <PlayCircleIcon className="h-5 w-5" />
-                        <Typography variant="h4">Quick Start</Typography>
-                    </button>
-
-                    <button
-                        disabled={false}
-                        className={`flex items-center space-x-1 p-2 gap-2 rounded disabled:text-hover disabled:hover:bg-transparent ${
-                            activeView === "about" ? "disabled:border-hover border border-text" : "hover:bg-hover"
-                        }`}
-                        onClick={() => onNavigate("about")}
-                    >
-                        <QuestionMarkCircleIcon className="h-5 w-5" />
-                        <Typography variant="h4">About</Typography>
-                    </button>
-
-                    {status === 2 && (
+                <div className="hidden lg:flex flex-1 justify-center space-x-5 items-center">
+                    <div className="flex items-center space-x-5">
                         <button
-                            className="flex items-center space-x-1 p-2 gap-2 rounded hover:bg-hover"
-                            onClick={() => onChangeOverlay("pair")}
+                            disabled={status === 2}
+                            className={`flex items-center space-x-1 p-2 gap-2 rounded disabled:text-hover disabled:hover:bg-transparent ${
+                                activeView === "live" ? "disabled:border-hover border border-text" : "hover:bg-hover"
+                            }`}
+                            onClick={() => onNavigate("live")}
                         >
-                            <LinkIcon className="h-5 w-5" />
-                            <Typography variant="h4" className="">
-                                Pair Device
-                            </Typography>
+                            <PlayIcon className="h-5 w-5" />
+                            <Typography variant="h4">Live Capture</Typography>
                         </button>
-                    )}
+
+                        <button
+                            disabled={status === 2}
+                            className={`flex items-center space-x-1 p-2 gap-2 rounded disabled:text-hover disabled:hover:bg-transparent ${
+                                activeView === "paste" ? "disabled:border-hover border border-text" : "hover:bg-hover"
+                            }`}
+                            onClick={() => onNavigate("paste")}
+                        >
+                            <ClipboardIcon className="h-5 w-5" />
+                            <Typography variant="h4">Paste</Typography>
+                        </button>
+                        
+                        <button
+                            disabled={false}
+                            className={`flex items-center space-x-1 p-2 gap-2 rounded disabled:text-hover disabled:hover:bg-transparent ${
+                                activeView === "about" ? "disabled:border-hover border border-text" : "hover:bg-hover"
+                            }`}
+                            onClick={() => onNavigate("about")}
+                        >
+                            <QuestionMarkCircleIcon className="h-5 w-5" />
+                            <Typography variant="h4">About</Typography>
+                        </button>
+                    </div>
+
+                    {/* Vertical Separator */}
+                    <div className="h-6 border-l border-text opacity-50"></div>
+
+                    <div className="flex items-center space-x-5">
+                        <button
+                            disabled={status === 2}
+                            className={`flex items-center space-x-1 p-2 gap-2 rounded disabled:text-hover disabled:hover:bg-transparent ${
+                                activeView === "update" ? "disabled:border-hover border border-text" : "hover:bg-hover"
+                            }`}
+                            onClick={() => onChangeOverlay("update")}
+                        >
+                            <CpuChipIcon className="h-5 w-5" />
+                            <Typography variant="h4">Update</Typography>
+                        </button>
+
+                        <button
+                            disabled={false}
+                            className="flex items-center space-x-1 p-2 gap-2 rounded hover:bg-hover"
+                            onClick={() => onChangeOverlay("quickstart")}
+                            title="Show Quick Start Guide"
+                        >
+                            <PlayCircleIcon className="h-5 w-5" />
+                            <Typography variant="h4">Quick Start</Typography>
+                        </button>
+
+                        {status === 2 && (
+                            <button
+                                className="flex items-center space-x-1 p-2 gap-2 rounded hover:bg-hover"
+                                onClick={() => onChangeOverlay("pair")}
+                            >
+                                <LinkIcon className="h-5 w-5" />
+                                <Typography variant="h4" className="">
+                                    Pair Device
+                                </Typography>
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {/* Right: Desktop ConnectionButton and Mobile Hamburger */}
@@ -337,58 +344,93 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
             {/* Mobile Dropdown Menu */}
             {isOpen && (
                 <div className="lg:hidden flex flex-col space-y-2 px-4 pb-4">
-                    <button
-                        disabled={status === 2}
-                        className={`flex items-center space-x-1 px-3 py-2 gap-1 rounded disabled:text-hover disabled:hover:bg-transparent ${
-                            activeView === "live" ? "bg-hover" : "hover:bg-hover"
-                        }`}
-                        onClick={() => {
-                            onNavigate("live");
-                            setIsOpen(false);
-                        }}
-                    >
-                        <PlayIcon className="h-5 w-5" />
-                        <span>Live Capture</span>
-                    </button>
-
-                    <button
-                        disabled={status === 2}
-                        className={`flex items-center space-x-1 px-3 py-2 gap-1 rounded hover:bg-hover disabled:text-hover disabled:hover:bg-transparent ${
-                            activeView === "paste" ? "bg-hover" : "hover:bg-hover"
-                        }`}
-                        onClick={() => {
-                            onNavigate("paste");
-                            setIsOpen(false);
-                        }}
-                    >
-                        <ClipboardIcon className="h-5 w-5" />
-                        <span>Paste</span>
-                    </button>
-
-                    <button
-                        disabled={false}
-                        className="flex items-center space-x-1 px-3 py-2 gap-1 rounded hover:bg-hover"
-                        onClick={() => {
-                            onChangeOverlay("quickstart");
-                            setIsOpen(false);
-                        }}
-                    >
-                        <PlayCircleIcon className="h-5 w-5" />
-                        <span>Quick Start</span>
-                    </button>
-
-                    {status === 2 && (
+                    <div className="flex flex-col space-y-2">
                         <button
-                            className="flex items-center space-x-1 px-3 py-2 rounded hover:bg-hover"
+                            disabled={status === 2}
+                            className={`flex items-center space-x-1 px-3 py-2 gap-1 rounded disabled:text-hover disabled:hover:bg-transparent ${
+                                activeView === "live" ? "bg-hover" : "hover:bg-hover"
+                            }`}
                             onClick={() => {
-                                onChangeOverlay("pair");
+                                onNavigate("live");
                                 setIsOpen(false);
                             }}
                         >
-                            <LinkIcon className="h-5 w-5" />
-                            <span>Pair Device</span>
+                            <PlayIcon className="h-5 w-5" />
+                            <span>Live Capture</span>
                         </button>
-                    )}
+
+                        <button
+                            disabled={status === 2}
+                            className={`flex items-center space-x-1 px-3 py-2 gap-1 rounded hover:bg-hover disabled:text-hover disabled:hover:bg-transparent ${
+                                activeView === "paste" ? "bg-hover" : "hover:bg-hover"
+                            }`}
+                            onClick={() => {
+                                onNavigate("paste");
+                                setIsOpen(false);
+                            }}
+                        >
+                            <ClipboardIcon className="h-5 w-5" />
+                            <span>Paste</span>
+                        </button>
+
+                        <button
+                            disabled={false}
+                            className={`flex items-center space-x-1 px-3 py-2 gap-1 rounded disabled:text-hover disabled:hover:bg-transparent ${
+                                activeView === "about" ? "bg-hover" : "hover:bg-hover"
+                            }`}
+                            onClick={() => {
+                                onNavigate("about");
+                                setIsOpen(false);
+                            }}
+                        >
+                            <QuestionMarkCircleIcon className="h-5 w-5" />
+                            <span>About</span>
+                        </button>
+                    </div>
+
+                    {/* Horizontal Separator */}
+                    <div className="h-px bg-text opacity-50 my-2"></div>
+
+                    <div className="flex flex-col space-y-2">
+                        <button
+                            disabled={status === 2}
+                            className={`flex items-center space-x-1 px-3 py-2 gap-1 rounded disabled:text-hover disabled:hover:bg-transparent ${
+                                activeView === "update" ? "bg-hover" : "hover:bg-hover"
+                            }`}
+                            onClick={() => {
+                                onChangeOverlay("update");
+                                setIsOpen(false);
+                            }}
+                        >
+                            <CpuChipIcon className="h-5 w-5" />
+                            <span>Update</span>
+                        </button>
+
+                        <button
+                            disabled={false}
+                            className="flex items-center space-x-1 px-3 py-2 gap-1 rounded hover:bg-hover"
+                            onClick={() => {
+                                onChangeOverlay("quickstart");
+                                setIsOpen(false);
+                            }}
+                        >
+                            <PlayCircleIcon className="h-5 w-5" />
+                            <span>Quick Start</span>
+                        </button>
+
+                        {status === 2 && (
+                            <button
+                                className="flex items-center space-x-1 px-3 py-2 rounded hover:bg-hover"
+                                onClick={() => {
+                                    onChangeOverlay("pair");
+                                    setIsOpen(false);
+                                }}
+                            >
+                                <LinkIcon className="h-5 w-5" />
+                                <span>Pair Device</span>
+                            </button>
+                        )}
+                    </div>
 
                     <ConnectionButton connected={status} />
                 </div>
