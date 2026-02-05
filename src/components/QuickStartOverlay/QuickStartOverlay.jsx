@@ -7,24 +7,32 @@ const steps = [
     description: 'A tool to quickly capture and send clipboard data via BLE to your paired devices without compromising security.',
     targetSelector: null,
     position: 'center',
+    columnSpan: 5,
+    rowSpan: 4,
   },
   {
     title: 'Navigation Menu',
     description: 'Toggle the menu to switch between Live Capture, Bulk Send, and other features.',
     targetSelector: '.navbar-toggle, [class*="Bars3Icon"]',
     position: 'top',
+    columnSpan: 5,
+    rowSpan: 3,
   },
   {
     title: 'Live Capture',
     description: 'Capture keyboard and mouse input in real-time. Type in the input area to capture commands.',
     targetSelector: 'main',
     position: 'top',
+    columnSpan: 5,
+    rowSpan: 3,
   },
   {
     title: 'Connection Status',
     description: 'Connect to a ToothPaste device via BLE to start sending clipboard data securely. Once connected, hold this button to rename the connected device.',
     targetSelector: '[class*="ConnectionButton"], .connection-status',
     position: 'top-right',
+    columnSpan: 5,
+    rowSpan: 3,
   },
 ];
 
@@ -67,6 +75,29 @@ export default function QuickStartOverlay({ onChangeOverlay }) {
     return () => clearTimeout(timer);
   }, [currentStep]);
 
+  const getGridPosition = (step) => {
+    const positions = {
+      'top-left': { gridColumn: '1', gridRow: '1', justifySelf: 'start', alignSelf: 'start' },
+      'top': { gridColumn: '5', gridRow: '1', justifySelf: 'center', alignSelf: 'start' },
+      'top-right': { gridColumn: '9', gridRow: '2', justifySelf: 'end', alignSelf: 'start' },
+      'left': { gridColumn: '1', gridRow: '5', justifySelf: 'start', alignSelf: 'center' },
+      'center': { gridColumn: '5', gridRow: '5', justifySelf: 'center', alignSelf: 'center' },
+      'right': { gridColumn: '10', gridRow: '5', justifySelf: 'end', alignSelf: 'center' },
+      'bottom-left': { gridColumn: '1', gridRow: '10', justifySelf: 'start', alignSelf: 'end' },
+      'bottom': { gridColumn: '5', gridRow: '10', justifySelf: 'center', alignSelf: 'end' },
+      'bottom-right': { gridColumn: '10', gridRow: '10', justifySelf: 'end', alignSelf: 'end' },
+    };
+    const basePosition = positions[step.position] || positions['center'];
+    const columnSpan = step.columnSpan || 1;
+    const rowSpan = step.rowSpan || 1;
+    
+    return {
+      ...basePosition,
+      gridColumnEnd: `span ${columnSpan}`,
+      gridRowEnd: `span ${rowSpan}`,
+    };
+  };
+
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
@@ -107,23 +138,20 @@ export default function QuickStartOverlay({ onChangeOverlay }) {
         <Spotlight target={targetElement} />
       )}
 
-      {/* Tooltip Card */}
+      {/* Grid Container */}
       <div
-        className="fixed bg-shelf p-5 rounded-lg shadow-lg z-[10001] w-11/12 max-w-sm"
+        className="fixed inset-0 grid gap-4 p-4 pointer-events-none z-[10001]"
         style={{
-          ...(currentStep === 0
-            ? {
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-              }
-            : {
-                top: targetElement ? targetElement.getBoundingClientRect().top + targetElement.getBoundingClientRect().height + 40 : '50%',
-                left: targetElement ? Math.max(20, targetElement.getBoundingClientRect().left + 20) : 'auto',
-              }),
+          gridTemplateColumns: 'repeat(10, 1fr)',
+          gridTemplateRows: 'repeat(10, 1fr)',
         }}
-        onClick={(e) => e.stopPropagation()}
       >
+        {/* Tooltip Card */}
+        <div
+          className="bg-shelf p-5 rounded-lg shadow-lg pointer-events-auto"
+          style={getGridPosition(step)}
+          onClick={(e) => e.stopPropagation()}
+        >
         <div className="flex justify-between items-start mb-3">
           <Typography variant="h5" className="text-text font-sans normal-case font-semibold">
             {step.title}
@@ -160,6 +188,7 @@ export default function QuickStartOverlay({ onChangeOverlay }) {
           >
             {isLastStep ? 'Done' : 'Next'}
           </Button>
+        </div>
         </div>
       </div>
     </div>
