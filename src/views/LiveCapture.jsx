@@ -510,6 +510,7 @@ export default function LiveCapture() {
                         inputMode="text"
                         name="user_input"
                         autoComplete="off"
+                        autoCorrect="off"
                         spellCheck="false"
                         data-lpignore="true"
                         data-form-type="other"
