@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { IconButton, Badge, Card, Typography, Input, Progress, Button } from "@material-tailwind/react";
 import {
     HomeIcon,
-    ChevronRightIcon,
+    PlayCircleIcon,
     Bars3Icon,
     XMarkIcon,
     ClipboardIcon,
@@ -280,6 +280,16 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
 
                     <button
                         disabled={false}
+                        className="flex items-center space-x-1 p-2 gap-2 rounded hover:bg-hover"
+                        onClick={() => onChangeOverlay("quickstart")}
+                        title="Show Quick Start Guide"
+                    >
+                        <PlayCircleIcon className="h-5 w-5" />
+                        <Typography variant="h4">Quick Start</Typography>
+                    </button>
+
+                    <button
+                        disabled={false}
                         className={`flex items-center space-x-1 p-2 gap-2 rounded disabled:text-hover disabled:hover:bg-transparent ${
                             activeView === "about" ? "disabled:border-hover border border-text" : "hover:bg-hover"
                         }`}
@@ -351,6 +361,18 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                     >
                         <ClipboardIcon className="h-5 w-5" />
                         <span>Paste</span>
+                    </button>
+
+                    <button
+                        disabled={false}
+                        className="flex items-center space-x-1 px-3 py-2 gap-1 rounded hover:bg-hover"
+                        onClick={() => {
+                            onChangeOverlay("quickstart");
+                            setIsOpen(false);
+                        }}
+                    >
+                        <PlayCircleIcon className="h-5 w-5" />
+                        <span>Quick Start</span>
                     </button>
 
                     {status === 2 && (
