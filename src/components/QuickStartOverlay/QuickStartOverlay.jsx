@@ -14,7 +14,7 @@ const steps = [
   {
     title: 'Navigation Menu',
     description: 'Toggle the menu to switch between Live Capture, Bulk Send, and other features.',
-    targetSelector: '.navbar-toggle, [class*="Bars3Icon"]',
+    targetSelector: '#navbar-toggle',
     gridColumn: 1,
     gridRow: 1,
     columnSpan: 3,
@@ -23,7 +23,7 @@ const steps = [
   {
     title: 'Live Capture',
     description: 'Capture keyboard and mouse input in real-time. Type in the input area to capture commands.',
-    targetSelector: 'main',
+    targetSelector: '#live-capture-input',
     gridColumn: 4,
     gridRow: 1,
     columnSpan: 3,
@@ -32,7 +32,7 @@ const steps = [
   {
     title: 'Connection Status',
     description: 'Connect to a ToothPaste device via BLE to start sending clipboard data securely. Once connected, hold this button to rename the connected device.',
-    targetSelector: '[class*="ConnectionButton"], .connection-status',
+    targetSelector: '#connection-button',
     gridColumn: 8,
     gridRow: 2,
     columnSpan: 3,
@@ -52,7 +52,7 @@ function Spotlight({ target, padding = 10 }) {
         left: rect.left - padding,
         width: rect.width + padding * 2,
         height: rect.height + padding * 2,
-        boxShadow: 'inset 0 0 0 9999px rgba(0, 0, 0, 0.8)',
+        boxShadow: 'inset 0 0 0 9999px rgba(0, 0, 0, 0.1)',
         pointerEvents: 'none',
         borderRadius: '8px',
         animation: 'pulse 2s infinite',

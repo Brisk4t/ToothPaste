@@ -173,6 +173,7 @@ function ConnectionButton() {
     return (
         <div className="flex justify-left w-full">
            <Button
+                id="connection-button"
                 title="Click to connect to a device, hold to rename it."
                 className={`flex flex-col items-center justify-center w-full p-4 border-2 ${borderClass} bg-transparent hover:border-text min-h-10`}
                 style={{
@@ -322,6 +323,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                     {/* Mobile Hamburger */}
                     <div className="lg:hidden">
                         <button
+                            id="navbar-toggle"
                             onClick={() => setIsOpen(!isOpen)}
                             className={`p-2 rounded hover:bg-hover focus:outline-none focus:ring-2 focus:ring-inset focus:ring-text border border-2 ${borderClass}`}
                             aria-label="Toggle menu"

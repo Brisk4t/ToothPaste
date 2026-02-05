@@ -441,6 +441,7 @@ export default function LiveCapture() {
                 </div> */}
 
                 <input
+                    id="live-capture-input"
                     ref={inputRef}
                     autoCapitalize="none"
                     type="text"
