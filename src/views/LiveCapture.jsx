@@ -481,39 +481,36 @@ export default function LiveCapture() {
 
             {/* Mobile Input Area - Visible only on small screens */}
             <div className="md:hidden flex flex-row my-4 rounded-lg transition-all border border-hover min-h-12 bg-shelf focus-within:bg-background relative group">
+                <Typography
+                    type="h5"
+                    className="flex items-center justify-center opacity-70 pointer-events-none select-none text-white p-4 whitespace-pre-wrap font-light absolute inset-0 z-0 group-focus-within:hidden"
+                    aria-hidden="true"
+                >
+                    <div className="flex items-center gap-2">
+                        Tap to focus keyboard
+                        <CommandLineIcon className="h-6 w-6 text-white opacity-50"/>
+                    </div>
+                </Typography>
+
+                <Typography
+                    type="h5"
+                    className="hidden group-focus-within:flex opacity-70 items-center justify-center pointer-events-none select-none text-white p-4 whitespace-pre-wrap font-light absolute inset-0 z-0"
+                    aria-hidden="true"
+                >
+                    {isAutofillFocused ? "Waiting for Password Manager..." : "Capturing inputs..."}
+                </Typography>
+
                 <div className="flex-1 flex flex-col justify-center items-center">
-                    <Typography
-                        type="h5"
-                        className="flex items-center justify-center opacity-70 pointer-events-none select-none text-white p-4 whitespace-pre-wrap font-light absolute left-0 top-0 bottom-0 right-10 z-0 group-focus-within:hidden"
-                        aria-hidden="true"
-                    >
-                        <div className="flex items-center gap-2">
-                            Tap to focus keyboard
-                            <CommandLineIcon className="h-6 w-6 text-white opacity-50"/>
-                        </div>
-                    </Typography>
-
-                    <Typography
-                        type="h5"
-                        className="hidden group-focus-within:flex opacity-70 items-center justify-center pointer-events-none select-none text-white p-4 whitespace-pre-wrap font-light absolute left-0 top-0 bottom-0 right-10 z-0"
-                        aria-hidden="true"
-                    >
-                        {isAutofillFocused ? "Waiting for Password Manager..." : "Capturing inputs..."}
-                    </Typography>
-
                     {/* Mobile input for keyboard capture */}
                     <input
                         id="mobile-capture-input"
-                        ref={inputRef}
                         autoCapitalize="none"
-                        type="text"
+                        type="password"
                         inputMode="text"
                         name="user_input"
                         autoComplete="off"
                         autoCorrect="off"
                         spellCheck="false"
-                        data-lpignore="true"
-                        data-form-type="other"
 
                         // Focus handlers
                         onFocus={() => setIsFocused(true)}
@@ -539,7 +536,7 @@ export default function LiveCapture() {
                 </div>
 
                 {/* Autofill input for password managers */}
-                <div className="relative w-10 h-12 flex items-center justify-center border-l border-hover bg-hover focus-within:bg-background">
+                {/* <div className="relative w-10 h-12 flex items-center justify-center border-l border-hover bg-hover focus-within:bg-background">
                     <LockOpenIcon className="h-6 w-6 text-white opacity-50 absolute pointer-events-none z-0" />
                     <input
                         id="mobile-autofill-input"
@@ -547,6 +544,7 @@ export default function LiveCapture() {
                         name="autofill_helper"
                         autoComplete="on"
                         spellCheck="false"
+
                         onFocus={() => setIsAutofillFocused(true)}
                         onBlur={() => setIsAutofillFocused(false)}
                         onKeyDown={handleKeyDown}
@@ -559,7 +557,7 @@ export default function LiveCapture() {
                         className="absolute inset-0 opacity-0 cursor-text pointer-events-auto"
                         placeholder=""
                     ></input>
-                </div>
+                </div> */}
             </div>
 
             {/* Desktop Layout - Hidden on small screens */}
