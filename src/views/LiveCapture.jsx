@@ -40,6 +40,10 @@ export default function LiveCapture() {
     const SCALE_FACTOR = 1; // Scale factor for mouse movement
     const [captureMouse, setCaptureMouse] = useState(false);
 
+    // Touch Vars
+    const touchStartPos = useRef(null);
+    const isTouching = useRef(false);
+
     
 
     const displacementList = useRef([]);
@@ -149,6 +153,33 @@ export default function LiveCapture() {
 
         var reportDelta  = -e.deltaY * 0.01; // Scale down the scroll delta
         sendMouseReport(false, false, reportDelta);
+    }
+
+    // Touch event handlers for mobile touchpad
+    function onTouchStart(e) {
+        const touch = e.touches[0];
+        touchStartPos.current = { x: touch.clientX, y: touch.clientY };
+        isTouching.current = true;
+    }
+
+    function onTouchMove(e) {
+        if (!captureMouse || !isTouching.current || !touchStartPos.current) return;
+        e.preventDefault();
+
+        const touch = e.touches[0];
+        const displacementX = touch.clientX - touchStartPos.current.x;
+        const displacementY = touch.clientY - touchStartPos.current.y;
+
+        // Add displacement to list for batched reporting
+        displacementList.current.push({ x: displacementX, y: displacementY });
+        
+        // Update position for next calculation
+        touchStartPos.current = { x: touch.clientX, y: touch.clientY };
+    }
+
+    function onTouchEnd(e) {
+        isTouching.current = false;
+        touchStartPos.current = null;
     }
 
     // Make a mouse packet and send it
@@ -398,7 +429,8 @@ export default function LiveCapture() {
 
             <Keyboard listenerRef={inputRef} deviceStatus={status}></Keyboard>
 
-            <div className="flex flex-col flex-1 my-4 rounded-xl transition-all border border-hover focus-within:border-shelf bg-shelf focus-within:bg-background relative group ">         
+            {/* Desktop Layout - Hidden on small screens */}
+            <div className="hidden md:flex flex-col flex-1 my-4 rounded-xl transition-all border border-hover focus-within:border-shelf bg-shelf focus-within:bg-background relative group ">         
                 <div className="absolute top-2 left-2 z-10">
                     <LeftButtonColumn />
                 </div>
@@ -462,6 +494,34 @@ export default function LiveCapture() {
                 {/* Event routing overlay div */}
                 <div
                     className="absolute inset-0 rounded-xl z-5 pointer-events-none"
+                />
+            </div>
+
+            {/* Mobile Touchpad Layout - Visible only on small screens */}
+            <div className="md:hidden flex flex-col flex-1 my-4 rounded-xl transition-all border border-hover bg-shelf relative group">
+                <div className="absolute top-2 left-2 z-10">
+                    <LeftButtonColumn />
+                </div>
+                
+                <div className="absolute top-2 right-2 z-10">
+                    <RightButtonColumn />
+                </div>
+
+                <Typography
+                    variant="h1"
+                    className="flex items-center justify-center opacity-70 pointer-events-none select-none text-white p-4 whitespace-pre-wrap font-sans absolute inset-0 z-0"
+                    aria-hidden="true"
+                >
+                    Drag to move cursor
+                </Typography>
+
+                {/* Mobile touch surface */}
+                <div
+                    className="absolute inset-0 rounded-xl z-5 touch-none"
+                    onTouchStart={onTouchStart}
+                    onTouchMove={onTouchMove}
+                    onTouchEnd={onTouchEnd}
+                    onTouchCancel={onTouchEnd}
                 />
             </div>
         </div>
