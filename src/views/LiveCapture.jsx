@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useContext, useCallback, useMemo } from "react";
 
 import { Button, Typography } from "@material-tailwind/react";
-import { CursorArrowRaysIcon, CursorArrowRippleIcon, PowerIcon, ArrowUpOnSquareStackIcon, PlayPauseIcon, ChevronDoubleUpIcon, ChevronDoubleDownIcon, ForwardIcon, BackwardIcon} from "@heroicons/react/24/outline";
+import { CursorArrowRaysIcon, CursorArrowRippleIcon, PowerIcon, ArrowUpOnSquareStackIcon, PlayPauseIcon, ChevronDoubleUpIcon, ChevronDoubleDownIcon, ForwardIcon, BackwardIcon, CommandLineIcon} from "@heroicons/react/24/outline";
 import { BLEContext } from "../context/BLEContext";
 //import "../components/CustomTyping/CustomTyping.css"; // We'll define animations here
 import Keyboard from "../components/Keyboard/Keyboard";
@@ -480,13 +480,18 @@ export default function LiveCapture() {
 
             {/* Mobile Input Area - Visible only on small screens */}
             <div className="md:hidden flex flex-col my-4 rounded-lg transition-all border border-hover min-h-12 bg-shelf focus-within:bg-background relative group">
-                <Typography
-                    type="h5"
-                    className="flex items-center justify-center opacity-70 pointer-events-none select-none text-white p-4 whitespace-pre-wrap font-light absolute inset-0 z-0 group-focus-within:hidden"
-                    aria-hidden="true"
-                >
-                    Tap to focus keyboard
-                </Typography>
+                <div className="flex flex-row justify-center items-center">
+                    <Typography
+                        type="h5"
+                        className="flex items-center justify-center opacity-70 pointer-events-none select-none text-white p-4 whitespace-pre-wrap font-light absolute inset-0 z-0 group-focus-within:hidden"
+                        aria-hidden="true"
+                    >
+                        <div className="flex items-center gap-2">
+                            Tap to focus keyboard
+                            <CommandLineIcon className="h-6 w-6 text-white opacity-50"/>
+                        </div>
+                    </Typography>
+                </div>
 
                 <Typography
                     type="h5"
