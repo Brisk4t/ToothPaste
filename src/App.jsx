@@ -70,7 +70,11 @@ function App() {
 
           {/* Overlay */}
           {ActiveOverlay && (
-            <ActiveOverlay {...overlayProps} onChangeOverlay={setActiveOverlay} />
+            <ActiveOverlay 
+              {...overlayProps} 
+              onChangeOverlay={setActiveOverlay}
+              activeView={activeView}
+            />
           )}
         </div>
       </BLEProvider>

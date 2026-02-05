@@ -74,7 +74,7 @@ export default function BulkSend() {
     return (
         <div className="flex flex-col flex-1 w-full p-6 bg-background text-text">
 
-            <div className="flex flex-col flex-1 mt-5">
+            <div id="bulk-send-container" className="flex flex-col flex-1 mt-5">
                 {/* <CustomTyping> </CustomTyping> */}
 
                 {/* <RichTextArea onKeyDownCapture={handleShortcut} onChange={(text) => setInput(text)} /> */}
