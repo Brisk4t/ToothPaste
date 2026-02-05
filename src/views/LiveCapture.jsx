@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useContext, useCallback, useMemo } from "react";
 
 import { Button, Typography } from "@material-tailwind/react";
-import { CursorArrowRaysIcon, CursorArrowRippleIcon, PowerIcon, ArrowUpOnSquareStackIcon, PlayPauseIcon, ChevronDoubleUpIcon, ChevronDoubleDownIcon, ForwardIcon, BackwardIcon, CommandLineIcon} from "@heroicons/react/24/outline";
+import { CursorArrowRaysIcon, CursorArrowRippleIcon, PowerIcon, ArrowUpOnSquareStackIcon, PlayPauseIcon, ChevronDoubleUpIcon, ChevronDoubleDownIcon, ForwardIcon, BackwardIcon, CommandLineIcon, LockOpenIcon} from "@heroicons/react/24/outline";
 import { BLEContext } from "../context/BLEContext";
 //import "../components/CustomTyping/CustomTyping.css"; // We'll define animations here
 import Keyboard from "../components/Keyboard/Keyboard";
@@ -30,6 +30,7 @@ export default function LiveCapture() {
     const [macMode, setMacMode] = useState(false); // Does WIN key send WIN or COMMAND key
     const [jiggling, setJiggling] = useState(false);
     const [isFocused, setIsFocused] = useState(false); // Track if input is focused
+    const [isAutofillFocused, setIsAutofillFocused] = useState(false); // Track if autofill input is focused
 
     // Contexts
     const { status, sendEncrypted } = useContext(BLEContext);
@@ -479,11 +480,11 @@ export default function LiveCapture() {
             </div>
 
             {/* Mobile Input Area - Visible only on small screens */}
-            <div className="md:hidden flex flex-col my-4 rounded-lg transition-all border border-hover min-h-12 bg-shelf focus-within:bg-background relative group">
-                <div className="flex flex-row justify-center items-center">
+            <div className="md:hidden flex flex-row my-4 rounded-lg transition-all border border-hover min-h-12 bg-shelf focus-within:bg-background relative group">
+                <div className="flex-1 flex flex-col justify-center items-center">
                     <Typography
                         type="h5"
-                        className="flex items-center justify-center opacity-70 pointer-events-none select-none text-white p-4 whitespace-pre-wrap font-light absolute inset-0 z-0 group-focus-within:hidden"
+                        className="flex items-center justify-center opacity-70 pointer-events-none select-none text-white p-4 whitespace-pre-wrap font-light absolute left-0 top-0 bottom-0 right-10 z-0 group-focus-within:hidden"
                         aria-hidden="true"
                     >
                         <div className="flex items-center gap-2">
@@ -491,48 +492,66 @@ export default function LiveCapture() {
                             <CommandLineIcon className="h-6 w-6 text-white opacity-50"/>
                         </div>
                     </Typography>
+
+                    <Typography
+                        type="h5"
+                        className="hidden group-focus-within:flex opacity-70 items-center justify-center pointer-events-none select-none text-white p-4 whitespace-pre-wrap font-light absolute left-0 top-0 bottom-0 right-10 z-0"
+                        aria-hidden="true"
+                    >
+                        {isAutofillFocused ? "Waiting for Password Manager..." : "Capturing inputs..."}
+                    </Typography>
+
+                    {/* Mobile input for keyboard capture */}
+                    <input
+                        id="mobile-capture-input"
+                        ref={inputRef}
+                        autoCapitalize="none"
+                        type="text"
+                        inputMode="text"
+                        name="user_input"
+                        autoComplete="off"
+                        spellCheck="false"
+                        data-lpignore="true"
+                        data-form-type="other"
+
+                        // Focus handlers
+                        onFocus={() => setIsFocused(true)}
+                        onBlur={() => setIsFocused(false)}
+                        // Keyboard event handlers
+                        onKeyDown={handleKeyDown}
+                        onKeyUp={handleKeyUp}
+                        onPaste={handlePaste}
+                        onBeforeInput={handleOnBeforeInput}
+                        onContextMenu={(e) => e.preventDefault()}
+                        // IME event handlers
+                        onChange={handleOnChange}
+                        onCompositionStart={handleCompositionStart}
+                        onCompositionUpdate={() => {}}
+                        onCompositionEnd={handleCompositionEnd}
+                        className="absolute inset-0 opacity-0 cursor-text pointer-events-auto"
+                    ></input>
+
+                    {/* Event routing overlay div */}
+                    <div
+                        className="absolute inset-0 rounded-xl z-5 pointer-events-none"
+                    />
                 </div>
 
-                <Typography
-                    type="h5"
-                    className="hidden group-focus-within:flex opacity-70 items-center justify-center pointer-events-none select-none text-white p-4 whitespace-pre-wrap font-light absolute inset-0 z-0"
-                    aria-hidden="true"
-                >
-                    Capturing inputs...
-                </Typography>
-
-                {/* Mobile input for keyboard capture */}
-                <input
-                    id="mobile-capture-input"
-                    ref={inputRef}
-                    autoCapitalize="none"
-                    type="text"
-                    inputMode="text"
-                    name="user_input"
-                    autoComplete="off"
-                    spellCheck="false"
-
-                    // Focus handlers
-                    onFocus={() => setIsFocused(true)}
-                    onBlur={() => setIsFocused(false)}
-                    // Keyboard event handlers
-                    onKeyDown={handleKeyDown}
-                    onKeyUp={handleKeyUp}
-                    onPaste={handlePaste}
-                    onBeforeInput={handleOnBeforeInput}
-                    onContextMenu={(e) => e.preventDefault()}
-                    // IME event handlers
-                    onChange={handleOnChange}
-                    onCompositionStart={handleCompositionStart}
-                    onCompositionUpdate={() => {}}
-                    onCompositionEnd={handleCompositionEnd}
-                    className="absolute inset-0 opacity-0 cursor-text pointer-events-auto"
-                ></input>
-
-                {/* Event routing overlay div */}
-                <div
-                    className="absolute inset-0 rounded-xl z-5 pointer-events-none"
-                />
+                {/* Autofill input for password managers */}
+                <div className="relative w-10 h-12 flex items-center justify-center border-l border-hover bg-hover focus-within:bg-background">
+                    <LockOpenIcon className="h-6 w-6 text-white opacity-50 absolute pointer-events-none z-0" />
+                    <input
+                        id="mobile-autofill-input"
+                        type="text"
+                        name="autofill_helper"
+                        autoComplete="on"
+                        spellCheck="false"
+                        onFocus={() => setIsAutofillFocused(true)}
+                        onBlur={() => setIsAutofillFocused(false)}
+                        className="absolute inset-0 opacity-0 cursor-text pointer-events-auto"
+                        placeholder=""
+                    ></input>
+                </div>
             </div>
 
             {/* Desktop Layout - Hidden on small screens */}
