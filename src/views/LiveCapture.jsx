@@ -223,6 +223,110 @@ export default function LiveCapture() {
         displacementList.current = []; // reset list
     }
 
+    // Helper function to send keyboard shortcuts
+    function sendKeyboardShortcut(keys) {
+        keys.forEach(keyCode => {
+            const keyPacket = createKeyCodePacket(keyCode, true); // key down
+            sendEncrypted(keyPacket);
+        });
+        
+        // Release all keys
+        setTimeout(() => {
+            keys.forEach(keyCode => {
+                const keyPacket = createKeyCodePacket(keyCode, false); // key up
+                sendEncrypted(keyPacket);
+            });
+        }, 50);
+    }
+
+    // Keyboard shortcut button component
+    function KeyboardShortcutButton({ label, keySequence }) {
+        const [isPressed, setIsPressed] = useState(false);
+
+        const handlePress = () => {
+            setIsPressed(true);
+            sendKeyboardShortcut(keySequence);
+            setTimeout(() => setIsPressed(false), 100);
+        };
+
+        return (
+            <button
+                className={`h-14 flex justify-center items-center flex-1 transition-colors cursor-pointer select-none ${
+                    isPressed ? "bg-white text-shelf" : "bg-shelf text-text"
+                }`}
+                onTouchStart={handlePress}
+                onMouseDown={handlePress}
+            >
+                <span className="text-sm font-medium text-center px-2">{label}</span>
+            </button>
+        );
+    }
+
+    // Carousel row for keyboard shortcuts with custom swipe handling
+    function KeyboardShortcutCarousel({ shortcuts }) {
+        const [currentSlide, setCurrentSlide] = useState(0);
+        const touchStartX = useRef(0);
+        const touchEndX = useRef(0);
+        const SWIPE_THRESHOLD = 50; // minimum swipe distance in pixels
+
+        const handleTouchStart = (e) => {
+            touchStartX.current = e.touches[0].clientX;
+        };
+
+        const handleTouchEnd = (e) => {
+            e.preventDefault();
+            touchEndX.current = e.changedTouches[0].clientX;
+            const diff = touchStartX.current - touchEndX.current;
+
+            if (Math.abs(diff) > SWIPE_THRESHOLD) {
+                if (diff > 0) {
+                    // Swiped left - go to next slide
+                    setCurrentSlide((prev) => (prev + 1) % shortcuts.length);
+                } else {
+                    // Swiped right - go to previous slide
+                    setCurrentSlide((prev) => (prev - 1 + shortcuts.length) % shortcuts.length);
+                }
+            }
+        };
+
+        return (
+            <div
+                className="flex flex-col bg-shelf border border-hover border-b-0"
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+                onTouchMove={(e) => e.preventDefault()}
+            >
+                {/* Slide container */}
+                <div className="flex h-14">
+                    {shortcuts[currentSlide].map((btn, btnIdx) => (
+                        <React.Fragment key={btnIdx}>
+                            <KeyboardShortcutButton 
+                                label={btn.label} 
+                                keySequence={btn.keys}
+                            />
+                            {btnIdx < shortcuts[currentSlide].length - 1 && (
+                                <div className="w-px bg-hover" />
+                            )}
+                        </React.Fragment>
+                    ))}
+                </div>
+
+                {/* Slide indicators */}
+                <div className="flex justify-center gap-1 py-1 px-2">
+                    {shortcuts.map((_, idx) => (
+                        <div
+                            key={idx}
+                            className={`h-1 w-4 rounded-full transition-colors cursor-pointer ${
+                                idx === currentSlide ? "bg-text" : "bg-hover"
+                            }`}
+                            onClick={() => setCurrentSlide(idx)}
+                        />
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
     // Reusable IconToggleButton component
     function IconToggleButton({
         title, // Tooltip text
@@ -681,12 +785,43 @@ export default function LiveCapture() {
 
                 {/* Mobile touch surface */}
                 <div
-                    className={`absolute inset-0 rounded-t-xl z-5 touch-none top-0 bottom-16 ${captureMouse ? "bg-background" : ""}`}
+                    className={`absolute inset-0 rounded-t-xl z-5 touch-none top-0 bottom-32 ${captureMouse ? "bg-background" : ""}`}
                     onTouchStart={onTouchStart}
                     onTouchMove={onTouchMove}
                     onTouchEnd={onTouchEnd}
                     onTouchCancel={onTouchEnd}
                 />
+
+                {/* Keyboard Shortcuts Carousel */}
+                {captureMouse && (
+                    <div className="absolute bottom-16 left-0 right-0 z-20">
+                        <KeyboardShortcutCarousel
+                            shortcuts={[
+                                [
+                                    { label: "Ctrl+A", keys: ["ControlLeft", "KeyA"] },
+                                    { label: "Ctrl+C", keys: ["ControlLeft", "KeyC"] },
+                                    { label: "Ctrl+V", keys: ["ControlLeft", "KeyV"] },
+                                    { label: "Ctrl+X", keys: ["ControlLeft", "KeyX"] },
+                                    { label: "Delete", keys: ["Delete"] },
+                                ],
+                                [
+                                    { label: "Ctrl+Z", keys: ["ControlLeft", "KeyZ"] },
+                                    { label: "Ctrl+Y", keys: ["ControlLeft", "KeyY"] },
+                                    { label: "Ctrl+S", keys: ["ControlLeft", "KeyS"] },
+                                    { label: "Alt+Tab", keys: ["AltLeft", "Tab"] },
+                                    { label: "Esc", keys: ["Escape"] },
+                                ],
+                                [
+                                    { label: "Ctrl+Alt+Del", keys: ["ControlLeft", "AltLeft", "Delete"] },
+                                    { label: "Ctrl+Shift+Esc", keys: ["ControlLeft", "ShiftLeft", "Escape"] },
+                                    { label: "Win+V", keys: ["MetaLeft", "KeyV"] },
+                                    { label: "Win+Shift+S", keys: ["MetaLeft", "ShiftLeft", "KeyS"] },
+                                    { label: "Enter", keys: ["Enter"] },
+                                ],
+                            ]}
+                        />
+                    </div>
+                )}
 
                 {/* Mobile Click Buttons - 2:1:2 ratio */}
                 <MobileClickButtons captureMouse={captureMouse} sendMouseReport={sendMouseReport} />
