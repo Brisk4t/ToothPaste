@@ -37,11 +37,9 @@ export default function LiveCapture() {
     const { status, sendEncrypted } = useContext(BLEContext);
 
     // Mouse Vars
-    const lastPos = useRef({ x: 0, y: 0, t: performance.now() }); // Last known position of the mouse
-    const isTracking = useRef(true);
-    const tDisplacement = useRef({ x: 0, y: 0 }); // Total displacement since last report
+    const mouseStartPos = useRef(null);
+    const isMouseTracking = useRef(false);
     const REPORT_INTERVAL_MS = 100;
-    const SCALE_FACTOR = 1; // Scale factor for mouse movement
     const [captureMouse, setCaptureMouse] = useState(false);
 
     // Touch Vars
@@ -72,9 +70,8 @@ export default function LiveCapture() {
     // On click logic
     function onMouseDown(e) {
         if (!isFocused) return; // Only capture when focused
-        //e.target.setPointerCapture(e.pointerId);
-        isTracking.current = true;
-        lastPos.current = { x: e.clientX, y: e.clientY, t: e.timeStamp };
+        mouseStartPos.current = { x: e.clientX, y: e.clientY };
+        isMouseTracking.current = true;
 
         if (captureMouse) {
             if (e.button == 0) sendMouseReport(1, 0); // Send left click
@@ -95,63 +92,37 @@ export default function LiveCapture() {
     }
 
     function onPointerCancel() {
-        isTracking.current = false;
-    }
-
-    // When a pointer enters the div
-    function onPointerEnter(e) {
-        const rect = inputRef.current.getBoundingClientRect();
-        if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
-            lastPos.current = { x: e.clientX, y: e.clientY, t: performance.now() };
-            isTracking.current = true;
-        }
+        isMouseTracking.current = false;
+        mouseStartPos.current = null;
     }
 
     // When a pointer moves
     function onPointerMove(e) {
         if (!isFocused || !captureMouse) return; // Only capture when focused and enabled
 
-        // Get bounding rect once (you can optimize by caching it elsewhere)
         const rect = inputRef.current.getBoundingClientRect();
-
-        // Check if pointer is inside the div bounds
         const inside =
             e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
 
         if (!inside || ctrlPressed.current) {
-            // Pointer outside div but pointer capture means we still get events
-            // Stop tracking so next movement inside resets lastPos
-            tDisplacement.current = { x: 0, y: 0 }; // Reset displacement
-            isTracking.current = false;
+            isMouseTracking.current = false;
             return;
         }
 
-        // If not tracking yet (e.g. pointer re-entered), reset lastPos
-        if (!isTracking.current) {
-            lastPos.current = { x: e.clientX, y: e.clientY, t: e.timeStamp };
-            isTracking.current = true;
+        // If not tracking yet, start tracking
+        if (!isMouseTracking.current) {
+            mouseStartPos.current = { x: e.clientX, y: e.clientY };
+            isMouseTracking.current = true;
             return;
         }
 
-        // Calculate displacement based on last known position
-        const displacementX = e.clientX - lastPos.current.x;
-        const displacementY = e.clientY - lastPos.current.y;
-        const dt = e.timeStamp - lastPos.current.t;
-
-        const velocityX = Math.abs(displacementX / dt); // Velocity in X direction
-        const velocityY = Math.abs(displacementY / dt); // Velocity in Y direction
-
-        lastPos.current = { x: e.clientX, y: e.clientY, t: e.timeStamp }; // Update last position
-
-        // Scale by time delta to get acceleration-like values
-        const accelDeltaX = displacementX * (velocityX * SCALE_FACTOR);
-        const accelDeltaY = displacementY * (velocityY * SCALE_FACTOR);
-
-        tDisplacement.current.x += accelDeltaX;
-        tDisplacement.current.y += accelDeltaY;
-
-        displacementList.current.push(tDisplacement.current);
-        tDisplacement.current = { x: 0, y: 0 }; // Reset displacement after adding to list
+        // Calculate displacement and add to list
+        const displacementX = e.clientX - mouseStartPos.current.x;
+        const displacementY = e.clientY - mouseStartPos.current.y;
+        displacementList.current.push({ x: displacementX, y: displacementY });
+        
+        // Update start position for next calculation
+        mouseStartPos.current = { x: e.clientX, y: e.clientY };
     }
 
 
@@ -612,7 +583,6 @@ export default function LiveCapture() {
                     onMouseUp={onMouseUp}
                     onPointerMove={onPointerMove}
                     onPointerCancel={onPointerCancel}
-                    onPointerEnter={onPointerEnter}
                     onBeforeInput={handleOnBeforeInput}
                     onWheel={onWheel}
                     onContextMenu={(e) => e.preventDefault()}
