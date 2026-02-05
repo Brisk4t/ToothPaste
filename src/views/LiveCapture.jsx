@@ -370,13 +370,9 @@ export default function LiveCapture() {
     function sendControlCode(controlCode, hold = false) {
         const arr = new ArrayBuffer(10);
         var view = new DataView(arr);
-
-
-
+        
         // view.setUint8(0, 4); // first byte = flag
         view.setUint16(0, controlCode, true); // next two bytes = control code
-
-        var keycode = new Uint8Array(arr);
 
         var controlPacket = createConsumerControlPacket(controlCode);
         sendEncrypted(controlPacket);
