@@ -234,7 +234,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
         }
     }, [activeOverlay, status, onChangeOverlay]);
     return (
-        <div className="w-full bg-shelf text-white">
+        <div id="navbar" className="w-full bg-shelf text-white">
             <div className="flex justify-between h-24 items-center px-4">
                 {/* Left: Logo */}
                 <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setIsOpen(false)}>

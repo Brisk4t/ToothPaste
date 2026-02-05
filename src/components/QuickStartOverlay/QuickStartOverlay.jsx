@@ -14,11 +14,11 @@ const steps = [
   {
     title: 'Navigation Menu',
     description: 'Toggle the menu to switch between Live Capture, Bulk Send, and other features.',
-    targetSelector: '#navbar-toggle',
-    gridColumn: 1,
-    gridRow: 1,
+    targetSelector: '#navbar',
+    gridColumn: 4,
+    gridRow: 2,
     columnSpan: 3,
-    rowSpan: 2,
+    rowSpan: 1,
   },
   {
     title: 'Live Capture',
