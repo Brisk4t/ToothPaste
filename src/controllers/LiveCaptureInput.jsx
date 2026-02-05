@@ -128,11 +128,6 @@ export function useInputController() {
     // Intercept keydown events
     function handleKeyDown(e) {
         console.log("Key down event: ", e.key, " | Ctrl: ", e.ctrlKey, " | Alt: ", e.altKey, " | Shift: ", e.shiftKey);
-        // TODO: Handle Combos in a function
-        // TODO: Handle just modifiers (hold ctrl to stop tracking cursor)
-        // TODO: 
-        // Input: "", <Backspace>, "" -> "abc" 
-        // Send: "abcd", Send 'Backspace', "\b"
 
         // Handle inputs with modifiers (Ctrl + c, Alt + x, etc.). Don't prevent default behaviour until this point to allow selecting input modes
         if(handleCombo(e)) return;
