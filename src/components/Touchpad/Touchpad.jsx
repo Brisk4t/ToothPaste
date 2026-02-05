@@ -3,6 +3,7 @@ import { Typography } from "@material-tailwind/react";
 
 export default function Touchpad({
     captureMouse,
+    commandPassthrough,
     onTouchStart,
     onTouchMove,
     onTouchEnd,
@@ -13,10 +14,13 @@ export default function Touchpad({
     shortcuts,
 }) {
     // Keyboard shortcut button component
-    function KeyboardShortcutButton({ label, keySequence }) {
+    function KeyboardShortcutButton({ label, keySequence, wasSwipe }) {
         const [isPressed, setIsPressed] = useState(false);
 
         const handlePress = () => {
+            // Don't press if this was a swipe gesture
+            if (wasSwipe.current) return;
+            
             setIsPressed(true);
             onSendKeyboardShortcut(keySequence);
             setTimeout(() => setIsPressed(false), 100);
@@ -30,7 +34,7 @@ export default function Touchpad({
                 onTouchStart={handlePress}
                 onMouseDown={handlePress}
             >
-                <span className="text-sm font-medium text-center px-2">{label}</span>
+                <span className="text-sm font-medium text-center px-2 line-clamp-2">{label}</span>
             </button>
         );
     }
@@ -41,17 +45,29 @@ export default function Touchpad({
         const touchStartX = useRef(0);
         const touchEndX = useRef(0);
         const carouselRef = useRef(null);
+        const wasSwipe = useRef(false);
         const SWIPE_THRESHOLD = 50; // minimum swipe distance in pixels
 
         const handleTouchStart = (e) => {
             touchStartX.current = e.touches[0].clientX;
+            wasSwipe.current = false;
+        };
+
+        const handleTouchMove = (e) => {
+            e.preventDefault();
+            // Detect if this is a swipe by checking movement distance
+            const currentX = e.touches[0].clientX;
+            const diff = Math.abs(touchStartX.current - currentX);
+            if (diff > SWIPE_THRESHOLD) {
+                wasSwipe.current = true;
+            }
         };
 
         const handleTouchEnd = (e) => {
             touchEndX.current = e.changedTouches[0].clientX;
             const diff = touchStartX.current - touchEndX.current;
 
-            if (Math.abs(diff) > SWIPE_THRESHOLD) {
+            if (wasSwipe.current) {
                 if (diff > 0) {
                     // Swiped left - go to next slide
                     setCurrentSlide((prev) => (prev + 1) % shortcuts.length);
@@ -60,10 +76,6 @@ export default function Touchpad({
                     setCurrentSlide((prev) => (prev - 1 + shortcuts.length) % shortcuts.length);
                 }
             }
-        };
-
-        const handleTouchMove = (e) => {
-            e.preventDefault();
         };
 
         // Use useEffect to attach non-passive touch listeners
@@ -98,6 +110,7 @@ export default function Touchpad({
                                         <KeyboardShortcutButton 
                                             label={btn.label} 
                                             keySequence={btn.keys}
+                                            wasSwipe={wasSwipe}
                                         />
                                         {btnIdx < slide.length - 1 && (
                                             <div className="w-px bg-hover" />
@@ -233,10 +246,18 @@ export default function Touchpad({
             />
 
             {/* Keyboard Shortcuts Carousel */}
-            {captureMouse && (
+            {commandPassthrough ? (
                 <div className="absolute bottom-16 left-0 right-0 z-20">
                     <KeyboardShortcutCarousel shortcuts={shortcuts} />
                 </div>
+            ) : (
+                <Typography
+                    type="h5"
+                    className="flex items-center justify-center opacity-70 pointer-events-none select-none text-white p-2 whitespace-pre-wrap font-light absolute bottom-16 left-0 right-0 z-20"
+                    aria-hidden="true"
+                >
+                    Enable Command Passthrough to use shortcuts
+                </Typography>
             )}
 
             {/* Mobile Click Buttons - 2:1:2 ratio */}

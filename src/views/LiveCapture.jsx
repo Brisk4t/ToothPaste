@@ -601,6 +601,7 @@ export default function LiveCapture() {
             {/* Mobile Touchpad Layout - Visible only on small screens */}
             <Touchpad
                 captureMouse={captureMouse}
+                commandPassthrough={commandPassthrough}
                 onTouchStart={onTouchStart}
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}
