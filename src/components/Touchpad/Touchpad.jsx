@@ -25,7 +25,7 @@ export default function Touchpad({
         return (
             <button
                 className={`h-14 flex justify-center items-center flex-1 transition-colors cursor-pointer select-none ${
-                    isPressed ? "bg-white text-shelf" : "bg-shelf text-text"
+                    isPressed ? "bg-white text-shelf" : "bg-background text-text"
                 }`}
                 onTouchStart={handlePress}
                 onMouseDown={handlePress}
@@ -81,7 +81,7 @@ export default function Touchpad({
         return (
             <div
                 ref={carouselRef}
-                className="flex flex-col bg-shelf border border-hover border-b-0"
+                className="flex flex-col bg-background border border-hover border-b-0"
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
             >
