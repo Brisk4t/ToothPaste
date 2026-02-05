@@ -519,16 +519,13 @@ export default function LiveCapture() {
                         onBlur={() => setIsFocused(false)}
                         // Keyboard event handlers
                         onKeyDown={(e) => {
+                            // Default to backspace for unidentified keys to handle mobile keyboard quirks
                             if(e.key === "Unidentified") {
-                                e.preventDefault(); // Prevent default to avoid unwanted characters
+                                handleKeyDown({key: "Backspace"});
                             }
                             else{
                                 handleKeyDown(e);
                             }
-                            mobileInputRef.current.value = "";
-                        }}
-                        onKeyUp={(e) => {
-                            console.log("Mobile input: onKeyUp fired ", e);
                             mobileInputRef.current.value = "";
                         }}
                         onBeforeInput={(e) => {
@@ -539,18 +536,6 @@ export default function LiveCapture() {
                         onChange={(e) => {
                             console.log("Mobile input: onChange fired ", e);
                             handleOnChange(e);
-                            mobileInputRef.current.value = "";
-                        }}
-                        onCompositionStart={(e) => {
-                            console.log("Mobile input: onCompositionStart fired");
-                            mobileInputRef.current.value = "";
-                        }}
-                        onCompositionUpdate={(e) => {
-                            console.log("Mobile input: onCompositionUpdate fired");
-                            mobileInputRef.current.value = "";
-                        }}
-                        onCompositionEnd={(e) => {
-                            console.log("Mobile input: onCompositionEnd fired");
                             mobileInputRef.current.value = "";
                         }}
                         className="absolute inset-0 opacity-0 cursor-text pointer-events-auto"
