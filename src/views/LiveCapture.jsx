@@ -558,7 +558,6 @@ export default function LiveCapture() {
                     name="user_input"
                     autoComplete="off"
                     spellCheck="false"
-                    data-lpignore="true"
 
                     // Focus handlers
                     onFocus={() => setIsFocused(true)}
