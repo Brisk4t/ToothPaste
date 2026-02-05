@@ -81,23 +81,32 @@ export default function Touchpad({
         return (
             <div
                 ref={carouselRef}
-                className="flex flex-col bg-background border border-hover border-b-0 relative"
+                className="flex flex-col bg-background border border-hover border-b-0 border-x-0 relative"
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
             >
-                {/* Slide container */}
-                <div className="flex h-14">
-                    {shortcuts[currentSlide].map((btn, btnIdx) => (
-                        <React.Fragment key={btnIdx}>
-                            <KeyboardShortcutButton 
-                                label={btn.label} 
-                                keySequence={btn.keys}
-                            />
-                            {btnIdx < shortcuts[currentSlide].length - 1 && (
-                                <div className="w-px bg-hover" />
-                            )}
-                        </React.Fragment>
-                    ))}
+                {/* Slide container with animation */}
+                <div className="flex h-14 overflow-hidden w-full">
+                    <div
+                        className="flex transition-transform duration-300 ease-out w-full"
+                        style={{ transform: `translateX(calc(-${currentSlide} * 100%))` }}
+                    >
+                        {shortcuts.map((slide, slideIdx) => (
+                            <div key={slideIdx} className="flex flex-shrink-0 w-full">
+                                {slide.map((btn, btnIdx) => (
+                                    <React.Fragment key={btnIdx}>
+                                        <KeyboardShortcutButton 
+                                            label={btn.label} 
+                                            keySequence={btn.keys}
+                                        />
+                                        {btnIdx < slide.length - 1 && (
+                                            <div className="w-px bg-hover" />
+                                        )}
+                                    </React.Fragment>
+                                ))}
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
                 {/* Slide indicators */}
@@ -146,7 +155,7 @@ export default function Touchpad({
         };
 
         return (
-            <div className="absolute bottom-0 left-0 right-0 flex rounded-b-xl z-10 border border-hover border-t">
+            <div className="absolute bottom-0 left-0 right-0 flex rounded-b-xl z-10 border-t border-hover">
                 {/* Left Click Button - 2 parts */}
                 <button
                     className={`flex-[2] ${getButtonClass('left')}`}
