@@ -520,6 +520,7 @@ export default function LiveCapture() {
                         // Keyboard event handlers
                         onKeyDown={(e) => {
                             // Default to backspace for unidentified keys to handle mobile keyboard quirks
+                            console.log("KeyDown Event:", e);
                             if(e.key === "Unidentified") {
                                 handleKeyDown({...e, key: "Backspace", code: "Backspace", keyCode: 8, preventDefault: () => {}});
                             }
