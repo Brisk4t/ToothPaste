@@ -174,18 +174,29 @@ export default function LiveCapture() {
         expandDirection = "left" // Direction to expand on hover: "left" or "right"
     }) {
         const [isHovered, setIsHovered] = React.useState(false);
+        const [isClicked, setIsClicked] = React.useState(false);
         const isDisconnected = status === 0; // ConnectionStatus.disconnected
+
+        const handleClick = () => {
+            setIsClicked(true);
+            onClick();
+            setTimeout(() => setIsClicked(false), 100);
+        };
 
         const getButtonStyle = () => {
             const bgColor = "bg-shelf";
-            const hoverBgColor = isDisconnected ? "bg-secondary" : "bg-primary"; // Background color on hover
+            const clickBgColor = isDisconnected ? "bg-secondary" : "bg-primary";
+            const positionClass = expandDirection === "right" ? "left-0" : "right-0";
+            const flexOrder = expandDirection === "right" ? "" : "flex-row-reverse";
 
+            if (isClicked) {
+                return `absolute ${positionClass} top-0 w-auto px-3 ${clickBgColor} text-white ${flexOrder}`;
+            }
 
             if (isHovered) {
-                const positionClass = expandDirection === "right" ? "left-0" : "right-0";
-                const flexOrder = expandDirection === "right" ? "" : "flex-row-reverse";
-                return `absolute ${positionClass} top-0 w-auto px-3 ${hoverBgColor} text-white ${flexOrder}`;
+                return `absolute ${positionClass} top-0 w-auto px-3 bg-white text-shelf ${flexOrder}`;
             }
+
             return `w-10 ${toggled ? "bg-white text-shelf" : `${bgColor} text-text`}`;
         };
 
@@ -193,13 +204,13 @@ export default function LiveCapture() {
             <div className={`relative w-10 h-10`}>
                 <div
                     title={title}
-                    onClick={ isDisconnected? null : onClick}
+                    onClick={ isDisconnected? null : handleClick}
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
                     className={`border border-hover h-10 flex justify-center items-center p-2 rounded-lg transition-all cursor-pointer ${getButtonStyle()} ${className}`}
                 >
                     {Icon && <Icon className="h-5 w-5" />}
-                    {isHovered && hoverText && (
+                    {(isHovered || isClicked) && hoverText && (
                         <span className="mx-2 whitespace-nowrap text-sm font-medium">
                             {hoverText}
                         </span>
