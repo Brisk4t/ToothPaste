@@ -528,24 +528,16 @@ export default function LiveCapture() {
                             mobileInputRef.current.value = "";
                         }}
                         onKeyUp={(e) => {
-                            console.log("Mobile input: onKeyUp fired");
-                            mobileInputRef.current.value = "";
-                        }}
-                        onPaste={(e) => {
-                            console.log("Mobile input: onPaste fired");
+                            console.log("Mobile input: onKeyUp fired ", e);
                             mobileInputRef.current.value = "";
                         }}
                         onBeforeInput={(e) => {
-                            console.log("Mobile input: onBeforeInput fired");
-                            mobileInputRef.current.value = "";
-                        }}
-                        onContextMenu={(e) => {
-                            console.log("Mobile input: onContextMenu fired");
-                            e.preventDefault();
+                            console.log("Mobile input: onBeforeInput fired ", e);
                             mobileInputRef.current.value = "";
                         }}
                         // IME event handlers
                         onChange={(e) => {
+                            console.log("Mobile input: onChange fired ", e);
                             handleOnChange(e);
                             mobileInputRef.current.value = "";
                         }}
