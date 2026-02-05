@@ -6,33 +6,37 @@ const steps = [
     title: 'Welcome to ToothPaste',
     description: 'A tool to quickly capture and send clipboard data via BLE to your paired devices without compromising security.',
     targetSelector: null,
-    position: 'center',
-    columnSpan: 5,
-    rowSpan: 4,
+    gridColumn: 5,
+    gridRow: 6,
+    columnSpan: 2,
+    rowSpan: 1,
   },
   {
     title: 'Navigation Menu',
     description: 'Toggle the menu to switch between Live Capture, Bulk Send, and other features.',
     targetSelector: '.navbar-toggle, [class*="Bars3Icon"]',
-    position: 'top',
-    columnSpan: 5,
-    rowSpan: 3,
+    gridColumn: 1,
+    gridRow: 1,
+    columnSpan: 3,
+    rowSpan: 2,
   },
   {
     title: 'Live Capture',
     description: 'Capture keyboard and mouse input in real-time. Type in the input area to capture commands.',
     targetSelector: 'main',
-    position: 'top',
-    columnSpan: 5,
-    rowSpan: 3,
+    gridColumn: 4,
+    gridRow: 1,
+    columnSpan: 3,
+    rowSpan: 1,
   },
   {
     title: 'Connection Status',
     description: 'Connect to a ToothPaste device via BLE to start sending clipboard data securely. Once connected, hold this button to rename the connected device.',
     targetSelector: '[class*="ConnectionButton"], .connection-status',
-    position: 'top-right',
-    columnSpan: 5,
-    rowSpan: 3,
+    gridColumn: 8,
+    gridRow: 2,
+    columnSpan: 3,
+    rowSpan: 1,
   },
 ];
 
@@ -76,25 +80,9 @@ export default function QuickStartOverlay({ onChangeOverlay }) {
   }, [currentStep]);
 
   const getGridPosition = (step) => {
-    const positions = {
-      'top-left': { gridColumn: '1', gridRow: '1', justifySelf: 'start', alignSelf: 'start' },
-      'top': { gridColumn: '5', gridRow: '1', justifySelf: 'center', alignSelf: 'start' },
-      'top-right': { gridColumn: '9', gridRow: '2', justifySelf: 'end', alignSelf: 'start' },
-      'left': { gridColumn: '1', gridRow: '5', justifySelf: 'start', alignSelf: 'center' },
-      'center': { gridColumn: '5', gridRow: '5', justifySelf: 'center', alignSelf: 'center' },
-      'right': { gridColumn: '10', gridRow: '5', justifySelf: 'end', alignSelf: 'center' },
-      'bottom-left': { gridColumn: '1', gridRow: '10', justifySelf: 'start', alignSelf: 'end' },
-      'bottom': { gridColumn: '5', gridRow: '10', justifySelf: 'center', alignSelf: 'end' },
-      'bottom-right': { gridColumn: '10', gridRow: '10', justifySelf: 'end', alignSelf: 'end' },
-    };
-    const basePosition = positions[step.position] || positions['center'];
-    const columnSpan = step.columnSpan || 1;
-    const rowSpan = step.rowSpan || 1;
-    
     return {
-      ...basePosition,
-      gridColumnEnd: `span ${columnSpan}`,
-      gridRowEnd: `span ${rowSpan}`,
+      gridColumn: `${step.gridColumn} / span ${step.columnSpan}`,
+      gridRow: `${step.gridRow} / span ${step.rowSpan}`,
     };
   };
 
