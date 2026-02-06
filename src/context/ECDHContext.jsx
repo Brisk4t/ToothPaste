@@ -262,9 +262,9 @@ export const ECDHProvider = ({ children }) => {
      * @returns {Promise<string>} Decrypted plaintext as UTF-8 string
      */
     const decryptText = async (ciphertextBase64) => {
-        const combined = new Uint8Array(base64ToArrayBuffer(ciphertextBase64));
-        const iv = combined.slice(0, 12);
-        const data = combined.slice(12);
+        const ciphertextArray = new Uint8Array(base64ToArrayBuffer(ciphertextBase64));
+        const iv = ciphertextArray.slice(0, 12);
+        const data = ciphertextArray.slice(12);
         
         const decrypted = await crypto.subtle.decrypt(
             { name: "AES-GCM", iv }, 
@@ -284,10 +284,11 @@ export const ECDHProvider = ({ children }) => {
      * @yields {Object} DataPacket with encryptedData, IV, tag, and metadata
      */
     const createEncryptedPackets = async function* (id, payload, slowMode = true, packetPrefix=0) {
-        const byteArray = toBinary(ToothPacketPB.EncryptedDataSchema, payload);
-        var data = new Uint8Array(byteArray);
         
-        const encryptedPacket = await encryptText(data, null); // Encrypt the encryptedData component of a ToothPacket and get DataPacket
+        // Convert the protobuf payload to a byte array for encryption
+        const toothPacketBinary = toBinary(ToothPacketPB.EncryptedDataSchema, payload);
+        
+        const encryptedPacket = await encryptText(toothPacketBinary, null); // Encrypt the encryptedData component of a ToothPacket and get DataPacket
         
         // Set packet metadata
         encryptedPacket.packetID = id;
@@ -305,7 +306,6 @@ export const ECDHProvider = ({ children }) => {
      * @returns {Promise<void>} Updates internal aesKey.current state
      */
     const loadKeys = async (clientID) => {
-        const peerPubKey = await loadBase64(clientID, "PeerPublicKey");
         var aesKeyB64 = await loadBase64(clientID, "aesKey");
         aesKey.current = await importAESKeyFromBytes(base64ToArrayBuffer(aesKeyB64));
     };
