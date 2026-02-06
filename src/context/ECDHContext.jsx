@@ -262,12 +262,16 @@ export const ECDHProvider = ({ children }) => {
      * @returns {Promise<string>} Decrypted plaintext as UTF-8 string
      */
     const decryptText = async (ciphertextBase64) => {
-        const combined = Uint8Array.from(atob(ciphertextBase64), (c) => c.charCodeAt(0));
+        const combined = new Uint8Array(base64ToArrayBuffer(ciphertextBase64));
         const iv = combined.slice(0, 12);
         const data = combined.slice(12);
-        const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, aesKey, data);
-        const decoder = new TextDecoder();
-        return decoder.decode(decrypted);
+        
+        const decrypted = await crypto.subtle.decrypt(
+            { name: "AES-GCM", iv }, 
+            aesKey.current, data
+        );
+
+        return new TextDecoder().decode(decrypted);
     };
 
     /**
@@ -380,11 +384,10 @@ export function arrayBufferToBase64(buffer) {
 
 // Convert Base64 string to byte array
 export function base64ToArrayBuffer(base64) {
-    const binaryString = atob(base64);
-    const len = binaryString.length;
-    const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
+    const decoded = atob(base64);
+    const bytes = new Uint8Array(decoded.length);
+    for (let i = 0; i < decoded.length; i++) {
+        bytes[i] = decoded.charCodeAt(i);
     }
     return bytes.buffer;
 }
