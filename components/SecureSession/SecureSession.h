@@ -1,10 +1,7 @@
-#define MBEDTLS_ECP_RESTARTABLE 1
 #include <Arduino.h>
 #include <string>
 #include <esp_log.h>
-#include <mbedtls/ecdh.h>
-#include <mbedtls/ctr_drbg.h>
-#include <mbedtls/entropy.h>
+#include <psa/crypto.h>
 #include <mbedtls/gcm.h>
 #include <mbedtls/md.h>
 #include <mbedtls/sha256.h>
@@ -58,7 +55,7 @@ public:
     SecureSession();
     ~SecureSession();
 
-    // Initialize RNG and ECDH context; must be called before other operations
+    // Initialize PSA Crypto subsystem; must be called before other operations
     int init();
 
     // Generate ECDH keypair, output public key bytes
@@ -92,9 +89,12 @@ public:
     // Check if an AUTH packet is known
     bool isEnrolled(const char* key);
 
-
-    // Derive AES key from shared secret using KDF and store it in preferences
+    // Store shared secret after ECDH computation
     int deriveAESKeyFromSharedSecret(std::string base64Input);
+    
+    // Derive AES key from stored shared secret on-demand (used during encrypt/decrypt)
+    int deriveAESKeyFromStoredSecret(const char* base64pubKey, uint8_t aesKey[ENC_KEYSIZE]);
+    
     void printBase64(const uint8_t * data, size_t dataLen);
     int hkdf_sha256(const uint8_t *salt, size_t salt_len,
                 const uint8_t *ikm, size_t ikm_len,
@@ -107,13 +107,6 @@ public:
 
 private:
 
-    // New mbedTLS api vars
-    psa_key_id_t shared_secret_id; // PSA key ID for the shared secret
-    psa_key_id_t aes_key_id; // PSA key ID for the derived AES key
-
-    mbedtls_ecdh_context ecdh;
-    mbedtls_ctr_drbg_context ctr_drbg;
-    mbedtls_entropy_context entropy;
     mbedtls_gcm_context gcm;
     
     String hashKey(const char* longKey);
