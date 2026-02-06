@@ -8,13 +8,13 @@ import React, {
 } from "react";
 import { keyExists, loadBase64 } from "../services/Storage.js";
 import { ECDHContext } from "./ECDHContext.jsx";
-import { Packet } from "../services/PacketFunctions.js";
+import { Packet } from "../services/packetService/packetFunctions.js";
 import { create, toBinary, fromBinary } from "@bufbuild/protobuf";
 
 
 // import { toothpaste, DataPacket, EncryptedData, KeyboardPacket, MousePacket, RenamePacket, KeycodePacket } from '../services/toothpacket/toothpacket_pb.js';
 
-import * as ToothPacketPB from '../services/toothpacket/toothpacket_pb.js';
+import * as ToothPacketPB from '../services/packetService/toothpacket/toothpacket_pb.js';
 // const KeyboardPacket = new ToothPacketPB.proto.toothpaste.KeyboardPacket();
 // const EncryptedData = new ToothPacketPB.proto.toothpaste.EncryptedData();
 

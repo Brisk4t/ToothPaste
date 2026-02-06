@@ -8,7 +8,7 @@ import Touchpad from "../components/Touchpad/Touchpad";
 import { useInputController } from "../services/inputHandlers/liveCaptureHooks";
 import { IconToggleButton, MediaToggleButton } from "../components/shared/buttons";
 
-import { createMouseJigglePacket } from "../services/PacketFunctions";
+import { createMouseJigglePacket } from "../services/packetService/packetFunctions";
 import { mouseHandler } from "../services/inputHandlers/mouseHandler";
 import { keyboardHandler } from "../services/inputHandlers/keyboardHandler";
 

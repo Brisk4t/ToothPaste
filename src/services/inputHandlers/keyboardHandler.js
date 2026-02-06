@@ -1,6 +1,6 @@
-import { createKeyboardStream, createKeyCodePacket } from '../PacketFunctions';
+import { createKeyboardStream, createKeyCodePacket } from '../packetService/packetFunctions';
 import { HIDMap } from './HIDMap';
-import { createConsumerControlPacket } from '../PacketFunctions';
+import { createConsumerControlPacket } from '../packetService/packetFunctions';
 
 /**
  * Keyboard input handler service

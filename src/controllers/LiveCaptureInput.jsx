@@ -1,9 +1,13 @@
 import { useRef, useState, useEffect, useCallback, useContext } from 'react';
-import { BLEContext } from "../../context/BLEContext.jsx";
-import { ECDHContext } from "../../context/ECDHContext.jsx";
+import { BLEContext } from "../context/BLEContext.jsx";
+import { ECDHContext } from "../context/ECDHContext.jsx";
 
-import { createKeyboardStream } from '../packetService/packetFunctions.js';
-import { keyboardHandler } from './keyboardHandler';
+import * as ToothPacketPB from '../services/packetService/toothpacket/toothpacket_pb.js';
+// const KeyboardPacket = new ToothPacketPB.proto.toothpaste.KeyboardPacket();
+
+
+import { createKeyboardStream } from '../services/packetService/packetFunctions.js';
+import { keyboardHandler } from '../services/inputHandlers/keyboardHandler';
 
 
 export function useInputController() {
@@ -158,16 +162,9 @@ export function useInputController() {
         
         // If there are modifiers and the key is not just a modifier
         if (modifiers.length > 0 && e.key !== "Control" && e.key !== "Alt" && e.key !== "Shift" && e.key !== "Meta") {
-            // For Shift+letter combinations, always send as keycode to preserve capitalization
-            if (modifiers.length === 1 && modifiers[0] === "Shift" && e.key.length === 1) {
-                e.preventDefault();
-                keyboardHandler.sendKeyCode(e.key, modifiers, sendEncrypted);
-                return true;
-            }
-            
             if (commandPassthrough) {
                 e.preventDefault();
-                keyboardHandler.sendKeyCode(e.key, modifiers, sendEncrypted);
+                sendKeyCode(e, modifiers);
                 return true;
             } else {
                 return true; // Default behaviour: paste data from host clipboard
@@ -208,10 +205,35 @@ export function useInputController() {
                 return true;
 
             default:
-                return (keyboardHandler.sendKeyCode(e.key, [], sendEncrypted));
+                return (sendKeyCode(e, []));
         }
     }
 
+    // Helper: handle non-printing inputs directly as keycodes (Supports up to 5 modifiers + key)
+    function sendKeyCode(e, modifiers = []) {
+        let keycode = new Uint8Array(8);
+        
+        // Add modifiers (up to 5) at indices 0-4
+        if (Array.isArray(modifiers)) {
+            for (let i = 0; i < Math.min(modifiers.length, 5); i++) {
+                keycode[i] = HIDMap[modifiers[i]] || 0;
+            }
+        }
+        
+        // Add the key itself at index 5
+        let keypress = HIDMap[e.key] ? HIDMap[e.key] : e.key;
+        let keypressCode = typeof keypress === 'string' ? keypress.charCodeAt(0) : keypress;
+        keycode[5] = keypressCode;
+        
+        // Check if we have valid data
+        const hasModifier = Array.isArray(modifiers) && modifiers.length > 0;
+        if (!(hasModifier || HIDMap[e.key])) return false;
+        
+        var keyCodePacket = createKeyCodePacket(keycode);
+        sendEncrypted(keyCodePacket);
+        
+        return true;
+    }
 
     // When a key is released
     const handleKeyUp = (e) => {
@@ -262,7 +284,7 @@ export function useInputController() {
 
             if(isPartialComplete){
                 console.log("Partial word autofilled / autocorrected");
-                keyboardHandler.sendSpecialKey("Backspace", ["Control"], sendEncrypted);
+                sendKeyCode({key: "Backspace"}, ["Control"]); // Delete the word typed word (ctrl + backspace)
             }
             updateBufferAndSend(bufferRef.current + event.data); // Add the new word
         }        

@@ -1,10 +1,10 @@
 import React, { createContext, useState, useEffect, useRef, useMemo } from "react";
 import { saveBase64, loadBase64 } from "../services/Storage.js";
 import { ec as EC } from "elliptic";
-import { Packet } from "../services/PacketFunctions.js";
+import { Packet } from "../services/packetService/packetFunctions.js";
 import { create, toBinary, fromBinary } from "@bufbuild/protobuf";
 
-import * as ToothPacketPB from '../services/toothpacket/toothpacket_pb.js';
+import * as ToothPacketPB from '../services/packetService/toothpacket/toothpacket_pb.js';
 
 // import { DataPacket, EncryptedData } from '../services/toothpacket/toothpacket_pb.js';
 import { enc } from "crypto-js";

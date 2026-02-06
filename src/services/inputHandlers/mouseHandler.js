@@ -1,4 +1,4 @@
-import { createMouseStream } from '../PacketFunctions';
+import { createMouseStream } from '../packetService/packetFunctions';
 
 /**
  * Mouse input handler service
