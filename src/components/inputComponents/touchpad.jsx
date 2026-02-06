@@ -46,7 +46,7 @@ export default function Touchpad({
     };
 
     return (
-        <div className="md:hidden flex flex-col flex-1 my-4 rounded-xl transition-all border border-hover bg-shelf relative group overflow-hidden">
+        <div className="xl:hidden flex flex-col flex-1 my-4 rounded-xl transition-all border border-hover bg-shelf relative group overflow-hidden">
             <div className="absolute top-2 left-2 z-10">
                 {leftButtonColumn}
             </div>

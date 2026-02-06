@@ -33,7 +33,7 @@ export default function KeyboardMouse({
     sendMouseReport,
 }) {
     return (
-        <div className="hidden md:flex flex-col flex-1 my-4 rounded-xl transition-all border border-hover focus-within:border-shelf bg-shelf focus-within:bg-background relative group">
+        <div className="hidden xl:flex flex-col flex-1 my-4 rounded-xl transition-all border border-hover focus-within:border-shelf bg-shelf focus-within:bg-background relative group">
             <div className="absolute top-2 left-2 z-10">
                 <LeftButtonColumn status={status} sendEncrypted={sendEncrypted} />
             </div>

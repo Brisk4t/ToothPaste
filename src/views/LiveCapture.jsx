@@ -202,12 +202,12 @@ export default function LiveCapture() {
 
     return (
         <div className="flex flex-col flex-1 w-full p-4 bg-background text-text">
-            <div className="hidden md:block">
+            <div className="hidden xl:block">
                 <Keyboard listenerRef={inputRef} deviceStatus={status}></Keyboard>
             </div>
 
             {/* Mobile Input Area - Visible only on small screens */}
-            <div className="md:hidden flex flex-row my-4 rounded-lg transition-all border border-hover min-h-12 bg-shelf focus-within:bg-background relative group">
+            <div className="xl:hidden flex flex-row my-4 rounded-lg transition-all border border-hover min-h-12 bg-shelf focus-within:bg-background relative group">
                 <Typography
                     type="h5"
                     className="flex items-center justify-center opacity-70 pointer-events-none select-none text-white p-4 whitespace-pre-wrap font-light absolute inset-0 z-0 group-focus-within:hidden"
