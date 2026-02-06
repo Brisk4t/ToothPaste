@@ -245,7 +245,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                 </div>
 
                 {/* Center: Desktop menu */}
-                <div className="hidden lg:flex absolute left-1/2 transform -translate-x-1/2 space-x-5 items-center">
+                <div className="hidden xl:flex absolute left-1/2 transform -translate-x-1/2 space-x-5 items-center">
                     <div className="flex items-center space-x-5">
                         <button
                             disabled={status === 2}
@@ -323,7 +323,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                 {/* Right: Desktop ConnectionButton and Mobile Hamburger */}
                 <div className="flex items-center space-x-3">
                     {/* Desktop */}
-                    <div className="hidden lg:block">
+                    <div className="hidden xl:block">
                         <ConnectionButton connected={status} />
                     </div>
 
@@ -331,7 +331,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                     <button
                         id="navbar-toggle"
                         onClick={() => setIsOpen(!isOpen)}
-                        className={`lg:hidden flex items-center space-x-2 px-3 py-2 rounded hover:bg-hover border border-2 ${borderClass} focus:outline-none`}
+                        className={`xl:hidden flex items-center space-x-2 px-3 py-2 rounded hover:bg-hover border border-2 ${borderClass} focus:outline-none`}
                         aria-label="Toggle menu"
                     >
                         <div className="flex flex-col flex-1 min-w-0">
@@ -346,7 +346,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
 
             {/* Mobile Dropdown Menu */}
             {isOpen && (
-                <div className="lg:hidden flex flex-col space-y-2 px-4 pb-4">
+                <div className="xl:hidden flex flex-col space-y-2 px-4 pb-4">
                     <div className="flex flex-col space-y-2">
                         <button
                             disabled={status === 2}
