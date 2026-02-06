@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Typography } from "@material-tailwind/react";
 import { KeyboardShortcutButton, KeyboardShortcutCarousel, ClickButtonGroup } from "../shared/buttons";
+import { TOUCHPAD_SHORTCUTS } from "./sharedComponents";
 
 export default function Touchpad({
     captureMouse,
@@ -12,7 +13,6 @@ export default function Touchpad({
     onSendKeyboardShortcut,
     leftButtonColumn,
     rightButtonColumn,
-    shortcuts,
 }) {
     // Mouse button configuration and handlers
     const MOUSE_BUTTONS = [
@@ -85,7 +85,7 @@ export default function Touchpad({
             {/* Keyboard Shortcuts Carousel */}
             {commandPassthrough ? (
                 <div className="absolute bottom-16 left-0 right-0 z-20">
-                    <KeyboardShortcutCarousel shortcuts={shortcuts} onSendKeyboardShortcut={onSendKeyboardShortcut} />
+                    <KeyboardShortcutCarousel shortcuts={TOUCHPAD_SHORTCUTS} onSendKeyboardShortcut={onSendKeyboardShortcut} />
                 </div>
             ) : (
                 <Typography

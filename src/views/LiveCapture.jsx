@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState, useContext, useCallback, useMemo } from "react";
 
 import { Button, Typography } from "@material-tailwind/react";
-import { CursorArrowRaysIcon, CursorArrowRippleIcon, PowerIcon, ArrowUpOnSquareStackIcon, PlayPauseIcon, ChevronDoubleUpIcon, ChevronDoubleDownIcon, ForwardIcon, BackwardIcon, CommandLineIcon, LockOpenIcon, EllipsisVerticalIcon} from "@heroicons/react/24/outline";
+import { CommandLineIcon, LockOpenIcon } from "@heroicons/react/24/outline";
 import { BLEContext } from "../context/BLEContext";
 import Keyboard from "../components/Keyboard/Keyboard";
-import Touchpad from "../components/Touchpad/Touchpad";
+import Touchpad from "../components/inputComponents/touchpad";
+import KeyboardMouse from "../components/inputComponents/keyboardMouse";
+import { LeftButtonColumn, RightButtonColumn } from "../components/inputComponents/sharedComponents";
 import { useInputController } from "../services/inputHandlers/liveCaptureHooks";
-import { IconToggleButton, MediaToggleButton } from "../components/shared/buttons";
 
 import { createMouseJigglePacket } from "../services/packetService/packetFunctions";
 import { mouseHandler } from "../services/inputHandlers/mouseHandler";
@@ -36,49 +37,6 @@ export default function LiveCapture() {
 
     // Contexts
     const { status, sendEncrypted } = useContext(BLEContext);
-
-    // Shortcut definitions
-    const SHORTCUTS_MENU = [
-        { label: "Ctrl+A", keys: ["Control", "a"] },
-        { label: "Ctrl+C", keys: ["Control", "c"] },
-        { label: "Ctrl+V", keys: ["Control", "v"] },
-        { label: "Ctrl+X", keys: ["Control", "x"] },
-        { label: "Delete", keys: ["Delete"] },
-        { label: "Ctrl+Z", keys: ["Control", "z"] },
-        { label: "Ctrl+Y", keys: ["Control", "y"] },
-        { label: "Ctrl+S", keys: ["Control", "s"] },
-        { label: "Alt+Tab", keys: ["Alt", "Tab"] },
-        { label: "Esc", keys: ["Escape"] },
-        { label: "Ctrl+Alt+Del", keys: ["Control", "Alt", "Delete"] },
-        { label: "Ctrl+Shift+Esc", keys: ["Control", "Shift", "Escape"] },
-        { label: "Win+V", keys: ["Meta", "v"] },
-        { label: "Win+Shift+S", keys: ["Meta", "Shift", "s"] },
-        { label: "Enter", keys: ["Enter"] },
-    ];
-
-    const TOUCHPAD_SHORTCUTS = [
-        [
-            { label: "Ctrl+A", keys: ["Control", "a"] },
-            { label: "Ctrl+C", keys: ["Control", "c"] },
-            { label: "Ctrl+V", keys: ["Control", "v"] },
-            { label: "Ctrl+X", keys: ["Control", "x"] },
-            { label: "Delete", keys: ["Delete"] },
-        ],
-        [
-            { label: "Ctrl+Z", keys: ["Control", "z"] },
-            { label: "Ctrl+Y", keys: ["Control", "y"] },
-            { label: "Ctrl+S", keys: ["Control", "s"] },
-            { label: "Alt+Tab", keys: ["Alt", "Tab"] },
-            { label: "Esc", keys: ["Escape"] },
-        ],
-        [
-            { label: "Ctrl+Alt+Del", keys: ["Control", "Alt", "Delete"] },
-            { label: "Ctrl+Shift+Esc", keys: ["Control", "Shift", "Escape"] },
-            { label: "Win+V", keys: ["Meta", "v"] },
-            { label: "Win+Shift+S", keys: ["Meta", "Shift", "s"] },
-            { label: "Enter", keys: ["Enter"] },
-        ],
-    ];
 
     // Mouse Vars
     const mouseStartPos = useRef(null);
@@ -242,175 +200,6 @@ export default function LiveCapture() {
         keyboardHandler.sendKeyboardShortcut(keySequence, sendEncrypted);
     }
 
-    // Toggle capturing and sending mouse data
-    function CaptureMouseButton() {
-        const handleToggle = () => setCaptureMouse((prev) => !prev);
-
-        return (
-            <IconToggleButton
-                title="Enable / Disable mouse capture"
-                toggled={captureMouse}
-                onClick={handleToggle}
-                Icon={CursorArrowRaysIcon}
-                hoverText="Enable / Disable mouse capture"
-                connectionStatus={status}
-            />
-        );
-    }
-
-    // Toggle how pasting and other command shortcuts are handled
-    function CommandPassthroughButton() {
-        const handleToggle = () => setCommandPassthrough((prev) => !prev);
-        return (
-            <IconToggleButton
-                title="Capture Shortcuts"
-                toggled={commandPassthrough}
-                onClick={handleToggle}
-                Icon={ArrowUpOnSquareStackIcon}
-                hoverText="Capture Shortcuts (e.g. Ctrl+V)"
-                connectionStatus={status}
-            />
-        );
-    }
-
-    // Toggle how pasting and other command shortcuts are handled
-    function MouseJiggleButton() {
-        const handleToggle = () => {
-            const mouseJigglePacket = createMouseJigglePacket(!jiggling);
-            sendEncrypted(mouseJigglePacket);
-            setJiggling((prev) => !prev);
-        };
-
-        return (
-            <IconToggleButton
-                title="Start / Stop Mouse Jiggling"
-                toggled={jiggling}
-                onClick={handleToggle}
-                Icon={CursorArrowRippleIcon}
-                hoverText="Start / Stop Mouse Jiggling"
-                connectionStatus={status}
-            />
-        );
-    }
-
-    // Collapsible shortcuts menu
-    function ShortcutsMenuButton() {
-        const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-        return (
-            <div className="relative">
-                <IconToggleButton
-                    title="Shortcuts Menu"
-                    toggled={isMenuOpen}
-                    onClick={() => setIsMenuOpen((prev) => !prev)}
-                    Icon={EllipsisVerticalIcon}
-                    hoverText="Shortcuts"
-                    connectionStatus={status}
-                />
-                {isMenuOpen && (
-                    <div className="absolute right-0 top-12 rounded-lg z-50 w-48 max-h-80 overflow-y-auto p-2 border-2 border-hover" style={{ scrollbarColor: "#555 transparent" }}>
-                        <div className="flex flex-col gap-2">
-                            {SHORTCUTS_MENU.map((shortcut, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => {
-                                        sendKeyboardShortcut(shortcut.keys);
-                                        setIsMenuOpen(false);
-                                    }}
-                                    className="w-full px-4 py-2 text-left text-sm font-medium bg-shelf text-text rounded-lg border border-hover hover:bg-white hover:text-shelf transition-colors"
-                                >
-                                    {shortcut.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </div>
-        );
-    }   
-
-    // Vertical dropdown with media control buttons (Play/Pause, Vol+, Vol-, Next, Prev)
-    function LeftButtonColumn() {
-        return (
-            <div className="flex flex-col space-y-2">
-                <div>
-                    <MediaToggleButton
-                        title="Play / Pause media"
-                        onClick={() => {keyboardHandler.sendControlCode(0x00CD, sendEncrypted)}}
-                        Icon={PlayPauseIcon}
-                        expandDirection="right"
-                        connectionStatus={status}
-                        />
-                </div>
-                <div>
-                    <MediaToggleButton
-                        title="Volume Up"
-                        onClick={() => {keyboardHandler.sendControlCode(0x00E9, sendEncrypted)}}
-                        Icon={ChevronDoubleUpIcon}
-                        expandDirection="right"
-                        connectionStatus={status}
-                        />
-                </div>
-                <div>
-                    <MediaToggleButton
-                        title="Volume Down"
-                        onClick={() => {keyboardHandler.sendControlCode(0x00EA, sendEncrypted)}}
-                        Icon={ChevronDoubleDownIcon}
-                        expandDirection="right"
-                        connectionStatus={status}
-                        />
-                </div>
-                <div>
-                    <MediaToggleButton
-                        title="Next"
-                        onClick={() => {keyboardHandler.sendControlCode(0x00B5, sendEncrypted)}}
-                        Icon={ForwardIcon}
-                        expandDirection="right"
-                        connectionStatus={status}
-                        />
-                </div>
-                <div>
-                    <MediaToggleButton
-                        title="Previous"
-                        onClick={() => {keyboardHandler.sendControlCode(0x00B6, sendEncrypted)}}
-                        Icon={BackwardIcon}
-                        expandDirection="right"
-                        connectionStatus={status}
-                        />
-                </div>
-                <div>
-                    <MediaToggleButton 
-                        title="Press 'Power' button"
-                        Icon={PowerIcon} 
-                        onClick={() => keyboardHandler.sendControlCode(0x0030, sendEncrypted)}
-                        expandDirection="right"
-                        connectionStatus={status}
-                    />
-                </div>
-            </div>
-        );
-    }
-
-    // Vertical dropdown with media control buttons (Play/Pause, Vol+, Vol-, Next, Prev)
-    function RightButtonColumn() {
-        return (
-            <div className="flex flex-col space-y-2">
-                <div>
-                    <CaptureMouseButton />
-                </div>
-                <div>
-                    <CommandPassthroughButton />
-                </div>
-                <div>
-                    <MouseJiggleButton />
-                </div>
-                <div>
-                    <ShortcutsMenuButton />
-                </div>
-            </div>
-        );
-    }
-
     return (
         <div className="flex flex-col flex-1 w-full p-4 bg-background text-text">
             <div className="hidden md:block">
@@ -500,71 +289,34 @@ export default function LiveCapture() {
             </div>
 
             {/* Desktop Layout - Hidden on small screens */}
-            <div className="hidden md:flex flex-col flex-1 my-4 rounded-xl transition-all border border-hover focus-within:border-shelf bg-shelf focus-within:bg-background relative group ">         
-                <div className="absolute top-2 left-2 z-10">
-                    <LeftButtonColumn />
-                </div>
-                
-                <div className="absolute top-2 right-2 z-10">
-                    <RightButtonColumn />
-                </div>
-
-                <Typography
-                    type="h5"
-                    className="flex items-center justify-center opacity-70 pointer-events-none select-none text-white p-4 whitespace-pre-wrap font-light absolute inset-0 z-0 group-focus-within:hidden"
-                    aria-hidden="true"
-                >
-                    Click here to start sending keystrokes in real time (kinda...)
-                </Typography>
-
-                <Typography
-                    type="h5"
-                    className=" hidden group-focus-within:flex opacity-70 items-center justify-center pointer-events-none select-none text-white p-4 whitespace-pre-wrap font-light absolute inset-0 z-0 "
-                    aria-hidden="true"
-                >
-                    Capturing inputs...
-                </Typography>
-
-                {/* Hidden input for event capture */}
-                <input
-                    id="live-capture-input"
-                    ref={inputRef}
-                    autoCapitalize="none"
-                    type="text"
-                    inputMode="text"
-                    name="user_input"
-                    autoComplete="off"
-                    spellCheck="false"
-                    data-lpignore="true"
-
-                    // Focus handlers
-                    onFocus={() => setIsFocused(true)}
-                    onBlur={() => setIsFocused(false)}
-                    // Keyboard event handlers
-                    onKeyDown={handleKeyDown}
-                    onKeyUp={handleKeyUp}
-                    onPaste={handlePaste}
-                    // Mouse event handlers
-                    onMouseDown={onMouseDown}
-                    onMouseUp={onMouseUp}
-                    onPointerMove={onPointerMove}
-                    onPointerCancel={onPointerCancel}
-                    onBeforeInput={handleOnBeforeInput}
-                    onWheel={onWheel}
-                    onContextMenu={(e) => e.preventDefault()}
-                    // IME event handlers
-                    onChange={handleOnChange}
-                    onCompositionStart={handleCompositionStart}
-                    onCompositionUpdate={() => {}}
-                    onCompositionEnd={handleCompositionEnd}
-                    className="absolute inset-0 opacity-0 cursor-text pointer-events-auto"
-                ></input>
-
-                {/* Event routing overlay div */}
-                <div
-                    className="absolute inset-0 rounded-xl z-5 pointer-events-none"
-                />
-            </div>
+            <KeyboardMouse
+                inputRef={inputRef}
+                handleKeyDown={handleKeyDown}
+                handleKeyUp={handleKeyUp}
+                handlePaste={handlePaste}
+                handleOnBeforeInput={handleOnBeforeInput}
+                handleCompositionStart={handleCompositionStart}
+                handleCompositionEnd={handleCompositionEnd}
+                handleOnChange={handleOnChange}
+                captureMouse={captureMouse}
+                setCaptureMouse={setCaptureMouse}
+                commandPassthrough={commandPassthrough}
+                setCommandPassthrough={setCommandPassthrough}
+                jiggling={jiggling}
+                setJiggling={setJiggling}
+                isFocused={isFocused}
+                setIsFocused={setIsFocused}
+                status={status}
+                sendEncrypted={sendEncrypted}
+                onMouseDown={onMouseDown}
+                onMouseUp={onMouseUp}
+                onPointerCancel={onPointerCancel}
+                onPointerMove={onPointerMove}
+                onWheel={onWheel}
+                ctrlPressed={ctrlPressed}
+                sendKeyboardShortcut={sendKeyboardShortcut}
+                sendMouseReport={sendMouseReport}
+            />
 
             {/* Mobile Touchpad Layout - Visible only on small screens */}
             <Touchpad
@@ -575,9 +327,18 @@ export default function LiveCapture() {
                 onTouchEnd={onTouchEnd}
                 onSendMouseClick={sendMouseReport}
                 onSendKeyboardShortcut={sendKeyboardShortcut}
-                leftButtonColumn={<LeftButtonColumn />}
-                rightButtonColumn={<RightButtonColumn />}
-                shortcuts={TOUCHPAD_SHORTCUTS}
+                leftButtonColumn={<LeftButtonColumn status={status} sendEncrypted={sendEncrypted} />}
+                rightButtonColumn={<RightButtonColumn
+                    captureMouse={captureMouse}
+                    setCaptureMouse={setCaptureMouse}
+                    commandPassthrough={commandPassthrough}
+                    setCommandPassthrough={setCommandPassthrough}
+                    jiggling={jiggling}
+                    setJiggling={setJiggling}
+                    status={status}
+                    sendEncrypted={sendEncrypted}
+                    sendKeyboardShortcut={sendKeyboardShortcut}
+                />}
             />
         </div>
     );
