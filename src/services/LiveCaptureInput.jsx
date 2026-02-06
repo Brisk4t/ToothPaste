@@ -6,8 +6,8 @@ import * as ToothPacketPB from './toothpacket/toothpacket_pb.js';
 // const KeyboardPacket = new ToothPacketPB.proto.toothpaste.KeyboardPacket();
 
 
-import {HIDMap} from "./HIDMap.js"
-import { createKeyboardPacket, createKeyboardStream, createKeyCodePacket } from './PacketFunctions.js';
+import { createKeyboardPacket, createKeyboardStream } from './PacketFunctions.js';
+import { keyboardHandler } from './inputHandlers/keyboardHandler';
 
 
 export function useInputController() {
@@ -164,7 +164,7 @@ export function useInputController() {
         if (modifiers.length > 0 && e.key !== "Control" && e.key !== "Alt" && e.key !== "Shift" && e.key !== "Meta") {
             if (commandPassthrough) {
                 e.preventDefault();
-                sendKeyCode(e, modifiers);
+                keyboardHandler.sendKeyCode(e.key, modifiers, sendEncrypted);
                 return true;
             } else {
                 return true; // Default behaviour: paste data from host clipboard
@@ -205,35 +205,36 @@ export function useInputController() {
                 return true;
 
             default:
-                return (sendKeyCode(e, []));
+                return (keyboardHandler.sendKeyCode(e.key, [], sendEncrypted));
         }
     }
 
     // Helper: handle non-printing inputs directly as keycodes (Supports up to 5 modifiers + key)
-    function sendKeyCode(e, modifiers = []) {
-        let keycode = new Uint8Array(8);
+    // DEPRECATED: Use keyboardInputHandler.sendKeyCode instead
+    // function sendKeyCode(e, modifiers = []) {
+    //     let keycode = new Uint8Array(8);
         
-        // Add modifiers (up to 5) at indices 0-4
-        if (Array.isArray(modifiers)) {
-            for (let i = 0; i < Math.min(modifiers.length, 5); i++) {
-                keycode[i] = HIDMap[modifiers[i]] || 0;
-            }
-        }
+    //     // Add modifiers (up to 5) at indices 0-4
+    //     if (Array.isArray(modifiers)) {
+    //         for (let i = 0; i < Math.min(modifiers.length, 5); i++) {
+    //             keycode[i] = HIDMap[modifiers[i]] || 0;
+    //         }
+    //     }
         
-        // Add the key itself at index 5
-        let keypress = HIDMap[e.key] ? HIDMap[e.key] : e.key;
-        let keypressCode = typeof keypress === 'string' ? keypress.charCodeAt(0) : keypress;
-        keycode[5] = keypressCode;
+    //     // Add the key itself at index 5
+    //     let keypress = HIDMap[e.key] ? HIDMap[e.key] : e.key;
+    //     let keypressCode = typeof keypress === 'string' ? keypress.charCodeAt(0) : keypress;
+    //     keycode[5] = keypressCode;
         
-        // Check if we have valid data
-        const hasModifier = Array.isArray(modifiers) && modifiers.length > 0;
-        if (!(hasModifier || HIDMap[e.key])) return false;
+    //     // Check if we have valid data
+    //     const hasModifier = Array.isArray(modifiers) && modifiers.length > 0;
+    //     if (!(hasModifier || HIDMap[e.key])) return false;
         
-        var keyCodePacket = createKeyCodePacket(keycode);
-        sendEncrypted(keyCodePacket);
+    //     var keyCodePacket = createKeyCodePacket(keycode);
+    //     sendEncrypted(keyCodePacket);
         
-        return true;
-    }
+    //     return true;
+    // }
 
     // When a key is released
     const handleKeyUp = (e) => {
@@ -284,7 +285,7 @@ export function useInputController() {
 
             if(isPartialComplete){
                 console.log("Partial word autofilled / autocorrected");
-                sendKeyCode({key: "Backspace"}, ["Control"]); // Delete the word typed word (ctrl + backspace)
+                keyboardHandler.sendSpecialKey("Backspace", ["Control"], sendEncrypted);
             }
             updateBufferAndSend(bufferRef.current + event.data); // Add the new word
         }        

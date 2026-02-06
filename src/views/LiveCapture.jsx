@@ -8,8 +8,9 @@ import Touchpad from "../components/Touchpad/Touchpad";
 import { useInputController } from "../services/LiveCaptureInput";
 import { IconToggleButton, MediaToggleButton } from "../components/shared/buttons";
 
-import { createConsumerControlPacket, createKeyCodePacket, createMouseStream, createMouseJigglePacket } from "../services/PacketFunctions";
-import { HIDMap } from "../services/HIDMap";
+import { createConsumerControlPacket, createMouseJigglePacket } from "../services/PacketFunctions";
+import { mouseHandler } from "../services/inputHandlers/mouseHandler";
+import { keyboardHandler } from "../services/inputHandlers/keyboardHandler";
 
 export default function LiveCapture() {
     // Input controller hooks
@@ -74,20 +75,20 @@ export default function LiveCapture() {
         isMouseTracking.current = true;
 
         if (captureMouse) {
-            if (e.button == 0) sendMouseReport(1, 0); // Send left click
+            if (e.button == 0) mouseHandler.sendMouseClick(1, 0, sendEncrypted); // Send left click
             if (e.button == 2) {
                 e.preventDefault();
-                sendMouseReport(0, 1);
+                mouseHandler.sendMouseClick(0, 1, sendEncrypted);
             }
         }
     }
 
     function onMouseUp(e) {
         if (!isFocused) return; // Only capture when focused
-        if (e.button == 0) sendMouseReport(2, 0); // Send left click
+        if (e.button == 0) mouseHandler.sendMouseClick(2, 0, sendEncrypted); // Send left click
         if (e.button == 2) {
             e.preventDefault();
-            sendMouseReport(0, 2);
+            mouseHandler.sendMouseClick(0, 2, sendEncrypted);
         }
     }
 
@@ -131,7 +132,7 @@ export default function LiveCapture() {
         e.preventDefault(); // Prevent page scrolling
 
         var reportDelta  = -e.deltaY * 0.01; // Scale down the scroll delta
-        sendMouseReport(false, false, reportDelta);
+        mouseHandler.sendMouseScroll(reportDelta, sendEncrypted);
     }
 
     // Touch event handlers for mobile touchpad
@@ -152,8 +153,8 @@ export default function LiveCapture() {
         if (timeSinceLastTap < DOUBLE_TAP_THRESHOLD && distanceFromLastTap < DOUBLE_TAP_DISTANCE) {
             // Double tap detected - send left click
             if (captureMouse) {
-                sendMouseReport(1, 0); // Left click down
-                setTimeout(() => sendMouseReport(2, 0), 50); // Left click up
+                mouseHandler.sendMouseClick(1, 0, sendEncrypted); // Left click down
+                setTimeout(() => mouseHandler.sendMouseClick(2, 0, sendEncrypted), 50); // Left click up
             }
             lastTapTime.current = 0; // Reset to prevent triple tap
         } else {
@@ -188,34 +189,14 @@ export default function LiveCapture() {
 
     // Make a mouse packet and send it
     function sendMouseReport(LClick, RClick, scrollDelta=0) {
-        const flag = 2; // Flag to indicate mouse packet
         const mouseFrames = displacementList.current.slice(0, 8);
-        const numFrames = mouseFrames.length;
-
-        var mousePacket = createMouseStream(mouseFrames, LClick, RClick, scrollDelta);
-        sendEncrypted(mousePacket);
-
+        mouseHandler.sendMouseReport(mouseFrames, LClick, RClick, scrollDelta, sendEncrypted);
         displacementList.current = []; // reset list
     }
 
     // Helper function to send keyboard shortcuts
     function sendKeyboardShortcut(keySequence) {
-        const modifierKeys = ["ControlLeft", "ControlRight", "AltLeft", "AltRight", "ShiftLeft", "ShiftRight", "MetaLeft", "MetaRight"];
-        const modifiers = keySequence.filter(k => modifierKeys.includes(k));
-        const mainKey = keySequence.find(k => !modifierKeys.includes(k));
-        
-        const syntheticEvent = {
-            key: mainKey,
-            ctrlKey: modifiers.some(k => k.includes("Control")),
-            altKey: modifiers.some(k => k.includes("Alt")),
-            shiftKey: modifiers.some(k => k.includes("Shift")),
-            metaKey: modifiers.some(k => k.includes("Meta")),
-            preventDefault: () => {}
-        };
-        
-        console.log("Sending synthetic keyboard shortcut:", syntheticEvent);
-
-        handleKeyDown(syntheticEvent);
+        keyboardHandler.sendKeyboardShortcut(keySequence, sendEncrypted);
     }
 
     // Toggle capturing and sending mouse data
@@ -273,20 +254,20 @@ export default function LiveCapture() {
     function ShortcutsMenuButton() {
         const [isMenuOpen, setIsMenuOpen] = useState(false);
         const shortcuts = [
-            { label: "Ctrl+A", keys: ["ControlLeft", "a"] },
-            { label: "Ctrl+C", keys: ["ControlLeft", "c"] },
-            { label: "Ctrl+V", keys: ["ControlLeft", "v"] },
-            { label: "Ctrl+X", keys: ["ControlLeft", "x"] },
+            { label: "Ctrl+A", keys: ["Control", "a"] },
+            { label: "Ctrl+C", keys: ["Control", "c"] },
+            { label: "Ctrl+V", keys: ["Control", "v"] },
+            { label: "Ctrl+X", keys: ["Control", "x"] },
             { label: "Delete", keys: ["Delete"] },
-            { label: "Ctrl+Z", keys: ["ControlLeft", "z"] },
-            { label: "Ctrl+Y", keys: ["ControlLeft", "y"] },
-            { label: "Ctrl+S", keys: ["ControlLeft", "s"] },
-            { label: "Alt+Tab", keys: ["AltLeft", "Tab"] },
+            { label: "Ctrl+Z", keys: ["Control", "z"] },
+            { label: "Ctrl+Y", keys: ["Control", "y"] },
+            { label: "Ctrl+S", keys: ["Control", "s"] },
+            { label: "Alt+Tab", keys: ["Alt", "Tab"] },
             { label: "Esc", keys: ["Escape"] },
-            { label: "Ctrl+Alt+Del", keys: ["ControlLeft", "AltLeft", "Delete"] },
-            { label: "Ctrl+Shift+Esc", keys: ["ControlLeft", "ShiftLeft", "Escape"] },
-            { label: "Win+V", keys: ["MetaLeft", "v"] },
-            { label: "Win+Shift+S", keys: ["MetaLeft", "ShiftLeft", "s"] },
+            { label: "Ctrl+Alt+Del", keys: ["Control", "Alt", "Delete"] },
+            { label: "Ctrl+Shift+Esc", keys: ["Control", "Shift", "Escape"] },
+            { label: "Win+V", keys: ["Meta", "v"] },
+            { label: "Win+Shift+S", keys: ["Meta", "Shift", "s"] },
             { label: "Enter", keys: ["Enter"] },
         ];
 
@@ -599,24 +580,24 @@ export default function LiveCapture() {
                 rightButtonColumn={<RightButtonColumn />}
                 shortcuts={[
                     [
-                        { label: "Ctrl+A", keys: ["ControlLeft", "a"] },
-                        { label: "Ctrl+C", keys: ["ControlLeft", "c"] },
-                        { label: "Ctrl+V", keys: ["ControlLeft", "v"] },
-                        { label: "Ctrl+X", keys: ["ControlLeft", "x"] },
+                        { label: "Ctrl+A", keys: ["Control", "a"] },
+                        { label: "Ctrl+C", keys: ["Control", "c"] },
+                        { label: "Ctrl+V", keys: ["Control", "v"] },
+                        { label: "Ctrl+X", keys: ["Control", "x"] },
                         { label: "Delete", keys: ["Delete"] },
                     ],
                     [
-                        { label: "Ctrl+Z", keys: ["ControlLeft", "z"] },
-                        { label: "Ctrl+Y", keys: ["ControlLeft", "y"] },
-                        { label: "Ctrl+S", keys: ["ControlLeft", "s"] },
-                        { label: "Alt+Tab", keys: ["AltLeft", "Tab"] },
+                        { label: "Ctrl+Z", keys: ["Control", "z"] },
+                        { label: "Ctrl+Y", keys: ["Control", "y"] },
+                        { label: "Ctrl+S", keys: ["Control", "s"] },
+                        { label: "Alt+Tab", keys: ["Alt", "Tab"] },
                         { label: "Esc", keys: ["Escape"] },
                     ],
                     [
-                        { label: "Ctrl+Alt+Del", keys: ["ControlLeft", "AltLeft", "Delete"] },
-                        { label: "Ctrl+Shift+Esc", keys: ["ControlLeft", "ShiftLeft", "Escape"] },
-                        { label: "Win+V", keys: ["MetaLeft", "v"] },
-                        { label: "Win+Shift+S", keys: ["MetaLeft", "ShiftLeft", "s"] },
+                        { label: "Ctrl+Alt+Del", keys: ["Control", "Alt", "Delete"] },
+                        { label: "Ctrl+Shift+Esc", keys: ["Control", "Shift", "Escape"] },
+                        { label: "Win+V", keys: ["Meta", "v"] },
+                        { label: "Win+Shift+S", keys: ["Meta", "Shift", "s"] },
                         { label: "Enter", keys: ["Enter"] },
                     ],
                 ]}

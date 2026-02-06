@@ -3,7 +3,7 @@ import { Button, Typography } from "@material-tailwind/react";
 import { Textarea } from "@material-tailwind/react";
 import { BLEContext } from '../context/BLEContext';
 import { HomeIcon, PaperAirplaneIcon, ClipboardIcon } from "@heroicons/react/24/outline";
-import { createKeyboardPacket, createKeyboardStream } from '../services/PacketFunctions.js';
+import { keyboardHandler } from '../services/inputHandlers/keyboardHandler';
 
 
 
@@ -18,8 +18,7 @@ export default function BulkSend() {
         if (!input) return;
 
         try {
-            var packets = createKeyboardStream(input);
-            sendEncrypted(packets);
+            keyboardHandler.sendKeyboardString(input, sendEncrypted);
         } 
         
         catch (error) { 
@@ -36,31 +35,19 @@ export default function BulkSend() {
         if (isCtrl && isAlt && isEnter) {
             console.log("Shortcut detected: Ctrl + Alt + Enter");
             event.preventDefault();
-            event.stopPropagation(); // stop bubbling to native input handlers
+            event.stopPropagation();
             sendString();
         }
-        
         else if (isCtrl && isAlt && !["Control", "Alt"].includes(event.key)) {
             console.log("Shortcut detected: Ctrl + Alt +", event.key);
             event.preventDefault();
-            event.stopPropagation(); // stop bubbling to native input handlers
+            event.stopPropagation();
 
-            var keypress = null;
-            if (event.key === "Backspace") keypress = '\b';
-            else keypress = event.key;
-            
-            console.log("Sending: Ctrl +", keypress);
-
-            var keycode = new Uint8Array(7); // Payload = DATA_TYPE+[KEYCODES(6)]
-            keycode[0] = 1;   // Byte 0
-            keycode[1] = 0x80;  // Byte 1
-            keycode[2] = keypress.charCodeAt(0);  // Byte 2
-            keycode[3] = 0;    // Byte 3
-
-            sendEncrypted(keycode);
+            const keySequence = event.key === "Backspace" ? ["Control", "Backspace"] : ["Control", event.key];
+            keyboardHandler.sendKeyboardShortcut(keySequence, sendEncrypted);
         }
 
-    }, [sendString]);
+    }, [sendString, sendEncrypted]);
 
 
     useEffect(() => {
