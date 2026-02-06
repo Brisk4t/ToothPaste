@@ -8,15 +8,10 @@ import React, {
 } from "react";
 import { keyExists, loadBase64 } from "../services/Storage.js";
 import { ECDHContext } from "./ECDHContext.jsx";
-import { Packet } from "../services/packetService/packetFunctions.js";
+import { Packet, createUnencryptedPacket } from "../services/packetService/packetFunctions.js";
 import { create, toBinary, fromBinary } from "@bufbuild/protobuf";
 
-
-// import { toothpaste, DataPacket, EncryptedData, KeyboardPacket, MousePacket, RenamePacket, KeycodePacket } from '../services/toothpacket/toothpacket_pb.js';
-
 import * as ToothPacketPB from '../services/packetService/toothpacket/toothpacket_pb.js';
-// const KeyboardPacket = new ToothPacketPB.proto.toothpaste.KeyboardPacket();
-// const EncryptedData = new ToothPacketPB.proto.toothpaste.EncryptedData();
 
 
 export const BLEContext = createContext();
@@ -48,36 +43,10 @@ export function BLEProvider({ children }) {
     const { loadKeys, createEncryptedPackets } = useContext(ECDHContext);
     const readyToReceive = useRef({ promise: null, resolve: null });
 
-
-    // Attach a promise to the readyToReceive ref, this acts as the send semaphore
-    const waitForReady = () => {
-        // If the ref currently doesn't have a promise, create one
-        if (!readyToReceive.current.promise) {
-            readyToReceive.current.promise = new Promise((resolve) => {
-                readyToReceive.current.resolve = resolve; // The promise resolver is in the 'resolve' key of the ref
-            });
-        }
-        return readyToReceive.current.promise;
-    };
-
     // Send a text string as a byte array without encryption
     const sendUnencrypted = async (inputString) => {
         try {
-            const encoder = new TextEncoder();
-            const textData = encoder.encode(inputString); // Encode the input string into a byte array
-
-            // protobuf packets
-            const unencryptedPacket = create(ToothPacketPB.DataPacketSchema, {});
-            unencryptedPacket.encryptedData = textData;
-            unencryptedPacket.packetID = 1;
-            unencryptedPacket.slowMode = true;
-            unencryptedPacket.packetNumber = 1;
-            unencryptedPacket.dataLen = textData.length;
-            unencryptedPacket.tag = new Uint8Array(16); // Empty tag for unencrypted packet
-            unencryptedPacket.iv = new Uint8Array(12); // Empty IV for unencrypted packet
-
-            const packetData = toBinary(ToothPacketPB.DataPacketSchema, unencryptedPacket);
-
+            const packetData = createUnencryptedPacket(inputString);
             await pktCharRef.current.writeValueWithoutResponse(packetData);
         } catch (error) {
             console.error("Error sending AUTH packet", error);
@@ -109,13 +78,9 @@ export function BLEProvider({ children }) {
                 await pktCharacteristic.writeValueWithoutResponse(
                     toBinary(ToothPacketPB.DataPacketSchema, packet)
                 );
-
-                // await waitForReady(); // Attach a promise to the ref
-                // await readyToReceive.current.promise; // Wait in this iteration of the loop till the promise is consumed
             }
         } catch (error) {
             console.error("Error sending encrypted packet", error);
-            console.error(error);
         }
     };
 
@@ -124,11 +89,11 @@ export function BLEProvider({ children }) {
         if (!pktCharRef.current) return;
 
         try {
-            const selfpkey = await loadBase64(device.macAddress, "SelfPublicKey");
+            const selfPublicKey = await loadBase64(device.macAddress, "SelfPublicKey");
 
             // If the public key is found send it to verify auth
-            if (selfpkey) {
-                sendUnencrypted(selfpkey);
+            if (selfPublicKey) {
+                sendUnencrypted(selfPublicKey);
             }
         } catch (error) {
             console.error(error);
@@ -143,7 +108,6 @@ export function BLEProvider({ children }) {
                 const dataView = event.target.value;
                 const packed = dataView.getUint8(0);
                 // Convert value (DataView) to string or bytes
-                const packetType = (packed >> 4) & 0x0f; // upper 4 bits
                 const authStatus = packed & 0x0f; // lower 4 bits
 
                 // If the device isnt authenticated it needs to be paired first

@@ -1,13 +1,9 @@
 import React, { createContext, useState, useEffect, useRef, useMemo } from "react";
 import { saveBase64, loadBase64 } from "../services/Storage.js";
 import { ec as EC } from "elliptic";
-import { Packet } from "../services/packetService/packetFunctions.js";
 import { create, toBinary, fromBinary } from "@bufbuild/protobuf";
 
 import * as ToothPacketPB from '../services/packetService/toothpacket/toothpacket_pb.js';
-
-// import { DataPacket, EncryptedData } from '../services/toothpacket/toothpacket_pb.js';
-import { enc } from "crypto-js";
 
 const ec = new EC("p256"); // Define the elliptic curve (secp256r1)
 
@@ -55,12 +51,10 @@ export const ECDHProvider = ({ children }) => {
         }
 
         var rawPublicKey = await crypto.subtle.exportKey("raw", keyPair.current.publicKey);
-        //var rawPrivateKey = await crypto.subtle.exportKey("pkcs8", keyPair.current.privateKey);
 
         var b64SelfPubkey = arrayBufferToBase64(rawPublicKey);
-        //var privateKey = arrayBufferToBase64(rawPrivateKey);
 
-        if (!b64SelfPubkey /*|| !privateKey*/) {
+        if (!b64SelfPubkey /*!privateKey*/) {
             throw new Error("Invalid key pair provided");
         }
 
@@ -225,17 +219,9 @@ export const ECDHProvider = ({ children }) => {
 
     // create and encrypt packet -> returns an iterator of one or more packets where payload size < max_data_size
     const createEncryptedPackets = async function* (id, payload, slowMode = true, packetPrefix=0) {
-        // Ensure payload is EncryptedData instance
-        // if(!(payload instanceof EncryptedData)){
-        //     throw new Error("Payload is not an EncryptedData instance");
-        // }
-        
-        // Serialize payload to Uint8Array
-        //const byteArray = payload.serializeBinary();
         const byteArray = toBinary(ToothPacketPB.EncryptedDataSchema, payload);
         var data = new Uint8Array(byteArray);
         
-        //const aad = new Uint8Array([chunkNumber, totalChunks]);
         const encryptedPacket = await encryptText(data, null); // Encrypt the encryptedData component of a ToothPacket and get DataPacket
         
         // Set packet metadata
@@ -249,13 +235,8 @@ export const ECDHProvider = ({ children }) => {
 
     const loadKeys = async (clientID) => {
         const peerPubKey = await loadBase64(clientID, "PeerPublicKey");
-        const pubKeyObject = await importPeerPublicKey(base64ToArrayBuffer(peerPubKey));
-
         var aesKeyB64 = await loadBase64(clientID, "aesKey");
         aesKey.current = await importAESKeyFromBytes(base64ToArrayBuffer(aesKeyB64));
-        //const privKeyObject = await importSelfPrivateKey(base64ToArrayBuffer(sprivKey));
-
-        //await deriveKey(privKeyObject, pubKeyObject);
     };
 
     // Context Provider return

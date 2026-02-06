@@ -172,7 +172,7 @@ function ConnectionButton() {
 
     return (
         <div className="flex justify-left w-full">
-           <Button
+            <Button
                 id="connection-button"
                 title="Click to connect to a device, hold to rename it."
                 className={`flex flex-col items-center justify-center w-full p-4 border-2 ${borderClass} bg-transparent hover:border-text min-h-10`}
@@ -184,6 +184,9 @@ function ConnectionButton() {
                 onMouseDown={() => {if (device && status === 1) handleStart(() => setIsEditing(true));}}
                 onMouseLeave={() => {handleEnd(cancel);}}
                 onMouseUp={() => handleEnd(() => connectToDevice())}
+                onTouchStart={() => {if (device && status === 1) handleStart(() => setIsEditing(true));}}
+                onTouchCancel={() => {handleEnd(cancel);}}
+                onTouchEnd={() => handleEnd(() => connectToDevice())}
             >
                 <div className="flex items-center justify-between w-full">
                     <div className="mr-10">

@@ -1,4 +1,4 @@
-import { create } from "@bufbuild/protobuf";
+import { create, toBinary } from "@bufbuild/protobuf";
 import * as ToothPacketPB from './toothpacket/toothpacket_pb.js';
 // import { EncryptedData, KeyboardPacket, MousePacket, RenamePacket, KeycodePacket, Frame, ConsumerControlPacket } from './toothpacket/toothpacket_pb.js';
 
@@ -30,6 +30,24 @@ export class Packet {
 
         return combined;
     }
+}
+
+// Create an unencrypted DataPacket from an input string
+export function createUnencryptedPacket(inputString) {
+    const encoder = new TextEncoder();
+    const textData = encoder.encode(inputString); // Encode the input string into a byte array
+
+    // protobuf packets
+    const unencryptedPacket = create(ToothPacketPB.DataPacketSchema, {});
+    unencryptedPacket.encryptedData = textData;
+    unencryptedPacket.packetID = 1;
+    unencryptedPacket.slowMode = true;
+    unencryptedPacket.packetNumber = 1;
+    unencryptedPacket.dataLen = textData.length;
+    unencryptedPacket.tag = new Uint8Array(16); // Empty tag for unencrypted packet
+    unencryptedPacket.iv = new Uint8Array(12); // Empty IV for unencrypted packet
+
+    return toBinary(ToothPacketPB.DataPacketSchema, unencryptedPacket);
 }
 
 export class HandshakePacket extends Packet {
