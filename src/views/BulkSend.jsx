@@ -8,7 +8,6 @@ import { keyboardHandler } from '../services/inputHandlers/keyboardHandler';
 
 
 export default function BulkSend() {
-    //const { encryptText, createEncryptedPackets } = useContext(ECDHContext);
     const [input, setInput] = useState('');
     const {status, sendEncrypted } = useContext(BLEContext);
     const editorRef = useRef(null);
@@ -62,9 +61,6 @@ export default function BulkSend() {
         <div className="flex flex-col flex-1 w-full p-6 bg-background text-text">
 
             <div id="bulk-send-container" className="flex flex-col flex-1 mt-5">
-                {/* <CustomTyping> </CustomTyping> */}
-
-                {/* <RichTextArea onKeyDownCapture={handleShortcut} onChange={(text) => setInput(text)} /> */}
                 <Textarea
                     className={`flex flex-1 resize-none bg-shelf border-2 focus:border-hover outline-none text-text 
                         ${status===1?'hover:border-primary border-primary':'hover:border-secondary border-secondary'} `}
