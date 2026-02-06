@@ -328,16 +328,19 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                     </div>
 
                     {/* Mobile Hamburger */}
-                    <div className="lg:hidden">
-                        <button
-                            id="navbar-toggle"
-                            onClick={() => setIsOpen(!isOpen)}
-                            className={`p-2 rounded hover:bg-hover focus:outline-none focus:ring-2 focus:ring-inset focus:ring-text border border-2 ${borderClass}`}
-                            aria-label="Toggle menu"
-                        >
-                            {isOpen ? <XMarkIcon className="h-6 w-6" /> : <Bars3Icon className="h-6 w-6" />}
-                        </button>
-                    </div>
+                    <button
+                        id="navbar-toggle"
+                        onClick={() => setIsOpen(!isOpen)}
+                        className={`lg:hidden flex items-center space-x-2 px-3 py-2 rounded hover:bg-hover border border-2 ${borderClass} focus:outline-none`}
+                        aria-label="Toggle menu"
+                    >
+                        <div className="flex flex-col flex-1 min-w-0">
+                            <Typography variant="h6" color="text" className="text-sm font-sans font-medium normal-case truncate">
+                                {device?.name || "Not Connected"}
+                            </Typography>
+                        </div>
+                        {isOpen ? <XMarkIcon className="h-6 w-6" /> : <Bars3Icon className="h-6 w-6" />}
+                    </button>
                 </div>
             </div>
 

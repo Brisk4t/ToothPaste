@@ -51,7 +51,7 @@ function App() {
     return (
     <ECDHProvider>
       <BLEProvider setShowOverlay={setShowOverlay} showOverlay={showOverlay}>
-        <div className="flex flex-col min-h-screen max-h-screen ">
+        <div className="flex flex-col h-dvh overflow-hidden">
           
           {/* Navbar with hamburger toggle */}
           <Navbar

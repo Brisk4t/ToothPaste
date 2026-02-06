@@ -84,6 +84,13 @@ const ECDHOverlay = ({ onChangeOverlay }) => {
         keyRef.current?.focus();
     }, []); 
 
+    // Close overlay if device disconnects
+    useEffect(() => {
+        if (!device) {
+            onChangeOverlay(null);
+        }
+    }, [device, onChangeOverlay]); 
+
     return (
         <div className="fixed inset-0 bg-hover/60 flex flex-col justify-center items-center z-[9999]" onClick={() => onChangeOverlay(null)}>
             <div className="bg-shelf p-5 rounded-lg w-11/12 max-w-lg flex flex-col justify-center items-center shadow-lg relative" onClick={(e) => e.stopPropagation()}>
@@ -97,7 +104,7 @@ const ECDHOverlay = ({ onChangeOverlay }) => {
 
                 <Typography variant="h4" className="text-text font-sans normal-case font-semibold">
                     <span className="text-gray-500">Pair Device - </span>
-                    <span className="text-text">{device.name}</span>
+                    <span className="text-text">{device?.name ?? ""}</span>
                 </Typography>
                             
                 <input

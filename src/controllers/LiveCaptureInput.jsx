@@ -127,11 +127,7 @@ export function useInputController() {
 
     // Intercept keydown events
     function handleKeyDown(e) {
-        // TODO: Handle Combos in a function
-        // TODO: Handle just modifiers (hold ctrl to stop tracking cursor)
-        // TODO: 
-        // Input: "", <Backspace>, "" -> "abc" 
-        // Send: "abcd", Send 'Backspace', "\b"
+        console.log("Key down event: ", e.key, " | Ctrl: ", e.ctrlKey, " | Alt: ", e.altKey, " | Shift: ", e.shiftKey);
 
         // Handle inputs with modifiers (Ctrl + c, Alt + x, etc.). Don't prevent default behaviour until this point to allow selecting input modes
         if(handleCombo(e)) return;
@@ -156,47 +152,25 @@ export function useInputController() {
 
     // Handle inputs with modifiers (Ctrl + c, Alt + x, etc.). Don't prevent default behaviour until this point to allow selecting input modes
     function handleCombo(e){
-        // Control combo
-        const isCtrl = e.ctrlKey || e.metaKey;
-        if (isCtrl && e.key !== "Control"){
-            if(commandPassthrough){
+        const modifiers = [];
+        
+        // Check all modifiers
+        if (e.ctrlKey) modifiers.push("Control");
+        if (e.altKey) modifiers.push("Alt");
+        if (e.shiftKey) modifiers.push("Shift");
+        if (e.metaKey) modifiers.push("Meta");
+        
+        // If there are modifiers and the key is not just a modifier
+        if (modifiers.length > 0 && e.key !== "Control" && e.key !== "Alt" && e.key !== "Shift" && e.key !== "Meta") {
+            if (commandPassthrough) {
                 e.preventDefault();
-                sendKeyCode(e, "Control");
+                sendKeyCode(e, modifiers);
                 return true;
-            }
-
-            else{
+            } else {
                 return true; // Default behaviour: paste data from host clipboard
             }
         }
-
-        // Alt Combo
-        if (e.altKey && e.key !== "Alt"){
-            if(commandPassthrough){
-                e.preventDefault();
-                sendKeyCode(e, "Alt");
-                return true;
-            }
-
-            else{
-                return true;// Default behaviour: paste data from host clipboard
-            }
-        }
         
-        if (e.shiftKey && e.key !== "Shift"){
-            if(commandPassthrough){
-                e.preventDefault();
-                sendKeyCode(e, "Shift");
-                return true;
-            }
-
-            else{
-                return true;// Default behaviour: paste data from host clipboard
-            }
-        }
-
-
-
         return false;
     }
 
@@ -231,24 +205,30 @@ export function useInputController() {
                 return true;
 
             default:
-                return (sendKeyCode(e, null));
+                return (sendKeyCode(e, []));
         }
     }
 
-    // Helper: handle non-printing inputs directly as keycodes (Currently does not work with system shortcuts like alt+tab)
-    function sendKeyCode(e, modifierKey, anotherModifierKey) {
-        let modifierByte = modifierKey? HIDMap[modifierKey] : 0; // Get the modifier's code from HIDMap, if it doesnt exist there is no modifier in the keycode
-        let anotherModifierByte = anotherModifierKey? HIDMap[anotherModifierKey] : 0; // Get the modifier's code from HIDMap, if it doesnt exist there is no modifier in the keycode
-        let keypress = HIDMap[e.key]? HIDMap[e.key] : e.key; // Check if the key is a HIDMap character, otherwise the key is a printing character
-        let keypressCode = typeof(keypress) === 'string'? keypress.charCodeAt(0) : keypress;
-
-        if(!(modifierByte || HIDMap[e.key])) return false; // If there is no modifier and the key is not in the HIDMap command edits buffer, handle in sendDiff
-
+    // Helper: handle non-printing inputs directly as keycodes (Supports up to 5 modifiers + key)
+    function sendKeyCode(e, modifiers = []) {
         let keycode = new Uint8Array(8);
-        keycode[0] = modifierByte;
-        keycode[1] = anotherModifierByte;
-        keycode[2] = keypressCode;
-
+        
+        // Add modifiers (up to 5) at indices 0-4
+        if (Array.isArray(modifiers)) {
+            for (let i = 0; i < Math.min(modifiers.length, 5); i++) {
+                keycode[i] = HIDMap[modifiers[i]] || 0;
+            }
+        }
+        
+        // Add the key itself at index 5
+        let keypress = HIDMap[e.key] ? HIDMap[e.key] : e.key;
+        let keypressCode = typeof keypress === 'string' ? keypress.charCodeAt(0) : keypress;
+        keycode[5] = keypressCode;
+        
+        // Check if we have valid data
+        const hasModifier = Array.isArray(modifiers) && modifiers.length > 0;
+        if (!(hasModifier || HIDMap[e.key])) return false;
+        
         var keyCodePacket = createKeyCodePacket(keycode);
         sendEncrypted(keyCodePacket);
         
@@ -304,7 +284,7 @@ export function useInputController() {
 
             if(isPartialComplete){
                 console.log("Partial word autofilled / autocorrected");
-                sendKeyCode({key: "Backspace"}, 0x80); // Delete the word typed word (ctrl + backspace)
+                sendKeyCode({key: "Backspace"}, ["Control"]); // Delete the word typed word (ctrl + backspace)
             }
             updateBufferAndSend(bufferRef.current + event.data); // Add the new word
         }        
@@ -316,12 +296,15 @@ export function useInputController() {
     
     function handleOnChange(event) {
         // If the onChange event is fired but input size has shrunk, backspace was pressed
-        if (lastInputRef.current.length > event.target.value.length) {
-            handleSpecialKey({key:"Backspace"}, bufferRef.current);
-            lastCompositionRef.current = lastCompositionRef.current.slice(0, -1); // Keep the lastinput buffer updated
-        }
+        // if (lastInputRef.current.length > event.target.value.length) {
+        //     handleSpecialKey({key:"Backspace"}, bufferRef.current);
+        //     lastCompositionRef.current = lastCompositionRef.current.slice(0, -1); // Keep the lastinput buffer updated
+        // }
 
-        lastInputRef.current = event.target.value; // Update last input value to the current input
+        var packetStream = createKeyboardStream(event.target.value);
+        sendEncrypted(packetStream); // Send the final payload
+
+        //lastInputRef.current = event.target.value; // Update last input value to the current input
     }
     
     return {
