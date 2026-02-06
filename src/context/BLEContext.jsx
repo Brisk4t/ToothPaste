@@ -9,6 +9,7 @@ import React, {
 import { keyExists, loadBase64 } from "../services/Storage.js";
 import { ECDHContext } from "./ECDHContext.jsx";
 import { Packet, createUnencryptedPacket } from "../services/packetService/packetFunctions.js";
+import { PacketQueue } from "../services/packetService/PacketQueue.js";
 import { create, toBinary, fromBinary } from "@bufbuild/protobuf";
 
 import * as ToothPacketPB from '../services/packetService/toothpacket/toothpacket_pb.js';
@@ -35,7 +36,6 @@ export function BLEProvider({ children }) {
     const [status, setStatus] = React.useState(ConnectionStatus.disconnected); // 0 = disconnected, 1 = connected & paired, 2 = connected & not paired
     const [device, setDevice] = useState(null);
     const [server, setServer] = useState(null);
-    const MACAddress = useRef(null);
     const [pktCharacteristic, setpktCharacteristic] = useState(null);
     const pktCharRef = useRef(null);
 
@@ -53,32 +53,48 @@ export function BLEProvider({ children }) {
         }
     };
 
+    // FIFO queue for encrypted packets
     // Encrypt and send untyped data stream (string, array, etc.) with a random IV and GCM tag added, chunk data if too large
     // inputPayload can be a single payload or an array of payloads
-    // Encrypts all payloads first, then sends them one at a time while waiting for the connection semaphore
+    // Uses a FIFO queue where encryption produces packets and sending consumes them concurrently
     // (encoding into protobuf must be done by the calling function)
     const sendEncrypted = async (inputPayload, prefix=0) => {
         if (!pktCharacteristic) return;
 
+        const packetQueue = new PacketQueue();
+        
         try {
             // Determine if input is an array or single payload
             const payloads = Array.isArray(inputPayload) ? inputPayload : [inputPayload];
             
-            // Encrypt all payloads first
-            const encryptedPackets = [];
-            for (const payload of payloads) {
-                for await (const packet of createEncryptedPackets(0, payload, true, prefix)) {
-                    encryptedPackets.push(packet);
+            // Producer: Encrypt payloads and enqueue them
+            const producerTask = (async () => {
+                try {
+                    for (const payload of payloads) {
+                        for await (const packet of createEncryptedPackets(0, payload, true, prefix)) {
+                            packetQueue.enqueue(packet);
+                        }
+                    }
+                } finally {
+                    packetQueue.finish();
                 }
-            }
-            
-            // Now send all encrypted packets
-            for (const packet of encryptedPackets) {
-                // Each packet is a ToothPaste DataPacket object with encryptedData component
-                await pktCharacteristic.writeValueWithoutResponse(
-                    toBinary(ToothPacketPB.DataPacketSchema, packet)
-                );
-            }
+            })();
+
+            // Consumer: Dequeue and send packets
+            const consumerTask = (async () => {
+                while (true) {
+                    const packet = await packetQueue.dequeue();
+                    if (packet === null) break;
+                    
+                    // Each packet is a ToothPaste DataPacket object with encryptedData component
+                    await pktCharacteristic.writeValueWithoutResponse(
+                        toBinary(ToothPacketPB.DataPacketSchema, packet)
+                    );
+                }
+            })();
+
+            // Wait for both producer and consumer to complete
+            await Promise.all([producerTask, consumerTask]);
         } catch (error) {
             console.error("Error sending encrypted packet", error);
         }
