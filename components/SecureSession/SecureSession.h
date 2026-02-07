@@ -68,6 +68,9 @@ public:
     bool getDeviceName(String &deviceName);
     bool setDeviceName(const char* deviceName);
 
+    // Derive AES key from stored shared secret on-demand
+    int deriveAESKeyFromSecret(const char* base64pubKey);
+
 private:
 
     // The gcm context 
@@ -86,8 +89,7 @@ private:
     // Store shared secret to NVS after ECDH computation
     int storeSharedSecret(std::string base64Input);
     
-    // Derive AES key from stored shared secret on-demand
-    int deriveAESKeyFromSecret(const char* base64pubKey);
+
     
     // HKDF key derivation using SHA-256
     int hkdf_sha256(const uint8_t *salt, size_t salt_len,
