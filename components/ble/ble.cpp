@@ -112,8 +112,6 @@ void InputCharacteristicCallbacks::onWrite(BLECharacteristic* inputCharacteristi
       delete taskParams;
     }
   }
-
-  queuenotify(); // Immediately notify the semaphore if the queue has space for more tasks
 }
 
 // Create the BLE Device
@@ -187,53 +185,6 @@ void bleSetup(SecureSession* session)
   pAdvertising->setScanResponse(true); // Advertise the SERVICE_UUID, i.e. devices don't need to connect to find services
   pAdvertising->setMinPreferred(0x0); // set value to 0x00 to not advertise this parameter
   BLEDevice::startAdvertising();
-}
-
-// Notify the semaphore characteristic if the RTOS task queue is not full
-void queuenotify() {
-  if (uxQueueSpacesAvailable(packetQueue) == 0) {
-    DEBUG_SERIAL_PRINTLN("Queue is full!");
-    return;
-  }
-
-  else {
-
-    // Notify the client that we're ready to receive the next packet (with no challenge data since this is not an auth response)
-    notifyResponsePacket(toothpaste_ResponsePacket_ResponseType_PEER_KNOWN, nullptr, 0); 
-
-    printf("Queue has space: %d\n", uxQueueSpacesAvailable(packetQueue));
-  }
-}
-
-// Notify using a toothPaste.responsePacket protobuf message
-void notifyResponsePacket(toothpaste_ResponsePacket_ResponseType responseType, const uint8_t* challengeData, size_t challengeDataLen) {
-  uint8_t buffer[256];
-  pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
-  
-  // Initialize the response packet
-  toothpaste_ResponsePacket responsePacket = toothpaste_ResponsePacket_init_default;
-  
-  // Set response type
-  responsePacket.responseType = (toothpaste_ResponsePacket_ResponseType)responseType;
-  
-  // Set challenge data (either all 0s or from the passed data)
-  if (challengeData != nullptr && challengeDataLen > 0) {
-    // Copy challenge data into the bytes array, ensuring we don't exceed max size
-    size_t copyLen = (challengeDataLen < sizeof(responsePacket.challengeData.bytes)) 
-                      ? challengeDataLen 
-                      : sizeof(responsePacket.challengeData.bytes);
-    memcpy(responsePacket.challengeData.bytes, challengeData, copyLen);
-    responsePacket.challengeData.size = copyLen;
-  }
-  
-  if (!pb_encode(&stream, toothpaste_ResponsePacket_fields, &responsePacket)) {
-    printf("Encoding response packet failed: %s\n", PB_GET_ERROR(&stream));
-    return;
-  }
-  
-  // Send the encoded buffer to the client
-  responseCharacteristic->setValue(buffer, stream.bytes_written);  // Set the data to be notified
-  responseCharacteristic->notify();                      // Notify the semaphor characteristic
 }
 
 // Use the AUTH packet and peer public key to derive a new ecdh shared secret and AES key
@@ -421,48 +372,42 @@ void authenticateClient(toothpaste_DataPacket* packet, SecureSession* session) {
       return;
     }
 
-    notifyPeerWithSessionSalt(session);
+    // Send the session salt as a challenge to the client to agree on the AES key
+    notifyResponsePacket(toothpaste_ResponsePacket_ResponseType_CHALLENGE, session->sessionSalt, sizeof(session->sessionSalt));
+
     stateManager->setState(READY);
   }
 }
 
-// Create and encode a response packet with session salt as challenge data
-void notifyPeerWithSessionSalt(SecureSession* session) {
+// Notify using a toothPaste.responsePacket protobuf message
+void notifyResponsePacket(toothpaste_ResponsePacket_ResponseType responseType, const uint8_t* challengeData, size_t challengeDataLen) {
   uint8_t buffer[256];
   pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
   
   // Initialize the response packet
   toothpaste_ResponsePacket responsePacket = toothpaste_ResponsePacket_init_default;
   
-  // Set response type to CHALLENGE
-  responsePacket.responseType = toothpaste_ResponsePacket_ResponseType_CHALLENGE;
+  // Set response type
+  responsePacket.responseType = (toothpaste_ResponsePacket_ResponseType)responseType;
   
-  // Fill challenge data with session salt
-  memcpy(responsePacket.challengeData.bytes, session->sessionSalt, sizeof(session->sessionSalt));
-  responsePacket.challengeData.size = sizeof(session->sessionSalt);
-
-  DEBUG_SERIAL_PRINTF("Session salt sent as challenge data: ");
-  for (size_t i = 0; i < responsePacket.challengeData.size; ++i) {
-    DEBUG_SERIAL_PRINTF("%02X", responsePacket.challengeData.bytes[i]);
+  // Set challenge data (either all 0s or from the passed data)
+  if (challengeData != nullptr && challengeDataLen > 0) {
+    // Copy challenge data into the bytes array, ensuring we don't exceed max size
+    size_t copyLen = (challengeDataLen < sizeof(responsePacket.challengeData.bytes)) 
+                      ? challengeDataLen 
+                      : sizeof(responsePacket.challengeData.bytes);
+    memcpy(responsePacket.challengeData.bytes, challengeData, copyLen);
+    responsePacket.challengeData.size = copyLen;
   }
-  DEBUG_SERIAL_PRINTLN();
   
-  // Encode and send
   if (!pb_encode(&stream, toothpaste_ResponsePacket_fields, &responsePacket)) {
     printf("Encoding response packet failed: %s\n", PB_GET_ERROR(&stream));
     return;
   }
-
-  // Debug: print the encoded bytes and size
-  DEBUG_SERIAL_PRINTF("Encoded packet size: %zu bytes\n", stream.bytes_written);
-  DEBUG_SERIAL_PRINT("Encoded buffer (hex): ");
-  for (size_t i = 0; i < stream.bytes_written; ++i) {
-    DEBUG_SERIAL_PRINTF("%02X ", buffer[i]);
-  }
-  DEBUG_SERIAL_PRINTLN();
   
-  responseCharacteristic->setValue(buffer, stream.bytes_written);
-  responseCharacteristic->notify();
+  // Send the encoded buffer to the client
+  responseCharacteristic->setValue(buffer, stream.bytes_written);  // Set the data to be notified
+  responseCharacteristic->notify();                      // Notify the semaphor characteristic
 }
 
 // Persistent RTOS that waits for packets

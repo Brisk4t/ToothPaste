@@ -61,11 +61,7 @@ void disconnect();
 void enablePairingMode();
 void packetTask(void *sessionParams);
 void packetTask(void* params);
-void queuenotify();
-
-// Forward declarations
 void notifyResponsePacket(toothpaste_ResponsePacket_ResponseType responseType, const uint8_t* challengeData, size_t challengeDataLen);
-void notifyPeerWithSessionSalt(SecureSession* session);
 
 
 #endif // BLE_H
