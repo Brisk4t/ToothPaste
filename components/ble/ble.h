@@ -60,7 +60,6 @@ void generateSharedSecret(toothpaste_DataPacket* packet, SecureSession* session)
 void disconnect();
 void enablePairingMode();
 void packetTask(void *sessionParams);
-void notifyClient(const uint8_t* data, int length);
 void packetTask(void* params);
 void queuenotify();
 

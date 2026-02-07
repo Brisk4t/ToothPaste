@@ -18,12 +18,6 @@ QueueHandle_t packetQueue = xQueueCreate(50, sizeof(SharedSecretTaskParams*)); /
 bool manualDisconnect = false; // Flag to indicate if the user manually disconnected
 std::string clientPubKey;  // safer than char*
 
-// Always completely intantiate notificationPacket
-NotificationPacket notificationPacket = {
-    KEEPALIVE,
-    AUTH_FAILED
-};
-
 // Create the persistent RTOS packet handler task
 void createPacketTask(SecureSession* sec) {
   // Start the persistent RTOS task
@@ -195,23 +189,6 @@ void bleSetup(SecureSession* session)
   BLEDevice::startAdvertising();
 }
 
-// Notify the semaphore characteristic
-void notifyClient(const uint8_t* data, int length) {
-  DEBUG_SERIAL_PRINTF("Semaphore Data: %s, Data Length: %d\n", data, length);
-  if (length > 32) return; // Can't send too much data through this channel
-
-  responseCharacteristic->setValue((uint8_t*)data, length);  // Set the data to be notified
-  responseCharacteristic->notify();                           // Notify the semaphor characteristic
-}
-
-// Notify the semaphore characteristic with default values
-void notifyClient() {
-  uint8_t packed = ((notificationPacket.packetType & 0x0F) << 4) | (notificationPacket.authStatus & 0x0F);
-
-  responseCharacteristic->setValue((uint8_t*)&packed, 1);  // Set the data to be notified
-  responseCharacteristic->notify();                      // Notify the semaphor characteristic
-}
-
 // Notify the semaphore characteristic if the RTOS task queue is not full
 void queuenotify() {
   if (uxQueueSpacesAvailable(packetQueue) == 0) {
@@ -220,8 +197,6 @@ void queuenotify() {
   }
 
   else {
-    // notificationPacket.packetType = RECV_READY;
-    // notifyClient();
 
     // Notify the client that we're ready to receive the next packet (with no challenge data since this is not an auth response)
     notifyResponsePacket(toothpaste_ResponsePacket_ResponseType_PEER_KNOWN, nullptr, 0); 
@@ -404,7 +379,6 @@ void decryptSendString(toothpaste_DataPacket* packet, SecureSession* session) {
         DEBUG_SERIAL_PRINTF("Unknown Packet Type: %d", decrypted.which_packetData);
         break;
     }
-    notificationPacket.packetType = RECV_READY;
   }
 
   // If the decryption fails
@@ -430,8 +404,6 @@ void authenticateClient(toothpaste_DataPacket* packet, SecureSession* session) {
     DEBUG_SERIAL_PRINTLN("Client is not enrolled");
 
     notifyResponsePacket(toothpaste_ResponsePacket_ResponseType_PEER_UNKNOWN, nullptr, 0);
-    // notificationPacket.packetType = RECV_NOT_READY;
-    // notificationPacket.authStatus = AUTH_FAILED;
     stateManager->setState(UNPAIRED); // Set the device to the unpaired state
   }
 
@@ -444,13 +416,10 @@ void authenticateClient(toothpaste_DataPacket* packet, SecureSession* session) {
     int ret = session->deriveAESKeyFromSecret(clientPubKey.c_str());
     if (ret != 0) {
       DEBUG_SERIAL_PRINTF("Failed to derive session AES key: %d\n", ret);
-      notificationPacket.packetType = RECV_NOT_READY;
-      notificationPacket.authStatus = AUTH_FAILED;
+      notifyResponsePacket(toothpaste_ResponsePacket_ResponseType_PEER_UNKNOWN, nullptr, 0);
       stateManager->setState(ERROR);
       return;
     }
-
-    DEBUG_SERIAL_PRINTLN("Session AES key derived successfully");
 
     notifyPeerWithSessionSalt(session);
     stateManager->setState(READY);
