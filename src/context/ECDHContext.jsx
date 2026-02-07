@@ -23,7 +23,6 @@ export const ECDHContext = createContext(); // Shared context for ECDH operation
 
 export const ECDHProvider = ({ children }) => {
     const aesKey = useRef(null); // AESKey cryptoKey for encrypting/decrypting messages
-    const aesKeyB64 = useRef(null); // AES JWK loaded from storage
     const keyPair = useRef(null);
 
     /**
@@ -197,7 +196,7 @@ export const ECDHProvider = ({ children }) => {
      * Stores result in aesKey.current and aesKeyB64.current
      * @param {ArrayBuffer} sharedSecret - The shared secret (256 bits)
      * @param {Uint8Array} [salt=new Uint8Array([])] - HKDF salt value for key derivation
-     * @returns {Promise<void>} Updates internal aesKey.current and aesKeyB64.current state
+     * @returns {Promise<void>} Updates internal aesKey.current state
      */
     const deriveAESKey = async (sharedSecret, salt = new Uint8Array([])) => {
         const info = new TextEncoder().encode("aes-gcm-256");
@@ -221,16 +220,12 @@ export const ECDHProvider = ({ children }) => {
                 name: "AES-GCM",
                 length: 256,
             },
-            true,
+            false, // not extractable
             ["encrypt", "decrypt"]
         );
 
         aesKey.current = aesKeyGen;
-        aesKeyB64.current = await crypto.subtle.exportKey("raw", aesKeyGen) 
-                            .then((rawKey) => arrayBufferToBase64(rawKey));
 
-        console.log("Session salt (base64):", arrayBufferToBase64(salt));                            
-        console.log("Derived AES key (base64):", aesKeyB64.current);
     };
 
     /**

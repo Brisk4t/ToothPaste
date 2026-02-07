@@ -130,13 +130,10 @@ export function BLEProvider({ children }) {
                 // Convert to Uint8Array and log in base64
                 const bytesArray = new Uint8Array(responsePacketBytes.buffer, responsePacketBytes.byteOffset, responsePacketBytes.byteLength);
                 const base64String = btoa(String.fromCharCode.apply(null, bytesArray));
-                console.log("Raw bytes (base64):", base64String);
-                console.log("Byte length:", bytesArray.length);
-                
+
                 var responsePacket = unpackResponsePacket(bytesArray);
                 
                 if (responsePacket.responseType === ToothPacketPB.ResponsePacket_ResponseType.CHALLENGE) {
-                        console.log("Challenge data received, loading keys...", responsePacket.challengeData);
                         await loadKeys(deviceObj.macAddress, responsePacket.challengeData);
                     setStatus(ConnectionStatus.ready);
                 }
