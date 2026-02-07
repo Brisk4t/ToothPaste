@@ -1,189 +1,213 @@
 #include <Preferences.h>
 #include <nvs_flash.h>
+#include <psa/crypto.h>
 
 #include <SerialDebug.h>
 #include "SecureSession.h"
 
-mbedtls_ecdh_context ecdh_ctx;
-mbedtls_ctr_drbg_context ctr_drbg;
-mbedtls_entropy_context entropy;
-Preferences preferences; // Preferences for storing data (Not secure, temporary solution)
+psa_key_id_t private_key_id = 0;  // Stores the ECDH private key ID
+Preferences preferences; // Preferences for storing data
 
 // Class constructor
-SecureSession::SecureSession() : sharedReady(false)
+SecureSession::SecureSession() : sharedReady(false), aesKeyReady(false)
 {
-    // nvsinit(); // // Initialize non-volatile storage on the ESP32
-    mbedtls_ecdh_init(&ecdh_ctx);
-    mbedtls_ctr_drbg_init(&ctr_drbg);
-    mbedtls_entropy_init(&entropy);
+    // PSA Crypto initialization handled in init() method
+    private_key_id = 0;
     mbedtls_gcm_init(&gcm);
+    memset(aesKey, 0, ENC_KEYSIZE);
 }
 
 // Class destructor
 SecureSession::~SecureSession()
 {
-    mbedtls_ecdh_free(&ecdh_ctx);
-    mbedtls_ctr_drbg_free(&ctr_drbg);
-    mbedtls_entropy_free(&entropy);
+    // Destroy the PSA key if it exists
+    if (private_key_id != 0) {
+        psa_destroy_key(private_key_id);
+        private_key_id = 0;
+    }
+    
+    // Clear session AES key from RAM
+    memset(aesKey, 0, ENC_KEYSIZE);
+    aesKeyReady = false;
+    
     mbedtls_gcm_free(&gcm);
 }
 
-// Initialize prng and define curve
+// Initialize PSA Crypto subsystem
 int SecureSession::init()
 {
-    const char* personalSalt = "ecdh_session";
-    // Try generating the rng seed
-    int ret = mbedtls_ctr_drbg_seed(
-        &ctr_drbg,
-        mbedtls_entropy_func,
-        &entropy,
-        (const unsigned char*)personalSalt,
-        strlen(personalSalt)
-    );
-
-    if (ret != 0)
-        return ret;
-
-    ret = mbedtls_ecp_group_load(&ecdh_ctx.private_grp, MBEDTLS_ECP_DP_SECP256R1); // Use curve secp256r1
-    return ret;
-}
-
-// Generate private and public key
-int SecureSession::generateKeypair(uint8_t outPublicKey[PUBKEY_SIZE], size_t& outPubLen)
-{
-
-    // Try generating the keypair
-    int ret = mbedtls_ecdh_gen_public(
-        &ecdh_ctx.private_grp, // Curve group (e.g., SECP256R1)
-        &ecdh_ctx.private_d,   // private key
-        &ecdh_ctx.private_Q,   // public key
-        mbedtls_ctr_drbg_random,
-        &ctr_drbg
-    );
-
-    if (ret != 0)
-        return ret;
-
-    // Write the compressed public key to the outPublicKey array (decompression is handled on the peer)
-    unsigned char pubkey[PUBKEY_SIZE];
-    size_t olen = 0;
-    mbedtls_ecp_point_write_binary(
-        &ecdh_ctx.private_grp,             // Curve group (e.g., SECP256R1)
-        &ecdh_ctx.private_Q,               // Public key point
-        MBEDTLS_ECP_PF_COMPRESSED, // <-- Use compressed format
-        &olen,
-        outPublicKey,
-        sizeof(pubkey)
-    );
-
-    if (ret != 0)
-        return ret;
-
-    if (olen != PUBKEY_SIZE)
-        return -1; // unexpected size
-
+    // Initialize PSA Crypto (must be called once before any crypto operations)
+    psa_status_t status = psa_crypto_init();
+    if (status != PSA_SUCCESS) {
+        DEBUG_SERIAL_PRINTF("PSA Crypto initialization failed: %ld\n", status);
+        return -1;
+    }
+    DEBUG_SERIAL_PRINTLN("PSA Crypto initialized successfully");
     return 0;
 }
 
-// Compute shared secret given the peer's public key
-int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE * 2], size_t peerPubLen)
-{ 
-    if (peerPubLen < 65)
-        return -1;
-
-    // initialize the struct to hold the peer's public key (point on the curve)
-    mbedtls_ecp_point peerPoint;
-    mbedtls_ecp_point_init(&peerPoint);
-
-    // Read the uncompressed peer public key (compressed support N/A on current ESP32 arduino core)
-    int ret = mbedtls_ecp_point_read_binary(&ecdh_ctx.private_grp, &peerPoint, peerPublicKey, 65);
-    if (ret != 0)
-    {
-        mbedtls_ecp_point_free(&peerPoint);
-        DEBUG_SERIAL_PRINTLN("Error reading peer public key");
-        DEBUG_SERIAL_PRINTF("Error code: %d\n", ret);
-        return ret;
+// Generate private and public key using PSA
+int SecureSession::generateKeypair(uint8_t outPublicKey[PUBKEY_SIZE], size_t& outPubLen)
+{
+    // Destroy any existing key
+    if (private_key_id != 0) {
+        psa_destroy_key(private_key_id);
+        private_key_id = 0;
     }
 
-    DEBUG_SERIAL_PRINTLN("Peer public key read successfully");
+    // Set up key attributes for ECDH with secp256r1 curve
+    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
+    psa_set_key_type(&attributes, PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1));
+    psa_set_key_bits(&attributes, 256);  // secp256r1 is 256-bit
+    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_DERIVE);
+    psa_set_key_algorithm(&attributes, PSA_ALG_ECDH);
 
-    // Compute the shared secret (this is a scalar)
-    ret = mbedtls_ecdh_compute_shared(
-        &ecdh_ctx.private_grp,           // Curve defined on init
-        &ecdh_ctx.private_z,             // Pointer to shared secret
-        &peerPoint,              // Peer Public Key
-        &ecdh_ctx.private_d,             // Private Key
-        mbedtls_ctr_drbg_random, // PRNG
-        &ctr_drbg
-    );
+    // Generate the keypair
+    psa_status_t status = psa_generate_key(&attributes, &private_key_id);
+    if (status != PSA_SUCCESS) {
+        DEBUG_SERIAL_PRINTF("PSA key generation failed: %ld\n", status);
+        private_key_id = 0;
+        return -1;
+    }
+
+    // Export the public key in uncompressed format (65 bytes: 0x04 + 32 + 32)
+    uint8_t public_key_uncompressed[65];
+    size_t public_key_len = 0;
+    status = psa_export_public_key(private_key_id, public_key_uncompressed, 65, &public_key_len);
+    if (status != PSA_SUCCESS) {
+        DEBUG_SERIAL_PRINTF("PSA public key export failed: %ld\n", status);
+        return -1;
+    }
+
+    // PSA exports in uncompressed format (65 bytes), but we need compressed (33 bytes)
+    // Compressed format: 0x02 or 0x03 (depending on Y parity) + X coordinate (32 bytes)
+    if (public_key_len != 65) {
+        DEBUG_SERIAL_PRINTF("Unexpected public key length: %d\n", public_key_len);
+        return -1;
+    }
+
+    // Compress the public key: take prefix byte and X coordinate
+    outPublicKey[0] = (public_key_uncompressed[64] & 0x01) ? 0x03 : 0x02;  // 0x03 if Y is odd, 0x02 if even
+    memcpy(&outPublicKey[1], &public_key_uncompressed[1], 32);  // Copy X coordinate
+    outPubLen = PUBKEY_SIZE;  // 33 bytes
+
+    DEBUG_SERIAL_PRINTLN("Keypair generated successfully");
+    return 0;
+}
+
+// Compute shared secret given the peer's public key using PSA
+// Also stores the shared secret and derives the session AES key
+int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE * 2], size_t peerPubLen, const char* base64pubKey)
+{ 
+
+    DEBUG_SERIAL_PRINTF("Computing shared secret with peer public key of length %d\n", peerPubLen);
+    
+    // TODO: Remove redundant checks
+    // Handle null-terminated keys by skipping the null terminator
+    if (peerPubLen == 66 && peerPublicKey[65] == 0x00) {
+        peerPubLen = 65;  // Ignore the null terminator
+    }
+
+    if (peerPubLen != 65) {
+        DEBUG_SERIAL_PRINTF("Peer public key must be 65 bytes (uncompressed), got %d\n", peerPubLen);
+        return -1;
+    }
+
+    // Verify peer public key starts with 0x04 (uncompressed format marker)
+    if (peerPublicKey[0] != 0x04) {
+        DEBUG_SERIAL_PRINTF("Invalid peer public key format. Expected 0x04 prefix, got 0x%02x\n", peerPublicKey[0]);
+        return -1;
+    }
+
+    // Perform ECDH key agreement using psa_raw_key_agreement
+    // This takes the raw peer public key without needing to import it first
+    size_t output_len = 0;
+    psa_status_t status = psa_raw_key_agreement(PSA_ALG_ECDH, private_key_id, peerPublicKey, peerPubLen, 
+                                               sharedSecret, ENC_KEYSIZE, &output_len);
+
+    if (status != PSA_SUCCESS) {
+        DEBUG_SERIAL_PRINTF("ECDH key agreement failed: %ld\n", status);
+        return -1;
+    }
 
     DEBUG_SERIAL_PRINTLN("Shared secret computed successfully");
-
-    mbedtls_ecp_point_free(&peerPoint);
-    if (ret != 0)
-        return ret;
-
-    DEBUG_SERIAL_PRINTLN("Point Freed Successfully");
-    // Export shared secret as fixed length binary
-    // Since the write_binary functions pads data > 32bytes we use PUBKEY_SIZE-1
-    size_t olen = 0;
-    ret = mbedtls_mpi_write_binary(&ecdh_ctx.private_z, sharedSecret, ENC_KEYSIZE);
-    if (ret != 0)
-        return ret;
-
+    
     // Print the shared secret
     DEBUG_SERIAL_PRINTLN("Shared Secret: ");
     printBase64(sharedSecret, sizeof(sharedSecret));
     DEBUG_SERIAL_PRINTLN();
 
     sharedReady = true;
+    // Store the shared secret in NVS for persistence
+    int ret = storeSharedSecret(base64pubKey);
+    if (ret != 0) {
+        DEBUG_SERIAL_PRINTF("Failed to store shared secret: %d\n", ret);
+        return ret;
+    }
+    
+    ret = deriveAESKeyFromSecret(base64pubKey);
+    if (ret != 0) {
+        DEBUG_SERIAL_PRINTF("Failed to derive AES key from shared secret: %d\n", ret);
+        return ret;
+    }
+
     return 0;
 }
 
-// Called after computeSharedSecret succeeds to compute a symmetric AES key 
-int SecureSession::deriveAESKeyFromSharedSecret(std::string base64Input)
+// Store the computed shared secret to NVS for persistence across reboots
+int SecureSession::storeSharedSecret(std::string base64Input)
 {
     // Return if a shared secret was never generated
     if (!sharedReady)
         return -1;
 
-    preferences.begin("security", false); // Start the preferences RW sesion (NOT SECURE, just for testing)
-    //preferences.clear(); // Wipe all persistent storage
+    preferences.begin("security", false); // Start the preferences RW session (NOT SECURE, just for testing)
 
     int pairedDevices = preferences.getInt("pairedDevices", -1);
 
-
-    // Clear all historical data if there is no space left (TODO: placeholder until we can iterate over keys without knowing their names)
+    // Clear all historical data if there is no space left
     if((pairedDevices == -1) || (pairedDevices == MAX_PAIRED_DEVICES)){
         preferences.clear(); 
         DEBUG_SERIAL_PRINT("Max paired devices reached or uninitialized, clearing all...");
         preferences.putInt("pairedDevices", 0);                 
     }
 
-    uint8_t aesKey[ENC_KEYSIZE];
+    // Store the raw shared secret (not the AES key)
+    String hashedBase64 = hashKey(base64Input.c_str());
+    DEBUG_SERIAL_PRINTF("Storing shared secret for hashed key: %s\n", hashedBase64.c_str());
+    
+    int putBytes = preferences.putBytes(hashedBase64.c_str(), sharedSecret, sizeof(sharedSecret));
+    int putInt = preferences.putInt("pairedDevices", pairedDevices+1);
+    
+    DEBUG_SERIAL_PRINTF("Shared secret (%d bytes) stored with putBytes: %d, putInt: %d\n", sizeof(sharedSecret), putBytes, putInt);
 
+    preferences.end(); // Close the write session
+    return 0;
+}
+
+// Derive AES key from the session's shared secret
+int SecureSession::deriveAESKeyFromSecret(const char* base64pubKey)
+{
+    // Derive AES key from the shared secret using HKDF
     const uint8_t info[] = "aes-gcm-256"; // Must match JS
     size_t info_len = sizeof(info) - 1;
 
-    // Use HKDF to create a secure AES-GCM 256-bit key
-    int ret = hkdf_sha256(                  // hash function
-        nullptr, 0,                         // optional salt (can be NULL/0)
-        sharedSecret, sizeof(sharedSecret), // input key material (from ECDH)
-        info, info_len,                     // context info (optional domain separation)
-        aesKey, sizeof(aesKey)              // output key
+    // Use custom HKDF to create a secure AES-GCM 256-bit key
+    int ret = hkdf_sha256(
+        nullptr, 0,                              // optional salt
+        sharedSecret, sizeof(sharedSecret),      // session's shared secret
+        info, info_len,                          // context info
+        aesKey, ENC_KEYSIZE                      // output directly to member variable
     );
 
-    // If a key was successfully generated, store it
-    if (!ret)
-    {
-        String hashedBase64 = hashKey(base64Input.c_str());
-        DEBUG_SERIAL_PRINTF("Hashing %s, %d bytes as %s, %d bytes \n\r", base64Input.c_str(), base64Input.length(), hashedBase64.c_str(), hashedBase64.length());
-        int putBytes = preferences.putBytes(hashedBase64.c_str(), aesKey, sizeof(aesKey)); // Store the key in preferences for debugging
-        int putInt = preferences.putInt("pairedDevices", pairedDevices+1);
-        DEBUG_SERIAL_PRINTF("AES Key %s, %d bytes stored as %s with putBytes: %d, putInt: %d\n\r", aesKey, sizeof(aesKey), hashedBase64.c_str(), putBytes, putInt);
-    };
+    if (ret == 0) {
+        DEBUG_SERIAL_PRINTLN("AES key derived successfully from shared secret");
+        // Mark as ready for this session
+        aesKeyReady = true;
+    } else {
+        DEBUG_SERIAL_PRINTF("AES key derivation failed: %d\n", ret);
+    }
 
-    preferences.end(); // Close the write session
     return ret;
 }
 
@@ -197,28 +221,16 @@ int SecureSession::encrypt(
     const char* base64pubKey)    
 
 {
-
-    String hashedKey = hashKey(base64pubKey);
-    preferences.begin("security", true); // Open storage session in read only mode
-    preferences.end(); // Open storage session in read only mode
-
-    if (!preferences.isKey(hashedKey.c_str()))
-    {
-        DEBUG_SERIAL_PRINTLN("aesKey not found in preferences storage");
-        return 1;
+    // Generate random initialization vector using PSA random generator
+    psa_status_t status = psa_generate_random(iv, IV_SIZE);
+    if (status != PSA_SUCCESS) {
+        DEBUG_SERIAL_PRINTF("Failed to generate random IV: %ld\n", status);
+        return -1;
     }
-
-    // Generate random initialization vector (vector of prng)
-    int ret = mbedtls_ctr_drbg_random(&ctr_drbg, iv, IV_SIZE);
-    if (ret != 0)
-        return ret;
-
-    uint8_t aesKey[ENC_KEYSIZE];
-    preferences.getBytes(hashedKey.c_str(), aesKey, ENC_KEYSIZE); // Get the AES key from preferences (for debugging)
     
-    // Import the bytearray AES key into the mbedtls context
+    // Use the session AES key for encryption
     mbedtls_gcm_init(&gcm);
-    ret = mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES, aesKey, ENC_KEYSIZE * 8);
+    int ret = mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES, aesKey, ENC_KEYSIZE * 8);
     if (ret != 0)
         return ret;
 
@@ -244,29 +256,9 @@ int SecureSession::decrypt(
     uint8_t* plaintext_out,
     const char* base64pubKey)
 {
-    String hashedKey = hashKey(base64pubKey);
-    DEBUG_SERIAL_PRINTF("Hashing key %s of length %d \n\r", base64pubKey, strlen(base64pubKey));
-    preferences.begin("security", true); // Open storage session in read only mode
-
-    if (!preferences.isKey(hashedKey.c_str()))
-    {
-        DEBUG_SERIAL_PRINTF("aesKey '%s' not found in preferences storage \n\r", hashedKey.c_str());
-        preferences.end();
-        return 1;
-    }
-
-    uint8_t aesKey[ENC_KEYSIZE];
-    // set the generated AES key in the GCM context
-    preferences.getBytes(hashedKey.c_str(), aesKey, ENC_KEYSIZE); // Get the AES key from preferences (for debugging)
-    preferences.end();
-
-    // DEBUG_SERIAL_PRINTLN("AES KEY FROM PERFERENCES: ");
-    // printBase64(aesKey, ENC_KEYSIZE);
-    // DEBUG_SERIAL_PRINTLN();
-
-    // Import the bytearray AES key into the mbedtls context
+    // Use the session AES key for decryption
     mbedtls_gcm_init(&gcm);
-    int ret = mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES, aesKey, ENC_KEYSIZE * 8); // Set the AES key for the GCM context
+    int ret = mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES, aesKey, ENC_KEYSIZE * 8);
     if (ret != 0)
         return ret;
 
@@ -286,7 +278,7 @@ int SecureSession::decrypt(
     return ret;
 }
 
-// Decrypt a rawDataPacket
+// Decrypt a toothPaste_DataPacket and return the plaintext bytes in decrypted_out
 int SecureSession::decrypt(toothpaste_DataPacket* packet, uint8_t* decrypted_out, const char* base64pubKey)
 {   
     // Decrypt the packet data
@@ -301,11 +293,20 @@ int SecureSession::decrypt(toothpaste_DataPacket* packet, uint8_t* decrypted_out
     return ret;
 }
 
-// Check if a key exists in preferences storage
-bool SecureSession::isEnrolled(const char* key){
+// Check if a key exists in preferences storage and load its shared secret
+bool SecureSession::loadIfEnrolled(const char* key){
     preferences.begin("security", true); // Open storage session in read only mode
     String hashedKey = hashKey(key); // Hash the key, since there is a char limit for keys in storage
-    bool ret = preferences.isKey(hashedKey.c_str()); // Check if the AES key for the given public key exists
+    
+    // Check if the hashed key exists in storage, 
+    // If it does load the shared secret into the session variable and return true, otherwise return false
+    bool ret = preferences.isKey(hashedKey.c_str());
+    if (ret) {
+        // Load the shared secret into the session variable
+        preferences.getBytes(hashedKey.c_str(), sharedSecret, ENC_KEYSIZE);
+        sharedReady = true;
+    }
+    
     preferences.end();
     return ret;
 }
@@ -343,7 +344,7 @@ int SecureSession::hkdf_sha256(const uint8_t* salt, size_t salt_len,
     const uint8_t* info, size_t info_len,
     uint8_t* okm, size_t okm_len)
 {
-    int ret = 0;         // Return code to mimic other mbedTLS functions
+    int ret = 0;
     uint8_t pre_key[32]; // SHA-256 output size
 
     // Initialize the hashing context for mbedtls - use SHA256
@@ -366,7 +367,6 @@ int SecureSession::hkdf_sha256(const uint8_t* salt, size_t salt_len,
     uint8_t counter = 1;
     size_t pos = 0;
 
-    //
     for (size_t i = 0; i < n; i++)
     {
         // Create a new context instance for each iteration
