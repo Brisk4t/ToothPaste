@@ -17,7 +17,6 @@
 
 class SecureSession {
 public:
-    static constexpr size_t MAX_DATA_LEN = 201;  // Max data bytes that can be sent in 1 MTU leaving room for protocol bytes
     static constexpr size_t ENC_KEYSIZE = 32;    // 256-bit (32 byte) AES and ECDH keys
     static constexpr size_t PUBKEY_SIZE = 33;    // Uncompressed point size for secp256r1
     
@@ -27,30 +26,6 @@ public:
     
     static constexpr size_t MAX_PAIRED_DEVICES = 5; // Number of devices that can be registered as 'transmitters' at once
     uint8_t sharedSecret[ENC_KEYSIZE];
-
-    // Preamble byte in encrypted data to indicate the type of data (string, keycode, etc..)
-    enum DataType: uint8_t {
-        TEXT,
-        KEYCODE,
-        OTHER
-    };
-
-    struct rawDataPacket {
-        // Header
-        uint8_t packetId; // Unique ID for type of packet (0 = DATA, 1 = HANDSHAKE)
-        uint8_t slowmode; // When enabled reduces the wpm and slows down HID timing to enable legacy text input compatibility (notepad)
-        uint8_t packetNumber; // Current packet number out of total
-        uint8_t totalPackets; // Total packets for current message
-        //uint8_t datatype; // Type of data (e.g., text, image, storage0, storage1, etc.)
-        
-        // Cipher data
-        size_t dataLen;
-        uint8_t IV[IV_SIZE]; // Nonce
-        DataType dataType;
-        uint8_t data[MAX_DATA_LEN]; // Array to store data, fixed size to simplify design
-        uint8_t TAG[TAG_SIZE]; // The AES-GCM integrity tag
-    };
-
 
     SecureSession();
     ~SecureSession();
@@ -89,32 +64,39 @@ public:
     // Check if an AUTH packet is known
     bool loadIfEnrolled(const char* key);
 
-    // Store shared secret to NVS after ECDH computation
-    int storeSharedSecret(std::string base64Input);
-    
-    // Derive AES key from stored shared secret on-demand (used during encrypt/decrypt)
-    int deriveAESKeyFromSecret(const char* base64pubKey);
-    
-    void printBase64(const uint8_t * data, size_t dataLen);
-    int hkdf_sha256(const uint8_t *salt, size_t salt_len,
-                const uint8_t *ikm, size_t ikm_len,
-                const uint8_t *info, size_t info_len,
-                uint8_t *okm, size_t okm_len);
-
     // Device name functions 
     bool getDeviceName(String &deviceName);
     bool setDeviceName(const char* deviceName);
 
 private:
 
+    // The gcm context 
     mbedtls_gcm_context gcm;
     
+    // Shared secret and session key management
     String hashKey(const char* longKey);
     bool sharedReady;
     
     // Session AES key - generated once per session from shared secret, used for all packets
     uint8_t aesKey[ENC_KEYSIZE];
     bool aesKeyReady;
+
+    // Internal helper functions
+    
+    // Store shared secret to NVS after ECDH computation
+    int storeSharedSecret(std::string base64Input);
+    
+    // Derive AES key from stored shared secret on-demand
+    int deriveAESKeyFromSecret(const char* base64pubKey);
+    
+    // HKDF key derivation using SHA-256
+    int hkdf_sha256(const uint8_t *salt, size_t salt_len,
+                const uint8_t *ikm, size_t ikm_len,
+                const uint8_t *info, size_t info_len,
+                uint8_t *okm, size_t okm_len);
+    
+    // Debug helper to print bytes as base64
+    void printBase64(const uint8_t * data, size_t dataLen);
 
 };
 

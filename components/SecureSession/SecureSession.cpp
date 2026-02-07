@@ -6,7 +6,7 @@
 #include "SecureSession.h"
 
 psa_key_id_t private_key_id = 0;  // Stores the ECDH private key ID
-Preferences preferences; // Preferences for storing data (Not secure, temporary solution)
+Preferences preferences; // Preferences for storing data
 
 // Class constructor
 SecureSession::SecureSession() : sharedReady(false), aesKeyReady(false)
@@ -185,14 +185,14 @@ int SecureSession::storeSharedSecret(std::string base64Input)
     return 0;
 }
 
-// Helper function: Derive AES key from the session's shared secret
+// Derive AES key from the session's shared secret
 int SecureSession::deriveAESKeyFromSecret(const char* base64pubKey)
 {
     // Derive AES key from the shared secret using HKDF
     const uint8_t info[] = "aes-gcm-256"; // Must match JS
     size_t info_len = sizeof(info) - 1;
 
-    // Use HKDF to create a secure AES-GCM 256-bit key
+    // Use custom HKDF to create a secure AES-GCM 256-bit key
     int ret = hkdf_sha256(
         nullptr, 0,                              // optional salt
         sharedSecret, sizeof(sharedSecret),      // session's shared secret
@@ -278,7 +278,7 @@ int SecureSession::decrypt(
     return ret;
 }
 
-// Decrypt a rawDataPacket
+// Decrypt a toothPaste_DataPacket and return the plaintext bytes in decrypted_out
 int SecureSession::decrypt(toothpaste_DataPacket* packet, uint8_t* decrypted_out, const char* base64pubKey)
 {   
     // Decrypt the packet data
@@ -344,7 +344,7 @@ int SecureSession::hkdf_sha256(const uint8_t* salt, size_t salt_len,
     const uint8_t* info, size_t info_len,
     uint8_t* okm, size_t okm_len)
 {
-    int ret = 0;         // Return code to mimic other mbedTLS functions
+    int ret = 0;
     uint8_t pre_key[32]; // SHA-256 output size
 
     // Initialize the hashing context for mbedtls - use SHA256
@@ -367,7 +367,6 @@ int SecureSession::hkdf_sha256(const uint8_t* salt, size_t salt_len,
     uint8_t counter = 1;
     size_t pos = 0;
 
-    //
     for (size_t i = 0; i < n; i++)
     {
         // Create a new context instance for each iteration
