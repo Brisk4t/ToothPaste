@@ -192,9 +192,18 @@ int SecureSession::deriveAESKeyFromSecret(const char* base64pubKey)
     const uint8_t info[] = "aes-gcm-256"; // Must match JS
     size_t info_len = sizeof(info) - 1;
 
+    psa_status_t status = psa_generate_random(sessionSalt, sizeof(sessionSalt));
+    if (status != PSA_SUCCESS) {
+        DEBUG_SERIAL_PRINTF("Failed to generate random salt for HKDF: %ld\n", status);
+        return -1;
+    }
+
+    DEBUG_SERIAL_PRINTF("Session Salt for HKDF: ");
+    printBase64(sessionSalt, sizeof(sessionSalt));
+
     // Use custom HKDF to create a secure AES-GCM 256-bit key
     int ret = hkdf_sha256(
-        nullptr, 0,                              // optional salt
+        sessionSalt, sizeof(sessionSalt),        // random salt for this session
         sharedSecret, sizeof(sharedSecret),      // session's shared secret
         info, info_len,                          // context info
         aesKey, ENC_KEYSIZE                      // output directly to member variable
@@ -202,6 +211,7 @@ int SecureSession::deriveAESKeyFromSecret(const char* base64pubKey)
 
     if (ret == 0) {
         DEBUG_SERIAL_PRINTLN("AES key derived successfully from shared secret");
+        printBase64(aesKey, sizeof(aesKey));
         // Mark as ready for this session
         aesKeyReady = true;
     } else {
@@ -441,3 +451,4 @@ bool SecureSession::setDeviceName(const char* deviceName){
     preferences.end();
     return ret;
 }
+

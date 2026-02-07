@@ -25,10 +25,13 @@ public:
     static constexpr size_t HEADER_SIZE = 4;     // Size of the header  [packetId(0), slowmode(1), packetNumber(2), totalPackets(3)]
     
     static constexpr size_t MAX_PAIRED_DEVICES = 5; // Number of devices that can be registered as 'transmitters' at once
-    uint8_t sharedSecret[ENC_KEYSIZE];
 
     SecureSession();
     ~SecureSession();
+
+
+    unsigned char sessionSalt[16] = {0}; // Salt for the current session
+
 
     // Initialize PSA Crypto subsystem; must be called before other operations
     int init();
@@ -75,7 +78,8 @@ private:
 
     // The gcm context 
     mbedtls_gcm_context gcm;
-    
+    uint8_t sharedSecret[ENC_KEYSIZE]; // Shared secret in cache
+
     // Shared secret and session key management
     String hashKey(const char* longKey);
     bool sharedReady;
@@ -83,6 +87,7 @@ private:
     // Session AES key - generated once per session from shared secret, used for all packets
     uint8_t aesKey[ENC_KEYSIZE];
     bool aesKeyReady;
+
 
     // Internal helper functions
     

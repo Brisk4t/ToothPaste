@@ -15,3 +15,6 @@ toothpaste.MousePacket.frames        max_count:20
 
 # ConsumerControl packets (max 8 keycodes at once)
 toothpaste.ConsumerControlPacket.code        max_count:10
+
+# Response Packet (Same as DataPacket since its on another characteristic)
+toothpaste.ResponsePacket.challengeData max_size:200

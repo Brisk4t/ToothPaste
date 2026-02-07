@@ -48,6 +48,23 @@ message EncryptedData{
 
 }
 
+// Packet Sent by receiver to indicate state
+message ResponsePacket{
+    
+    // Indicate the notification type
+    enum ResponseType {
+        KEEPALIVE = 0;
+        PEER_UNKNOWN = 1;
+        PEER_KNOWN = 2;
+        CHALLENGE = 3;
+    }
+
+    ResponseType responseType = 1;
+
+    bytes challengeData = 2; // 32 bytes (if responseType == CHALLENGE)
+
+}
+
 // Arbitrary String Data (processed based on packet type byte)
 message KeyboardPacket{
     string message = 1; // 190 bytes
@@ -92,20 +109,3 @@ message MouseJigglePacket{
 }
 
 
-// Packet Sent by receiver to indicate state
-message NotificationPacket{
-    
-    // Indicate the notification type
-    enum NotificationType{
-        KEEPALIVE = 0;
-        RECV_READY = 1;
-        RECV_NOT_READY = 2;
-    }
-
-    // Indicate if the transmitter is authorized to send any packets (failure in auth = packet ignored)
-    enum AuthStatus{
-        AUTH_FAILED = 0;
-        AUTH_SUCCESS = 1;
-    }
-
-}

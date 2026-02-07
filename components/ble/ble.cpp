@@ -10,7 +10,7 @@
 
 BLEServer* bluServer = NULL;                      // Pointer to the BLE Server instance
 BLECharacteristic* inputCharacteristic = NULL;    // Characteristic for sensor data
-BLECharacteristic* semaphoreCharacteristic = NULL; // Characteristic for LED control
+BLECharacteristic* responseCharacteristic = NULL; // Characteristic for LED control
 BLECharacteristic* macCharacteristic = NULL;
 
 QueueHandle_t packetQueue = xQueueCreate(50, sizeof(SharedSecretTaskParams*)); // Queue to manage RTOS task parameters
@@ -160,8 +160,8 @@ void bleSetup(SecureSession* session)
   inputCharacteristic->setCallbacks(new InputCharacteristicCallbacks(session));
 
   // Create the HID Ready Semaphore Characteristic
-  semaphoreCharacteristic = pService->createCharacteristic(
-    TOOTHPASTE_TO_TX_CHARACTERISTIC,
+  responseCharacteristic = pService->createCharacteristic(
+    RESPONSE_CHARACTERISTIC,
     BLECharacteristic::PROPERTY_NOTIFY);
 
   // Create a MAC address characteristic
@@ -200,16 +200,16 @@ void notifyClient(const uint8_t* data, int length) {
   DEBUG_SERIAL_PRINTF("Semaphore Data: %s, Data Length: %d\n", data, length);
   if (length > 32) return; // Can't send too much data through this channel
 
-  semaphoreCharacteristic->setValue((uint8_t*)data, length);  // Set the data to be notified
-  semaphoreCharacteristic->notify();                           // Notify the semaphor characteristic
+  responseCharacteristic->setValue((uint8_t*)data, length);  // Set the data to be notified
+  responseCharacteristic->notify();                           // Notify the semaphor characteristic
 }
 
 // Notify the semaphore characteristic with default values
 void notifyClient() {
   uint8_t packed = ((notificationPacket.packetType & 0x0F) << 4) | (notificationPacket.authStatus & 0x0F);
 
-  semaphoreCharacteristic->setValue((uint8_t*)&packed, 1);  // Set the data to be notified
-  semaphoreCharacteristic->notify();                      // Notify the semaphor characteristic
+  responseCharacteristic->setValue((uint8_t*)&packed, 1);  // Set the data to be notified
+  responseCharacteristic->notify();                      // Notify the semaphor characteristic
 }
 
 // Notify the semaphore characteristic if the RTOS task queue is not full
@@ -220,10 +220,45 @@ void queuenotify() {
   }
 
   else {
-    notificationPacket.packetType = RECV_READY;
-    notifyClient();
+    // notificationPacket.packetType = RECV_READY;
+    // notifyClient();
+
+    // Notify the client that we're ready to receive the next packet (with no challenge data since this is not an auth response)
+    notifyResponsePacket(toothpaste_ResponsePacket_ResponseType_PEER_KNOWN, nullptr, 0); 
+
     printf("Queue has space: %d\n", uxQueueSpacesAvailable(packetQueue));
   }
+}
+
+// Notify using a toothPaste.responsePacket protobuf message
+void notifyResponsePacket(toothpaste_ResponsePacket_ResponseType responseType, const uint8_t* challengeData, size_t challengeDataLen) {
+  uint8_t buffer[256];
+  pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+  
+  // Initialize the response packet
+  toothpaste_ResponsePacket responsePacket = toothpaste_ResponsePacket_init_default;
+  
+  // Set response type
+  responsePacket.responseType = (toothpaste_ResponsePacket_ResponseType)responseType;
+  
+  // Set challenge data (either all 0s or from the passed data)
+  if (challengeData != nullptr && challengeDataLen > 0) {
+    // Copy challenge data into the bytes array, ensuring we don't exceed max size
+    size_t copyLen = (challengeDataLen < sizeof(responsePacket.challengeData.bytes)) 
+                      ? challengeDataLen 
+                      : sizeof(responsePacket.challengeData.bytes);
+    memcpy(responsePacket.challengeData.bytes, challengeData, copyLen);
+    responsePacket.challengeData.size = copyLen;
+  }
+  
+  if (!pb_encode(&stream, toothpaste_ResponsePacket_fields, &responsePacket)) {
+    printf("Encoding response packet failed: %s\n", PB_GET_ERROR(&stream));
+    return;
+  }
+  
+  // Send the encoded buffer to the client
+  responseCharacteristic->setValue(buffer, stream.bytes_written);  // Set the data to be notified
+  responseCharacteristic->notify();                      // Notify the semaphor characteristic
 }
 
 // Use the AUTH packet and peer public key to derive a new ecdh shared secret and AES key
@@ -260,9 +295,7 @@ void generateSharedSecret(toothpaste_DataPacket* packet, SecureSession* session)
     clientPubKey = std::string((const char*)base64Input.c_str(), base64Input.length());
     stateManager->setState(READY);
 
-    // Notify once pairing is successful
-    notificationPacket.authStatus = AUTH_SUCCESS;
-    notifyClient();
+    notifyPeerWithSessionSalt(session); // Notify the client with the session salt to confirm pairing and shared secret computation
   }
   // If the shared secret computation or key derivation fails
   else
@@ -395,11 +428,10 @@ void authenticateClient(toothpaste_DataPacket* packet, SecureSession* session) {
   // If we don't know the shared secret for the given public key, set Device Status to UNPAIRED
   if (!session->loadIfEnrolled(clientPubKey.c_str())) {
     DEBUG_SERIAL_PRINTLN("Client is not enrolled");
-    
-    // Lower bits of notification are auth status to tell if we recognize the pubkey of the sender
-    // Upper bits are the notification itself ([0] = KeepAlive, [1] = Ready to Receive, [2] = Not ready to receive )
-    notificationPacket.packetType = RECV_NOT_READY;
-    notificationPacket.authStatus = AUTH_FAILED;
+
+    notifyResponsePacket(toothpaste_ResponsePacket_ResponseType_PEER_UNKNOWN, nullptr, 0);
+    // notificationPacket.packetType = RECV_NOT_READY;
+    // notificationPacket.authStatus = AUTH_FAILED;
     stateManager->setState(UNPAIRED); // Set the device to the unpaired state
   }
 
@@ -407,7 +439,7 @@ void authenticateClient(toothpaste_DataPacket* packet, SecureSession* session) {
   // If we know the shared secret set device status to PAIRED (Note: This does not gurantee that the shared secret is correct, just that it exists)
   else {
     DEBUG_SERIAL_PRINTLN("Client is enrolled");
-    
+
     // Derive the session AES key from the stored shared secret
     int ret = session->deriveAESKeyFromSecret(clientPubKey.c_str());
     if (ret != 0) {
@@ -418,10 +450,50 @@ void authenticateClient(toothpaste_DataPacket* packet, SecureSession* session) {
       return;
     }
 
-    notificationPacket.packetType = RECV_READY;
-    notificationPacket.authStatus = AUTH_SUCCESS;
+    DEBUG_SERIAL_PRINTLN("Session AES key derived successfully");
+
+    notifyPeerWithSessionSalt(session);
     stateManager->setState(READY);
   }
+}
+
+// Create and encode a response packet with session salt as challenge data
+void notifyPeerWithSessionSalt(SecureSession* session) {
+  uint8_t buffer[256];
+  pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+  
+  // Initialize the response packet
+  toothpaste_ResponsePacket responsePacket = toothpaste_ResponsePacket_init_default;
+  
+  // Set response type to CHALLENGE
+  responsePacket.responseType = toothpaste_ResponsePacket_ResponseType_CHALLENGE;
+  
+  // Fill challenge data with session salt
+  memcpy(responsePacket.challengeData.bytes, session->sessionSalt, sizeof(session->sessionSalt));
+  responsePacket.challengeData.size = sizeof(session->sessionSalt);
+
+  DEBUG_SERIAL_PRINTF("Session salt sent as challenge data: ");
+  for (size_t i = 0; i < responsePacket.challengeData.size; ++i) {
+    DEBUG_SERIAL_PRINTF("%02X", responsePacket.challengeData.bytes[i]);
+  }
+  DEBUG_SERIAL_PRINTLN();
+  
+  // Encode and send
+  if (!pb_encode(&stream, toothpaste_ResponsePacket_fields, &responsePacket)) {
+    printf("Encoding response packet failed: %s\n", PB_GET_ERROR(&stream));
+    return;
+  }
+
+  // Debug: print the encoded bytes and size
+  DEBUG_SERIAL_PRINTF("Encoded packet size: %zu bytes\n", stream.bytes_written);
+  DEBUG_SERIAL_PRINT("Encoded buffer (hex): ");
+  for (size_t i = 0; i < stream.bytes_written; ++i) {
+    DEBUG_SERIAL_PRINTF("%02X ", buffer[i]);
+  }
+  DEBUG_SERIAL_PRINTLN();
+  
+  responseCharacteristic->setValue(buffer, stream.bytes_written);
+  responseCharacteristic->notify();
 }
 
 // Persistent RTOS that waits for packets
@@ -483,7 +555,6 @@ void packetTask(void* params)
 
         delete taskParams; // Free the parameter struct
       }
-      queuenotify(); // Immediately notify the semaphore if the queue has space for more tasks
     }
   }
 }
