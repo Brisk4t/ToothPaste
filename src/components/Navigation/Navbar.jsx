@@ -15,7 +15,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 import { useBLEContext, ConnectionStatus } from "../../context/BLEContext";
-import { isAuthenticated } from "../../services/EncryptedStorage";
+import { isUnlocked } from "../../services/EncryptedStorage";
 import AuthenticationOverlay from "../overlays/AuthenticationOverlay";
 import ToothPaste from "../../assets/ToothPaste.png";
 import { createRenamePacket } from "../../services/packetService/packetFunctions";
@@ -171,7 +171,7 @@ function ConnectionButton({ showAuthOverlay, setShowAuthOverlay }) {
         if (!longPressTriggered.current) {
             // Check if authenticated before connecting
             if (!status || status === ConnectionStatus.disconnected) {
-                if (!isAuthenticated()) {
+                if (!isUnlocked()) {
                     setShowAuthOverlay(true);
                     return;
                 }

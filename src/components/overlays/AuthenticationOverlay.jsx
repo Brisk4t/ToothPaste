@@ -1,83 +1,39 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Typography } from "@material-tailwind/react";
 import { ShieldCheckIcon } from '@heroicons/react/24/outline';
-import { registerWebAuthnCredential, authenticateWithWebAuthn, isAuthenticated, credentialsExist } from '../../services/EncryptedStorage';
+import { unlock, isUnlocked } from '../../services/EncryptedStorage';
 
 const AuthenticationOverlay = ({ onAuthSuccess, onClose }) => {
-    const [mode, setMode] = useState(null); // 'login' | 'register' | 'loading'
     const [error, setError] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [hasCredentials, setHasCredentials] = useState(false);
     const [hasChecked, setHasChecked] = useState(false);
 
-    // Check if credentials exist on mount
+    // Check if already unlocked on mount
     useEffect(() => {
-        const checkCredentials = async () => {
-            try {
-                const exists = await credentialsExist();
-                setHasCredentials(exists);
-                setMode(exists ? 'login' : 'register');
-                setHasChecked(true);
-            } catch (e) {
-                console.error("[AuthenticationOverlay] Error checking credentials:", e);
-                setMode('register');
-                setHasChecked(true);
-            }
-        };
-
-        checkCredentials();
+        setHasChecked(true);
     }, []);
 
-    // If already authenticated, auto-succeed
+    // If already unlocked, auto-succeed
     useEffect(() => {
-        if (hasChecked && isAuthenticated()) {
+        if (hasChecked && isUnlocked()) {
             onAuthSuccess();
         }
     }, [hasChecked, onAuthSuccess]);
 
-    // Create a new passkey
-    const handleRegister = async () => {
+    // Unlock storage
+    const handleUnlock = async () => {
         try {
             setError(null);
             setIsLoading(true);
-            console.log("[AuthenticationOverlay] Starting registration...");
+            console.log("[AuthenticationOverlay] Starting unlock...");
 
-            // Optionally prompt for display name
-            const displayName = prompt("Enter a display name for your account:", "ToothPaste User");
-            if (displayName === null) {
-                // User cancelled
-                console.log("[AuthenticationOverlay] User cancelled registration");
-                setIsLoading(false);
-                return;
-            }
-
-            // Make the call to the service function to handle WebAuthn registration
-            await registerWebAuthnCredential(displayName || "ToothPaste User");
-            
-            // TODO: After registration, automatically authenticate to establish session
-
-            handleLogin(); // Call the login function to authenticate immediately after registration
-        } catch (e) {
-            console.error("[AuthenticationOverlay] Registration error:", e);
-            setError('Registration failed: ' + e.message);
-            setIsLoading(false);
-        }
-    };
-
-    // Authenticate with existing passkey
-    const handleLogin = async () => {
-        try {
-            setError(null);
-            setIsLoading(true);
-
-            // Call the service function to handle WebAuthn authentication
-            await authenticateWithWebAuthn();
-            console.log("[AuthenticationOverlay] Authentication successful");
+            await unlock();
+            console.log("[AuthenticationOverlay] Unlock successful");
             setIsLoading(false);
             onAuthSuccess();
         } catch (e) {
-            console.error("[AuthenticationOverlay] Authentication error:", e);
-            setError('Authentication failed: ' + e.message);
+            console.error("[AuthenticationOverlay] Unlock error:", e);
+            setError('Unlock failed: ' + e.message);
             setIsLoading(false);
         }
     };
@@ -100,52 +56,30 @@ const AuthenticationOverlay = ({ onAuthSuccess, onClose }) => {
                 <ShieldCheckIcon className="h-12 w-12 text-primary mb-4" />
 
                 <Typography variant="h4" className="text-text font-sans normal-case font-semibold text-center mb-4">
-                    {mode === 'login' ? 'Authenticate with Passkey' : 'Register Passkey'}
+                    Unlock Storage
                 </Typography>
 
                 <Typography variant="h6" className="text-text text-sm text-center mb-6">
-                    {mode === 'login' 
-                        ? 'Use your registered security key or biometric to authenticate.'
-                        : 'Register a security key or biometric passkey to secure your device keys.'}
+                    Click the button below to unlock encrypted storage and access your device keys.
                 </Typography>
 
                 <div className="bg-hover rounded-lg p-4 mb-6 w-full">
                     <Typography variant="h6" className="text-text text-md text-center">
-                        {mode === 'login'
-                            ? 'Click the button below and follow your device\'s authentication prompt.'
-                            : 'Click the button below to register a new passkey with your device.'}
+                        Your device keys are encrypted locally using an encryption key derived from a hardcoded insecure key (development only).
                     </Typography>
                 </div>
 
                 <Button
-                    onClick={mode === 'login' ? handleLogin : handleRegister}
+                    onClick={handleUnlock}
                     loading={isLoading.toString()}
                     disabled={isLoading}
                     className='w-full h-10 mb-4 bg-primary text-text hover:bg-primary-hover focus:bg-primary-focus active:bg-primary-active flex items-center justify-center size-sm'
                 >
                     <ShieldCheckIcon className={`h-7 w-7 mr-2 ${isLoading ? "hidden" : ""}`} />
                     <Typography variant="h6" className={`text-text font-sans normal-case font-semibold ${isLoading ? "hidden" : ""}`}>
-                        {mode === 'login' ? 'Authenticate' : 'Register'}
+                        Unlock
                     </Typography>
                 </Button>
-
-                {hasCredentials && mode === 'register' && (
-                    <Button
-                        onClick={() => setMode('login')}
-                        variant="outlined"
-                        className='w-full h-10 text-primary border-primary hover:bg-primary/10'
-                    >
-                        <Typography variant="h6" className="text-primary font-sans normal-case font-semibold">
-                            Already have a passkey? Login
-                        </Typography>
-                    </Button>
-                )}
-
-                {mode === 'register' && !hasCredentials && (
-                    <Typography variant="h6" className="text-primary text-sm text-center mt-4">
-                        Your device keys will be encrypted and stored locally on your browser. No one else can access them without your passkey.
-                    </Typography>
-                )}
 
                 {error && (
                     <div className="mt-4 p-3 bg-red-500/20 border border-red-500 rounded-md text-red-500 w-full text-center">
