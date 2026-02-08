@@ -15,9 +15,9 @@ const AuthenticationOverlay = ({ onAuthSuccess, onClose }) => {
         const initAuthMode = async () => {
             const requiredMode = await getRequiredAuthMode();
             setMode(requiredMode);
+            setHasChecked(true);  // Only mark as checked after auth mode is determined
         };
         initAuthMode();
-        setHasChecked(true);
     }, []);
 
     // If already unlocked, auto-succeed
@@ -148,20 +148,6 @@ const AuthenticationOverlay = ({ onAuthSuccess, onClose }) => {
                             <ShieldCheckIcon className={`h-7 w-7 mr-2 ${isLoading ? "hidden" : ""}`} />
                             <Typography type="h6" className={`text-text font-sans normal-case font-semibold ${isLoading ? "hidden" : ""}`}>
                                 Unlock
-                            </Typography>
-                        </Button>
-
-                        <Button
-                            onClick={() => {
-                                setMode('choose');
-                                setPassword('');
-                                setError(null);
-                            }}
-                            className='w-full h-10 text-primary border-2 border-primary hover:bg-primary/10 disabled:border-hover disabled:text-hover flex items-center justify-center rounded'
-                            disabled={isLoading}
-                        >
-                            <Typography type="h6" className="text-primary font-sans normal-case font-semibold">
-                                Back
                             </Typography>
                         </Button>
                     </>
