@@ -37,14 +37,12 @@ const AuthenticationOverlay = ({ onAuthSuccess, onClose }) => {
             
             setError(null);
             setIsLoading(true);
-            console.log("[AuthenticationOverlay] Starting password-based unlock...");
 
             await unlockWithPassword(password);
-            console.log("[AuthenticationOverlay] Password-based unlock successful");
+
             setIsLoading(false);
             onAuthSuccess();
         } catch (e) {
-            console.error("[AuthenticationOverlay] Password unlock error:", e);
             setError('Unlock failed: ' + e.message);
             setIsLoading(false);
         }
@@ -62,7 +60,6 @@ const AuthenticationOverlay = ({ onAuthSuccess, onClose }) => {
             setIsLoading(false);
             onAuthSuccess();
         } catch (e) {
-            console.error("[AuthenticationOverlay] Passwordless unlock error:", e);
             setError('Unlock failed: ' + e.message);
             setIsLoading(false);
         }
