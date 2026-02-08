@@ -16,61 +16,71 @@ let sessionSalt = null;
 let isUnlockedFlag = false;
 
 /**
- * Derive AES-GCM key from password using Argon2id.
- * Uses a stored master salt if available, otherwise generates and stores one.
- * This ensures the same password always produces the same key (across sessions).
- * @param {string} password - User password
- * @returns {Promise<{aesKey: CryptoKey, salt: Uint8Array}>} AES-GCM key and salt
+ * Hash password with Argon2id and import as AES-GCM key
  */
-async function deriveAesKey(password) {
+async function argon2ToAesKey(password, salt) {
+    const result = await argon2.hash({
+        pass: password,
+        salt: salt,
+        time: 3,
+        mem: 64 * 1024,
+        hashLen: 32,
+        parallelism: 1,
+        type: argon2.ArgonType.Argon2id,
+    });
+
+    return await crypto.subtle.importKey(
+        "raw",
+        result.hash,
+        { name: "AES-GCM" },
+        false,
+        ["encrypt", "decrypt"]
+    );
+}
+
+/**
+ * Load or generate the master salt from localStorage
+ */
+function loadOrGenerateMasterSalt() {
+    const storedSaltBase64 = localStorage.getItem("__EncryptedStorage_MasterSalt__");
+    if (storedSaltBase64) {
+        return new Uint8Array(Storage.base64ToArrayBuffer(storedSaltBase64));
+    }
+    
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const saltBase64 = Storage.arrayBufferToBase64(salt.buffer);
+    localStorage.setItem("__EncryptedStorage_MasterSalt__", saltBase64);
+    return salt;
+}
+
+/**
+ * Derive AES-GCM key from password using Argon2id and a specific salt.
+ * @param {string} password - User password
+ * @param {Uint8Array} salt - The salt to use for derivation
+ * @returns {Promise<CryptoKey>} AES-GCM key
+ */
+async function deriveAesKey(password, salt = null) {
     try {
-        console.log("[EncryptedStorage] Starting Argon2id key derivation...");
-        
-        // Try to load existing salt, or generate a new one
-        let salt;
-        const storedSaltBase64 = localStorage.getItem("__EncryptedStorage_MasterSalt__");
-        
-        if (storedSaltBase64) {
-            console.log("[EncryptedStorage] Using stored master salt");
-            salt = new Uint8Array(Storage.base64ToArrayBuffer(storedSaltBase64));
-        } else {
-            console.log("[EncryptedStorage] Generating new master salt...");
-            salt = crypto.getRandomValues(new Uint8Array(16));
-            // Store the salt in localStorage for future sessions
-            const saltBase64 = Storage.arrayBufferToBase64(salt.buffer);
-            localStorage.setItem("__EncryptedStorage_MasterSalt__", saltBase64);
-            console.log("[EncryptedStorage] Master salt generated and stored");
+        if (!salt) {
+            salt = loadOrGenerateMasterSalt();
         }
-
-        // Argon2id parameters (reasonable defaults)
-        const result = await argon2.hash({
-            pass: password,
-            salt: salt,
-            time: 3,          // iterations
-            mem: 64 * 1024,   // 64 MB
-            hashLen: 32,      // 32 bytes = 256-bit key
-            parallelism: 1,
-            type: argon2.ArgonType.Argon2id,
-        });
-
-        const keyBytes = result.hash; // Uint8Array(32)
-        console.log("[EncryptedStorage] Argon2id hash completed, key material length:", keyBytes.length);
-
-        // Import into WebCrypto as AES-GCM key
-        const aesKey = await crypto.subtle.importKey(
-            "raw",
-            keyBytes,
-            { name: "AES-GCM" },
-            false,
-            ["encrypt", "decrypt"]
-        );
-
-        console.log("[EncryptedStorage] AES key imported successfully");
-        return { aesKey, salt };
+        return await argon2ToAesKey(password, salt);
     } catch (error) {
-        console.error("[EncryptedStorage] Argon2id hashing error:", error);
+        console.error("[EncryptedStorage] Failed to derive key:", error);
         throw new Error("Failed to derive key from password: " + error.message);
     }
+}
+
+/**
+ * Derive AES-GCM key and return with salt.
+ * Used during unlock to get both the key and the salt for the session.
+ * @param {string} password - User password
+ * @returns {Promise<{aesKey: CryptoKey, salt: Uint8Array}>}
+ */
+async function deriveAesKeyWithSalt(password) {
+    const salt = loadOrGenerateMasterSalt();
+    const aesKey = await deriveAesKey(password, salt);
+    return { aesKey, salt };
 }
 
 /**
@@ -106,61 +116,19 @@ async function deriveInsecureKey() {
 }
 
 /**
- * Derive AES-GCM key from password and a specific salt (for decryption).
- * @param {string} password - User password
- * @param {Uint8Array} salt - The salt to use for derivation
- * @returns {Promise<CryptoKey>} AES-GCM key
- */
-async function deriveAesKeyWithSalt(password, salt) {
-    try {
-        console.log("[EncryptedStorage] Deriving key with salt, salt length:", salt.length);
-
-        const result = await argon2.hash({
-            pass: password,
-            salt: salt,
-            time: 3,
-            mem: 64 * 1024,
-            hashLen: 32,
-            parallelism: 1,
-            type: argon2.ArgonType.Argon2id,
-        });
-
-        const keyBytes = result.hash;
-        console.log("[EncryptedStorage] Argon2id derivation completed, key material length:", keyBytes.length);
-
-        const aesKey = await crypto.subtle.importKey(
-            "raw",
-            keyBytes,
-            { name: "AES-GCM" },
-            false,
-            ["encrypt", "decrypt"]
-        );
-
-        console.log("[EncryptedStorage] AES key derived and imported successfully");
-        return aesKey;
-    } catch (error) {
-        console.error("[EncryptedStorage] Argon2id derivation error:", error);
-        throw new Error("Failed to derive key from password: " + error.message);
-    }
-}
-
-/**
  * Unlock the storage with a password using Argon2id.
- * Generates a random salt on first unlock, which is embedded in encrypted data.
- * Stores the password for automatic key re-derivation during decryption.
+ * Uses stored master salt to ensure consistent key across sessions.
  * @param {string} password - User password
  */
 export async function unlockWithPassword(password) {
     try {
-        console.log("[EncryptedStorage] Unlocking with password...");
-        const { aesKey, salt } = await deriveAesKey(password);
+        const { aesKey, salt } = await deriveAesKeyWithSalt(password);
         sessionEncryptionKey = aesKey;
         sessionSalt = salt;
         isUnlockedFlag = true;
-        console.log("[EncryptedStorage] Successfully unlocked with password.");
         return { success: true };
     } catch (error) {
-        console.error("[EncryptedStorage] Failed to unlock with password:", error);
+        console.error("[EncryptedStorage] Password unlock failed:", error);
         throw error;
     }
 }
@@ -170,14 +138,12 @@ export async function unlockWithPassword(password) {
  * Stub function for development/testing only.
  */
 export async function unlockPasswordless() {
-    console.warn("[EncryptedStorage] WARNING: Using passwordless mode with hardcoded insecure-key. This is for development only.");
-    
     try {
         sessionEncryptionKey = await deriveInsecureKey();
         isUnlockedFlag = true;
         return true;
     } catch (error) {
-        console.error("[EncryptedStorage] Failed to unlock passwordless:", error);
+        console.error("[EncryptedStorage] Passwordless unlock failed:", error);
         throw error;
     }
 }
@@ -192,15 +158,11 @@ export async function unlock() {
 
 /**
  * Lock the storage by clearing the cached encryption key and salt.
- * Also clears the master salt to require re-authentication on next page load.
  */
 export function lock() {
     isUnlockedFlag = false;
     sessionEncryptionKey = null;
     sessionSalt = null;
-    // Do NOT clear localStorage master salt - that persists for the device
-    // To change password, user would need to use a specialized function
-    console.log("[EncryptedStorage] Storage locked");
 }
 
 /**
@@ -210,7 +172,6 @@ export function lock() {
 export function clearMasterSalt() {
     localStorage.removeItem("__EncryptedStorage_MasterSalt__");
     lock();
-    console.log("[EncryptedStorage] Master salt cleared - will generate new one on next password unlock");
 }
 
 /**
@@ -265,11 +226,8 @@ async function decryptValue(encryptedBase64, password, salt) {
         // Determine which key to use
         let decryptionKey;
         if (password && salt) {
-            // Re-derive key with provided password and salt
-            console.log("[EncryptedStorage] Re-deriving key from password and salt for decryption...");
-            decryptionKey = await deriveAesKeyWithSalt(password, salt);
+            decryptionKey = await deriveAesKey(password, salt);
         } else {
-            // Use the current session key
             if (!sessionEncryptionKey) {
                 throw new Error("Storage not unlocked. Call unlockWithPassword() first.");
             }
@@ -284,13 +242,9 @@ async function decryptValue(encryptedBase64, password, salt) {
             );
 
             const decoder = new TextDecoder();
-            const result = JSON.parse(decoder.decode(decrypted));
-            console.log("[EncryptedStorage] Decryption successful");
-            return result;
+            return JSON.parse(decoder.decode(decrypted));
         } catch (decryptError) {
-            // Decryption failed - might be data encrypted with old passwordless mode
-            console.warn("[EncryptedStorage] Decryption with session key failed, trying passwordless fallback...");
-            
+            // Try passwordless fallback for backwards compatibility
             const passwordlessKey = await deriveInsecureKey();
             const decrypted = await crypto.subtle.decrypt(
                 { name: "AES-GCM", iv },
@@ -299,9 +253,7 @@ async function decryptValue(encryptedBase64, password, salt) {
             );
 
             const decoder = new TextDecoder();
-            const result = JSON.parse(decoder.decode(decrypted));
-            console.log("[EncryptedStorage] Decryption successful with passwordless fallback");
-            return result;
+            return JSON.parse(decoder.decode(decrypted));
         }
     } catch (error) {
         console.error("[EncryptedStorage] Decryption failed:", error);
@@ -337,7 +289,6 @@ export async function saveBase64(clientID, key, value) {
 /**
  * Load and decrypt base64 data from IndexedDB
  * Uses the session key (derived at unlock time).
- * Salt is stored separately for record-keeping and potential future re-derivation.
  * @param {string} clientID - Client identifier
  * @param {string} key - Storage key
  * @returns {Promise<*|null>} The decrypted value or null
@@ -350,15 +301,13 @@ export async function loadBase64(clientID, key) {
             return null;
         }
 
-        // Use the current session key (must be unlocked first)
         if (!sessionEncryptionKey) {
             throw new Error("Storage not unlocked. Call unlockWithPassword() first.");
         }
 
         return await decryptValue(storedValue, null, null);
     } catch (error) {
-        console.error("[EncryptedStorage] Failed to decrypt key", key, ":", error.message);
-        console.warn("[EncryptedStorage] Data may be corrupted. Returning null.");
+        console.error("[EncryptedStorage] Failed to decrypt key " + key + ":", error.message);
         return null;
     }
 }
