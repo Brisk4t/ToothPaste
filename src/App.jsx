@@ -8,8 +8,10 @@ import { BLEProvider } from "./context/BLEContext";
 import ECDHOverlay from "./components/overlays/ECDHOverlay";
 import UpdateController from "./components/overlays/UpdateOverlay";
 import QuickStartOverlay from "./components/overlays/QuickStartOverlay";
+import GridBackground from './components/GridBackground';
 import { ECDHContext, ECDHProvider } from "./context/ECDHContext";
 import About from "./views/about/About";
+
 
 import ToothPaste from "./assets/ToothPaste.png";
 
@@ -52,7 +54,6 @@ function App() {
     <ECDHProvider>
       <BLEProvider setShowOverlay={setShowOverlay} showOverlay={showOverlay}>
         <div className="flex flex-col h-dvh overflow-hidden">
-          
           {/* Navbar with hamburger toggle */}
           <Navbar
             showNavbar={showNavbar}

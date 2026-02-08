@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef } from 'react';
 import { Canvas, useLoader, useFrame } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
@@ -45,18 +45,7 @@ const Model = ({ url, scrollDeltaRef }) => {
     );
 };
 
-export default function ModelContainer({ currentSlide, scrollDeltaRef }) {
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
-    useEffect(() => {
-        const handleResize = () => {
-            setIsMobile(window.innerWidth < 768);
-        };
-
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
+export default function ModelContainer({ currentSlide, scrollDeltaRef, isMobile }) {
     return (
         <div className="absolute inset-0 pointer-events-none">
             <div

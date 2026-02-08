@@ -6,35 +6,63 @@ import SecuritySection from './sections/SecuritySection';
 import CTASection from './sections/CTASection';
 import GridBackground from '../../components/GridBackground';
 import { appColors } from '../../styles/colors';
+import { useBreakpoint } from '../../services/useBreakpoint';
 
 export default function About() {
     const [currentSlide, setCurrentSlide] = useState(0);
+    const { isMobile } = useBreakpoint();
     const scrollDeltaRef = useRef(0);
     const containerRef = useRef(null);
     const maxSlides = 4;
     const scrollThreshold = useRef(0);
     const scrollSensitivity = 1000; // Adjust this value to change how many clicks required
 
-    // Define filled squares for each section
-    const sectionSquares = {
-        hero: [
-            { row: 20, col: 44, color: appColors.secondary },
-            { row: 20, col: 46, color: appColors.orange },
-            { row: 20, col: 48, color: appColors.primary }
-        ],
-        why: [
-            { row: 5, col: 2, color: appColors.primary },
-            { row: 6, col: 3, color: appColors.secondary }
-        ],
-        security: [
-            { row: 8, col: 4, color: appColors.primary },
-            { row: 9, col: 5, color: appColors.secondary }
-        ],
-        cta: [
-            { row: 11, col: 6, color: appColors.primary },
-            { row: 12, col: 7, color: appColors.secondary }
-        ]
+    // Define filled squares for each section and screen size
+    const getSquaresForScreenSize = () => {
+        if (isMobile) {
+            return {
+                hero: [
+                    { row: 20, col: 1, color: appColors.secondary },
+                    { row: 20, col: 3, color: appColors.orange },
+                    { row: 20, col: 5, color: appColors.primary }
+                ],
+                why: [
+                    { row: 5, col: 2, color: appColors.primary },
+                    { row: 6, col: 3, color: appColors.secondary }
+                ],
+                security: [
+                    { row: 8, col: 4, color: appColors.primary },
+                    { row: 9, col: 5, color: appColors.secondary }
+                ],
+                cta: [
+                    { row: 11, col: 6, color: appColors.primary },
+                    { row: 12, col: 7, color: appColors.secondary }
+                ]
+            };
+        } else {
+            return {
+                hero: [
+                    { row: 20, col: 44, color: appColors.secondary },
+                    { row: 20, col: 46, color: appColors.orange },
+                    { row: 20, col: 48, color: appColors.primary }
+                ],
+                why: [
+                    { row: 5, col: 2, color: appColors.primary },
+                    { row: 6, col: 3, color: appColors.secondary }
+                ],
+                security: [
+                    { row: 8, col: 4, color: appColors.primary },
+                    { row: 9, col: 5, color: appColors.secondary }
+                ],
+                cta: [
+                    { row: 11, col: 6, color: appColors.primary },
+                    { row: 12, col: 7, color: appColors.secondary }
+                ]
+            };
+        }
     };
+
+    const sectionSquares = getSquaresForScreenSize();
 
     // Show squares only for current section
     const currentSectionSquares = (() => {
@@ -88,7 +116,11 @@ export default function About() {
             />
 
             {/* 3D Model Container */}
-            <ModelContainer currentSlide={currentSlide} scrollDeltaRef={scrollDeltaRef} />
+            <ModelContainer 
+                currentSlide={currentSlide} 
+                scrollDeltaRef={scrollDeltaRef}
+                isMobile={isMobile}
+            />
 
             {/* Sections */}
             <HeroSection 
