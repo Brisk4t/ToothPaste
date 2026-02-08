@@ -9,7 +9,7 @@ import ECDHOverlay from "./components/overlays/ECDHOverlay";
 import UpdateController from "./components/overlays/UpdateOverlay";
 import QuickStartOverlay from "./components/overlays/QuickStartOverlay";
 import { ECDHContext, ECDHProvider } from "./context/ECDHContext";
-import About from "./views/About";
+import About from "./views/about/About";
 
 import ToothPaste from "./assets/ToothPaste.png";
 

@@ -13,7 +13,10 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+        // sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+        header: ['Roboto Mono', 'sans-serif'],
+        body: ['Ubuntu Sans Mono', 'sans-serif'],
+        barcode: ['Libre Barcode 39', 'sans-serif']
       },
       colors: {
         primary: '#00A878',

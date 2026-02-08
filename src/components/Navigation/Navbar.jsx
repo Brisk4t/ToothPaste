@@ -53,7 +53,7 @@ export function useClickOrLongPress(longPressTime = 2000) {
     return { start, cancel, end, longPressed };
 }
 
-function EditableDeviceName({ name, setName, isEditing, setIsEditing}) {
+function EditableDeviceName({ name, setName, isEditing, setIsEditing, isHovering}) {
     // Once user unfocuses from editing
     const handleBlur = () => {
         setIsEditing(false);
@@ -80,14 +80,24 @@ function EditableDeviceName({ name, setName, isEditing, setIsEditing}) {
                     autoFocus
                 />
             ) : (
-                <Typography
-                    variant="h6"
-                    color="text"
-                    className="text-lg font-sans font-medium normal-case"
-                    style={{ cursor: "pointer" }}
-                >
-                    {name}
-                </Typography>
+                <div className="relative">
+                    <Typography
+                        variant="h6"
+                        color="text"
+                        className={`text-lg font-sans font-medium normal-case transition-opacity duration-500 ${isHovering ? "opacity-0" : "opacity-100"}`}
+                        style={{ cursor: "pointer" }}
+                    >
+                        {name}
+                    </Typography>
+                    <Typography
+                        variant="h6"
+                        color="text"
+                        className={`text-lg text-shelf font-sans font-medium normal-case transition-opacity duration-500 absolute inset-0 flex items-center ${isHovering ? "opacity-100" : "opacity-0"}`}
+                        style={{ cursor: "pointer" }}
+                    >
+                        Hold to Rename
+                    </Typography>
+                </div>
             )}
         </>
     );
@@ -100,6 +110,7 @@ function ConnectionButton() {
     const { start, end, cancel, longPressed } = useClickOrLongPress(LONG_PRESS_DURATION);
     const [progress, setProgress] = useState(0);
     const [isEditing, setIsEditing] = useState(false);
+    const [isHovering, setIsHovering] = useState(false);
     const [wasLongPressed, setWasLongPressed] = useState(false);
     const intervalRef = useRef(null); // track interval across renders
     const longPressTriggered = useRef(false);
@@ -183,23 +194,24 @@ function ConnectionButton() {
                     transition: 'background-image 0.016s linear'
                 }}
                 onMouseDown={() => {if (device && status === ConnectionStatus.ready) handleStart(() => setIsEditing(true));}}
-                onMouseLeave={() => {handleEnd(cancel);}}
+                onMouseLeave={() => {handleEnd(cancel); setIsHovering(false);}}
                 onMouseUp={() => handleEnd(() => connectToDevice())}
                 onTouchStart={() => {if (device && status === ConnectionStatus.ready) handleStart(() => setIsEditing(true));}}
                 onTouchCancel={() => {handleEnd(cancel);}}
                 onTouchEnd={() => handleEnd(() => connectToDevice())}
+                onMouseEnter={() => setIsHovering(true)}
             >
                 <div className="flex items-center justify-between w-full">
                     <div className="mr-10">
                         {/* If a device is connected get its name */}
                         <EditableDeviceName
-                            variant="h6"
                             color="text"
                             device={device}
                             isEditing={isEditing}
                             setIsEditing={setIsEditing}
                             name={name}
                             setName={setName}
+                            isHovering={isHovering}
                         ></EditableDeviceName>
                     </div>
                     {/* Change the icon for connected and disconnected states */}
