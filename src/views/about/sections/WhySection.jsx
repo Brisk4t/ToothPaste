@@ -5,7 +5,7 @@ import { ArrowDownIcon, QuestionMarkCircleIcon } from "@heroicons/react/24/outli
 export default function WhySection({ currentSlide, getSectionOpacity }) {
     return (
         <section
-            className="absolute inset-0 flex flex-col px-6 md:px-12 py-12 z-10 pb-32"
+            className="absolute inset-0 flex flex-col px-6 md:px-12 py-12 z-10 pb-32 items-center justify-center"
             style={{
                 opacity: getSectionOpacity(1),
                 transition: 'opacity 0.3s ease-in-out',
@@ -13,38 +13,54 @@ export default function WhySection({ currentSlide, getSectionOpacity }) {
             }}
         >
             {/* Title Row */}
-            <div className="flex items-center justify-center gap-4 mb-12 flex-shrink-0">
-                <QuestionMarkCircleIcon className="h-12 w-12 text-primary flex-shrink-0" />
-                <Typography type="h2" className="text-text font-header">
-                    What's a ToothPaste?
-                </Typography>
+            <div className="flex items-center justify-center gap-10 my-12 flex-shrink-0">
+                <div className="grid grid-cols-2 gap-40 h-full items-center">
+                    {/* Left Third */}
+                    <div className="flex flex-col col-span-1 gap-2 text-left">
+                        <Typography type="h4" className="font-body text-lg font-light text-gray-700 italic ">
+                        "If only i could copy this really long password to this really shady computer, we could achieve world peace. 
+                        <br/>Alas! I'm going to type it manually......"
+                        </Typography>
+                        <Typography className="italic text-lg font-body text-gray-700">- Someone Definitely</Typography>
+                    </div>
+                    
+                </div>
             </div>
 
             {/* Content Grid with Model Breaking Out */}
             <div className="flex-1 relative">
-                <div className="grid grid-cols-2 gap-8 h-full items-start">
+                <div className="grid grid-cols-5 gap-8 h-full items-center">
                     {/* Left Third */}
-                    <div className="flex flex-col col-span-1 gap-6 border  border-2 border-primary">
-                        <Typography type="h4" className="font-body text-lg font-light text-white leading-relaxed">
-                        Secure passwords are a pain to type. 
-                        </Typography>
-                        <Typography type="h4" className="font-body text-lg font-light text-white leading-relaxed">
-                        Moving some text from one device to another turns into emailing yourself, using cloud clipboard services, or texting yourself. 
-                        </Typography>
-                        <Typography type="h4" className="font-body text-lg font-light text-white leading-relaxed">
-                        And sometimes installing clipboard apps is not an option.
+                    <div className="flex flex-col col-span-2 gap-40 text-left">
+                        <Typography className="font-body text-3xl font-light text-white ">
+                        So I made something that doesn't require installing an app, and is secure enough for your most sensitive data.
                         </Typography>
                     </div>
                     
+                    <div></div>
+
                     {/* Right Third */}
-                    <div className="flex flex-col col-span-1 gap-10 border border-2 border-secondary">
-                        <Typography type="h4" className="font-body text-lg font-light text-white leading-relaxed">
-                        Usually this involves emailing myself, using cloud clipboard services, or texting myself.
-                        </Typography>
-                        <Typography type="h4" className="font-body text-lg text-white leading-relaxed">
-                        ToothPaste makes this process seamless and secure by allowing me to quickly paste text directly to any nearby paired device.
+                    <div className="flex flex-col col-span-2 gap-40 text-left">
+                        <Typography className="font-body text-3xl font-light text-white ">
+                        So that you can paste that 50 character password, or that long address without worrying about typos or keyloggers.
                         </Typography>
                     </div>
+                </div>
+            </div>
+
+
+            {/* Title Row */}
+            <div className="flex items-end justify-end gap-10 flex-shrink-0 px-10">
+                <div className="grid grid-cols-2 gap-40 h-full items-end">
+                    {/* Left Third */}
+                    <div></div>
+                   {/* Right Third */}
+                    <div className="flex flex-col col-span-1 gap-40 text-right">
+                        <Typography type="h3" className="font-header text-lg font-light text-gray-500 italic ">
+                        Sometimes installing clipboard apps is not an option.
+                        </Typography>
+                    </div>
+                    
                 </div>
             </div>
 

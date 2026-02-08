@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import ModelContainer from './sections/ModelContainer';
 import HeroSection from './sections/HeroSection';
 import WhySection from './sections/WhySection';
@@ -9,8 +9,37 @@ import { Typography } from "@material-tailwind/react";
 import { appColors } from '../../styles/colors';
 import { useBreakpoint } from '../../services/useBreakpoint';
 
+
+const star = [
+                    { row: 1, col: 0, color: appColors.primary },
+                    { row: 1, col: 3, color: appColors.primary },
+                    { row: 1, col: 6, color: appColors.primary },
+                    
+                    { row: 2, col: 1, color: appColors.primary },
+                    { row: 2, col: 3, color: appColors.primary },
+                    { row: 2, col: 5, color: appColors.primary },
+
+                    { row: 3, col: 2, color: appColors.primary },
+                    { row: 3, col: 3, color: appColors.primary },
+                    { row: 3, col: 4, color: appColors.primary },
+
+                    { row: 4, col: 4, color: appColors.primary },
+                    { row: 4, col: 3, color: appColors.primary },
+                    { row: 4, col: 2, color: appColors.primary },
+
+
+                    { row: 5, col: 1, color: appColors.primary },
+                    { row: 5, col: 3, color: appColors.primary },
+                    { row: 5, col: 5, color: appColors.primary },
+                    
+                    { row: 6, col: 0, color: appColors.primary },
+                    { row: 6, col: 3, color: appColors.primary },
+                    { row: 6, col: 6, color: appColors.primary },
+]
+
 export default function About() {
     const [currentSlide, setCurrentSlide] = useState(0);
+    const [gridDimensions, setGridDimensions] = useState({ rows: 0, cols: 0, width: 0, height: 0 });
     const { isMobile } = useBreakpoint();
     const scrollDeltaRef = useRef(0);
     const containerRef = useRef(null);
@@ -47,10 +76,32 @@ export default function About() {
                     { row: 20, col: 46, color: appColors.orange },
                     { row: 20, col: 48, color: appColors.primary }
                 ],
-                why: [
-                    { row: 0, col: 2, color: appColors.primary },
-                    { row: 0, col: 3, color: appColors.secondary }
-                ],
+                why: (() => {
+                    const cols = gridDimensions.cols;
+                    const minMargin = 1;
+                    const starWidth = 7; // Star spans from col 0 to col 6
+                    const centerCol = Math.round(cols / 2);
+                    
+                    // Left half: stars from left margin to center
+                    const leftStar1 = minMargin;
+                    const leftStar3 = centerCol - starWidth - minMargin;
+                    const leftStar2 = Math.round((leftStar1 + leftStar3) / 2);
+                    
+                    // Right half: stars from center to right margin
+                    const rightStar1 = centerCol + minMargin;
+                    const rightStar3 = cols - starWidth - minMargin;
+                    const rightStar2 = Math.round((rightStar1 + rightStar3) / 2);
+                    return [
+                        { row: 25, col: 52, color: appColors.secondary },
+                        ...star.map(square => ({ ...square, col: square.col + leftStar1, row: square.row + 20, color: appColors.secondary })),
+                        ...star.map(square => ({ ...square, col: square.col + leftStar2, row: square.row + 20, color: appColors.orange })),
+                        ...star.map(square => ({ ...square, col: square.col + leftStar3, row: square.row + 20, color: appColors.primary })),
+
+                        ...star.map(square => ({ ...square, col: square.col + rightStar1, row: square.row + 20, color: appColors.secondary })),
+                        ...star.map(square => ({ ...square, col: square.col + rightStar2, row: square.row + 20, color: appColors.orange })),
+                        ...star.map(square => ({ ...square, col: square.col + rightStar3, row: square.row + 20, color: appColors.primary })),
+                    ];
+                })(),
                 security: [
                     { row: 8, col: 4, color: appColors.primary },
                     { row: 9, col: 5, color: appColors.secondary }
@@ -63,7 +114,7 @@ export default function About() {
         }
     };
 
-    const sectionSquares = getSquaresForScreenSize();
+    const sectionSquares = useMemo(() => getSquaresForScreenSize(), [gridDimensions, isMobile]);
 
     // Show squares only for current section
     const currentSectionSquares = (() => {
@@ -115,6 +166,7 @@ export default function About() {
                 squareSize={25}
                 borderColor="transparent"
                 borderWidth={0}
+                onDimensionsChange={setGridDimensions}
             />
 
             {/* 3D Model Container */}

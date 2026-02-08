@@ -1,19 +1,49 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 
 /**
+ * Gets grid dimensions (rows and columns) for a given container element
+ * @param {HTMLElement} element - The container element to measure
+ * @param {number} squareSize - Size of each grid square in pixels
+ * @param {Array} filledSquares - Optional array of filled squares to account for max bounds
+ * @returns {Object} Object with { rows, cols, width, height }
+ */
+export function getGridDimensions(element, squareSize, filledSquares = []) {
+  if (!element) {
+    return { rows: 0, cols: 0, width: 0, height: 0 };
+  }
+
+  const width = element.clientWidth;
+  const height = element.clientHeight;
+
+  const rows = Math.max(
+    Math.ceil(height / squareSize) + 1,
+    filledSquares.length > 0 ? Math.max(...filledSquares.map(s => s.row)) + 1 : 0
+  );
+
+  const cols = Math.max(
+    Math.ceil(width / squareSize) + 1,
+    filledSquares.length > 0 ? Math.max(...filledSquares.map(s => s.col)) + 1 : 0
+  );
+
+  return { rows, cols, width, height };
+}
+
+/**
  * GridBackground - Renders a grid overlay with selective square coloring
  * @param {Array} filledSquares - Array of objects: [{row: 0, col: 0, color: '#00A878'}, ...]
  * @param {number} squareSize - Size of each grid square in pixels (default: 50)
  * @param {string} borderColor - Color of grid lines (default: rgba(255, 255, 255, 0.05))
  * @param {number} borderWidth - Width of grid lines in pixels (default: 1)
  * @param {string} backgroundColor - Background fill color (default: transparent)
+ * @param {Function} onDimensionsChange - Callback fired with grid dimensions { rows, cols, width, height }
  */
 export default function GridBackground({
   filledSquares = [],
   squareSize = 50,
   borderColor = 'rgba(255, 255, 255, 0.05)',
   borderWidth = 1,
-  backgroundColor = 'transparent'
+  backgroundColor = 'transparent',
+  onDimensionsChange
 }) {
   const containerRef = useRef(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -59,6 +89,18 @@ export default function GridBackground({
     const filledMax = filledSquares.length > 0 ? Math.max(...filledSquares.map(s => s.col)) + 1 : 0;
     return Math.max(cols, filledMax);
   }, [dimensions.width, squareSize, filledSquares]);
+
+  // Notify parent of grid dimensions when they change
+  useEffect(() => {
+    if (onDimensionsChange) {
+      onDimensionsChange({
+        rows: maxRows,
+        cols: maxCols,
+        width: dimensions.width,
+        height: dimensions.height
+      });
+    }
+  }, [maxRows, maxCols, dimensions.width, dimensions.height, onDimensionsChange]);
 
   // Generate grid squares
   const squares = useMemo(() => {
