@@ -15,6 +15,8 @@ import {
 } from "@heroicons/react/24/outline";
 
 import { useBLEContext, ConnectionStatus } from "../../context/BLEContext";
+import { isAuthenticated } from "../../services/Storage";
+import AuthenticationOverlay from "../overlays/AuthenticationOverlay";
 import ToothPaste from "../../assets/ToothPaste.png";
 import { createRenamePacket } from "../../services/packetService/packetFunctions";
 
@@ -94,7 +96,7 @@ function EditableDeviceName({ name, setName, isEditing, setIsEditing}) {
 }
 
 // Status icon for a given device
-function ConnectionButton() {
+function ConnectionButton({ showAuthOverlay, setShowAuthOverlay }) {
     const LONG_PRESS_DURATION = 2000;
     const { connectToDevice, status, device, sendEncrypted } = useBLEContext();
     const { start, end, cancel, longPressed } = useClickOrLongPress(LONG_PRESS_DURATION);
@@ -167,7 +169,14 @@ function ConnectionButton() {
         setProgress(0);
 
         if (!longPressTriggered.current) {
-            clickFn?.(); // only run click if long press didn’t trigger
+            // Check if authenticated before connecting
+            if (!status || status === ConnectionStatus.disconnected) {
+                if (!isAuthenticated()) {
+                    setShowAuthOverlay(true);
+                    return;
+                }
+            }
+            clickFn?.(); // only run click if long press didn't trigger
         }
     };
 
@@ -214,7 +223,8 @@ function ConnectionButton() {
 export default function Navbar({ onChangeOverlay, onNavigate, activeView, activeOverlay }) {
     const [open, setOpen] = React.useState(0);
     const [isOpen, setIsOpen] = useState(false);
-    const { status, device } = useBLEContext();
+    const [showAuthOverlay, setShowAuthOverlay] = useState(false);
+    const { status, device, connectToDevice } = useBLEContext();
 
     const borderClass =
         {
@@ -239,6 +249,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
         }
     }, [activeOverlay, status, onChangeOverlay]);
     return (
+        <>
         <div id="navbar" className="w-full bg-shelf text-white">
             <div className="relative flex justify-between h-24 items-center px-4">
                 {/* Left: Logo */}
@@ -329,7 +340,10 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                 <div className="flex items-center space-x-3">
                     {/* Desktop */}
                     <div className="hidden xl:block">
-                        <ConnectionButton connected={status} />
+                        <ConnectionButton 
+                            showAuthOverlay={showAuthOverlay}
+                            setShowAuthOverlay={setShowAuthOverlay}
+                        />
                     </div>
 
                     {/* Mobile Hamburger */}
@@ -440,9 +454,23 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                         )}
                     </div>
 
-                    <ConnectionButton connected={status} />
+                    <ConnectionButton 
+                        showAuthOverlay={showAuthOverlay}
+                        setShowAuthOverlay={setShowAuthOverlay}
+                    />
                 </div>
             )}
         </div>
+
+        {showAuthOverlay && (
+            <AuthenticationOverlay 
+                onAuthSuccess={() => {
+                    setShowAuthOverlay(false);
+                    connectToDevice();
+                }}
+                onClose={() => setShowAuthOverlay(false)}
+            />
+        )}
+        </>
     );
 }

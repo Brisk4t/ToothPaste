@@ -1,28 +1,81 @@
 const DB_NAME = "ToothPasteDB";
 const STORE_NAME = "deviceKeys";
 const CREDENTIALS_STORE = "webauthnCredentials";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
+const USER_ID_STORAGE_KEY = "toothpaste_webauthn_user_id";
 
 // Session-based encryption key derived from WebAuthn
 let sessionEncryptionKey = null;
 
+// Get or create a stable user ID for WebAuthn
+function getOrCreateUserId() {
+    let userId = localStorage.getItem(USER_ID_STORAGE_KEY);
+    if (!userId) {
+        // Generate a stable user ID and store it
+        const randomBytes = crypto.getRandomValues(new Uint8Array(16));
+        userId = arrayBufferToBase64(randomBytes.buffer);
+        localStorage.setItem(USER_ID_STORAGE_KEY, userId);
+    }
+    return userId;
+}
+
 // Open or create a new DB store and set the primary key to clientID
-function openDB() {
+export function openDB() {
     return new Promise((resolve, reject) => {
+        console.log("[Storage] Opening database...", { name: DB_NAME, version: DB_VERSION });
         const request = indexedDB.open(DB_NAME, DB_VERSION);
 
         request.onupgradeneeded = (event) => {
+            console.log("[Storage] onupgradeneeded triggered", { oldVersion: event.oldVersion, newVersion: event.newVersion });
             const db = event.target.result;
             if (!db.objectStoreNames.contains(STORE_NAME)) {
+                console.log("[Storage] Creating objectStore:", STORE_NAME);
                 db.createObjectStore(STORE_NAME, { keyPath: "clientID" });
             }
             if (!db.objectStoreNames.contains(CREDENTIALS_STORE)) {
+                console.log("[Storage] Creating objectStore:", CREDENTIALS_STORE);
                 db.createObjectStore(CREDENTIALS_STORE, { keyPath: "id" });
             }
         };
 
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+            const db = request.result;
+            console.log("[Storage] Database opened successfully", { stores: Array.from(db.objectStoreNames) });
+            
+            // Verify all required stores exist
+            const hasDeviceKeyStore = db.objectStoreNames.contains(STORE_NAME);
+            const hasCredentialStore = db.objectStoreNames.contains(CREDENTIALS_STORE);
+            
+            console.log("[Storage] Store verification", { hasDeviceKeyStore, hasCredentialStore });
+            
+            if (hasDeviceKeyStore && hasCredentialStore) {
+                console.log("[Storage] All stores present, database ready");
+                resolve(db);
+            } else {
+                // Stores are missing - database may be corrupted or was deleted
+                console.warn("[Storage] Database corrupted or incomplete. Deleting and recreating...");
+                db.close();
+                
+                // Delete the database completely and recreate it
+                const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
+                deleteRequest.onsuccess = () => {
+                    console.log("[Storage] Database deleted successfully, recreating...");
+                    // Wait briefly then retry opening - this will trigger onupgradeneeded
+                    setTimeout(() => {
+                        openDB().then(resolve).catch(reject);
+                    }, 50);
+                };
+                deleteRequest.onerror = () => {
+                    console.error("[Storage] Failed to delete database:", deleteRequest.error);
+                    reject(new Error("Failed to recover database: " + deleteRequest.error));
+                };
+            }
+        };
+
+        request.onerror = () => {
+            console.error("[Storage] Error opening database:", request.error);
+            reject(request.error);
+        };
     });
 }
 
@@ -75,9 +128,39 @@ async function deriveKeyFromWebAuthn(assertionData) {
     );
 }
 
+// Check if WebAuthn credentials exist without opening a transaction
+export async function credentialsExist() {
+    try {
+        console.log("[Storage] Checking if credentials exist...");
+        const db = await openDB();
+        const tx = db.transaction(CREDENTIALS_STORE, "readonly");
+        const store = tx.objectStore(CREDENTIALS_STORE);
+        
+        const credentials = await new Promise((resolve) => {
+            const request = store.getAll();
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => resolve([]);
+        });
+        
+        const exists = credentials.length > 0;
+        console.log("[Storage] Credentials check complete:", { count: credentials.length, exists });
+        return exists;
+    } catch (e) {
+        console.error("[Storage] Error checking credentials:", e);
+        return false;
+    }
+}
+
 // Register a new WebAuthn credential
-export async function registerWebAuthnCredential() {
+export async function registerWebAuthnCredential(displayName) {
+    console.log("[Storage] Starting WebAuthn registration", { displayName });
     const challenge = crypto.getRandomValues(new Uint8Array(32));
+    const userId = base64ToArrayBuffer(getOrCreateUserId());
+    console.log("[Storage] Generated challenge and retrieved user ID");
+    
+    // Use provided displayName or prompt user
+    const username = displayName || prompt("Enter a username for this account:", "ToothPaste User") || "ToothPaste User";
+    console.log("[Storage] Using username:", username);
     
     try {
         const credential = await navigator.credentials.create({
@@ -88,41 +171,55 @@ export async function registerWebAuthnCredential() {
                     id: window.location.hostname,
                 },
                 user: {
-                    id: crypto.getRandomValues(new Uint8Array(16)),
-                    name: "toothpaste-user",
-                    displayName: "ToothPaste User",
+                    id: new Uint8Array(userId),
+                    name: username.toLowerCase().replace(/\s+/g, "_"),
+                    displayName: username,
                 },
                 pubKeyCredParams: [
                     { alg: -7, type: "public-key" }, // ES256
                     { alg: -257, type: "public-key" }, // RS256
                 ],
                 timeout: 60000,
-                attestation: "direct",
+                attestation: "none",
+                residentKey: "preferred",
+                userVerification: "preferred",
             },
         });
 
         if (!credential) {
+            console.warn("[Storage] Credential creation was cancelled by user");
             throw new Error("Credential creation was cancelled");
         }
+        console.log("[Storage] WebAuthn credential created successfully", { id: credential.id.byteLength });
 
         // Store the credential in IndexedDB for future authentication
+        console.log("[Storage] Opening database to store credential...");
         const db = await openDB();
         const tx = db.transaction(CREDENTIALS_STORE, "readwrite");
         const store = tx.objectStore(CREDENTIALS_STORE);
+        console.log("[Storage] Transaction created, storing credential...");
 
         await new Promise((resolve, reject) => {
             const request = store.put({
                 id: arrayBufferToBase64(credential.id),
                 publicKey: arrayBufferToBase64(credential.response.getPublicKey()),
                 credentialId: credential.id,
+                displayName: username,
             });
-            request.onsuccess = () => resolve();
-            request.onerror = () => reject(request.error);
+            request.onsuccess = () => {
+                console.log("[Storage] Credential stored successfully in IndexedDB");
+                resolve();
+            };
+                request.onerror = () => {
+                    console.error("[Storage] Failed to store credential:", request.error);
+                    reject(request.error);
+                };
         });
 
+        console.log("[Storage] WebAuthn registration completed successfully");
         return true;
     } catch (error) {
-        console.error("WebAuthn registration failed:", error);
+        console.error("[Storage] WebAuthn registration failed:", error);
         throw error;
     }
 }
@@ -130,7 +227,9 @@ export async function registerWebAuthnCredential() {
 // Authenticate with WebAuthn and establish a session
 export async function authenticateWithWebAuthn() {
     try {
+        console.log("[Storage] Starting WebAuthn authentication...");
         const db = await openDB();
+        console.log("[Storage] Database opened for authentication");
         const tx = db.transaction(CREDENTIALS_STORE, "readonly");
         const store = tx.objectStore(CREDENTIALS_STORE);
 
@@ -142,8 +241,10 @@ export async function authenticateWithWebAuthn() {
         });
 
         if (credentials.length === 0) {
+            console.warn("[Storage] No credentials found for authentication");
             throw new Error("No registered credentials found. Please register a passkey first.");
         }
+        console.log("[Storage] Found credentials:", { count: credentials.length });
 
         const allowCredentials = credentials.map((cred) => ({
             id: new Uint8Array(base64ToArrayBuffer(cred.id)),
@@ -160,21 +261,27 @@ export async function authenticateWithWebAuthn() {
         });
 
         if (!assertion) {
+            console.warn("[Storage] Authentication was cancelled by user");
             throw new Error("Authentication was cancelled");
         }
+        console.log("[Storage] WebAuthn assertion received successfully");
 
         // Derive encryption key from the assertion
+        console.log("[Storage] Deriving encryption key from assertion...");
         sessionEncryptionKey = await deriveKeyFromWebAuthn(assertion.response);
+        console.log("[Storage] Session encryption key derived successfully");
         return true;
     } catch (error) {
-        console.error("WebAuthn authentication failed:", error);
+        console.error("[Storage] WebAuthn authentication failed:", error);
         throw error;
     }
 }
 
 // Check if user is currently authenticated
 export function isAuthenticated() {
-    return sessionEncryptionKey !== null;
+    const authenticated = sessionEncryptionKey !== null;
+    console.log("[Storage] isAuthenticated check:", authenticated);
+    return authenticated;
 }
 
 // Clear session (logout)
