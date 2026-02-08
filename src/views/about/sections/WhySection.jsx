@@ -15,39 +15,33 @@ export default function WhySection({ currentSlide, getSectionOpacity }) {
             {/* Title Row */}
             <div className="flex items-center justify-center gap-4 mb-12 flex-shrink-0">
                 <QuestionMarkCircleIcon className="h-12 w-12 text-primary flex-shrink-0" />
-                <Typography type="h2" className="text-text font-bold">
-                    Why?
+                <Typography type="h2" className="text-text font-header">
+                    What's a ToothPaste?
                 </Typography>
             </div>
 
             {/* Content Grid with Model Breaking Out */}
             <div className="flex-1 relative">
-                <div className="grid grid-cols-2 gap-8 h-full items-center">
+                <div className="grid grid-cols-2 gap-8 h-full items-start">
                     {/* Left Third */}
-                    <div className="flex flex-col col-span-1 gap-6">
-                        <Typography type="h4" className="text-2xl font-light text-white leading-relaxed">
-                            As a student and tinkerer, I often found myself needing to paste information to devices that I didn't want to connect to the internet or install apps on.
+                    <div className="flex flex-col col-span-1 gap-6 border  border-2 border-primary">
+                        <Typography type="h4" className="font-body text-lg font-light text-white leading-relaxed">
+                        Secure passwords are a pain to type. 
                         </Typography>
-                        
-                        <div className="flex flex-col gap-4">
-                            <Typography type="h4" className="text-2xl font-extralight text-orange leading-relaxed">
-                                MakerSpaces.
-                            </Typography>
-                            <Typography type="h4" className="text-2xl font-extralight text-orange leading-relaxed">
-                                Libraries.
-                            </Typography>
-                            <Typography type="h4" className="text-2xl font-extralight text-orange leading-relaxed">
-                                Vulnerable systems I'm definitely not trying to hack.
-                            </Typography>
-                        </div>
+                        <Typography type="h4" className="font-body text-lg font-light text-white leading-relaxed">
+                        Moving some text from one device to another turns into emailing yourself, using cloud clipboard services, or texting yourself. 
+                        </Typography>
+                        <Typography type="h4" className="font-body text-lg font-light text-white leading-relaxed">
+                        And sometimes installing clipboard apps is not an option.
+                        </Typography>
                     </div>
                     
                     {/* Right Third */}
-                    <div className="flex flex-col col-span-1 gap-10">
-                        <Typography type="h4" className="text-lg font-light text-white leading-relaxed">
+                    <div className="flex flex-col col-span-1 gap-10 border border-2 border-secondary">
+                        <Typography type="h4" className="font-body text-lg font-light text-white leading-relaxed">
                         Usually this involves emailing myself, using cloud clipboard services, or texting myself.
                         </Typography>
-                        <Typography type="h4" className="text-lg text-white leading-relaxed">
+                        <Typography type="h4" className="font-body text-lg text-white leading-relaxed">
                         ToothPaste makes this process seamless and secure by allowing me to quickly paste text directly to any nearby paired device.
                         </Typography>
                     </div>

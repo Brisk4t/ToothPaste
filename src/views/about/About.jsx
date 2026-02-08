@@ -48,8 +48,8 @@ export default function About() {
                     { row: 20, col: 48, color: appColors.primary }
                 ],
                 why: [
-                    { row: 5, col: 2, color: appColors.primary },
-                    { row: 6, col: 3, color: appColors.secondary }
+                    { row: 0, col: 2, color: appColors.primary },
+                    { row: 0, col: 3, color: appColors.secondary }
                 ],
                 security: [
                     { row: 8, col: 4, color: appColors.primary },
