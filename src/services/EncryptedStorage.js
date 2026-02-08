@@ -77,6 +77,157 @@ function getOrCreateUserId() {
 }
 
 /**
+ * Simple CBOR decoder for extracting public key from attestationObject
+ */
+function decodeCBOR(buffer) {
+    const view = new DataView(buffer);
+    let offset = 0;
+
+    function read() {
+        const byte = view.getUint8(offset++);
+        const majorType = (byte & 0xe0) >> 5;
+        const additionalInfo = byte & 0x1f;
+
+        if (majorType === 0) {
+            // Unsigned integer
+            if (additionalInfo < 24) return additionalInfo;
+            if (additionalInfo === 24) return view.getUint8(offset++);
+            if (additionalInfo === 25) return view.getUint16(offset, false), offset += 2, view.getUint16(offset - 2, false);
+            if (additionalInfo === 26) return view.getUint32(offset, false), offset += 4, view.getUint32(offset - 4, false);
+        } else if (majorType === 1) {
+            // Negative integer
+            if (additionalInfo < 24) return -1 - additionalInfo;
+            if (additionalInfo === 24) return -1 - view.getUint8(offset++);
+            if (additionalInfo === 25) return -1 - view.getUint16(offset, false), offset += 2, view.getUint16(offset - 2, false);
+        } else if (majorType === 2) {
+            // Byte string
+            const length = read();
+            const bytes = new Uint8Array(buffer, offset, length);
+            offset += length;
+            return bytes;
+        } else if (majorType === 3) {
+            // Text string
+            const length = read();
+            const str = new TextDecoder().decode(new Uint8Array(buffer, offset, length));
+            offset += length;
+            return str;
+        } else if (majorType === 5) {
+            // Map
+            const length = read();
+            const map = {};
+            for (let i = 0; i < length; i++) {
+                const key = read();
+                const value = read();
+                map[key] = value;
+            }
+            return map;
+        }
+        throw new Error("Unsupported CBOR type");
+    }
+
+    return read();
+}
+
+/**
+ * Extract public key from attestationObject
+ */
+function extractPublicKeyFromAttestation(attestationObject) {
+    const attestation = decodeCBOR(attestationObject);
+    const authData = attestation.authData;
+    
+    // authData structure: rpIdHash(32) + flags(1) + signCount(4) + [attested credential data]
+    // Bit 6 of flags indicates attested credential data is included
+    const flags = authData[32];
+    const hasAttestedCredentialData = (flags & 0x40) !== 0;
+    
+    if (!hasAttestedCredentialData) {
+        throw new Error("No attested credential data in authData");
+    }
+
+    // Skip: rpIdHash(32) + flags(1) + signCount(4) + credentialIdLength(2)
+    let offset = 32 + 1 + 4;
+    const credentialIdLength = (authData[offset] << 8) | authData[offset + 1];
+    offset += 2;
+    
+    // Skip credential ID
+    offset += credentialIdLength;
+    
+    // credentialPublicKey is CBOR-encoded
+    const publicKeyBuffer = authData.slice(offset);
+    const publicKey = decodeCBOR(publicKeyBuffer);
+    
+    return publicKey;
+}
+
+/**
+ * Export public key to JWK format for storage
+ */
+function publicKeyToJWK(publicKey) {
+    // publicKey is a CBOR map with kty, alg, and coordinate data
+    // For ES256: kty=2 (EC), crv=1 (P-256), x=-2, y=-3
+    // For RS256: kty=3 (RSA), n=-1, e=3
+    return JSON.stringify(publicKey);
+}
+
+/**
+ * Import public key from stored format
+ */
+async function importPublicKey(jwkString) {
+    const publicKey = JSON.parse(jwkString);
+    
+    if (publicKey[1] === 2) {
+        // EC key (ES256 or ES384)
+        const crv = publicKey[20] === 1 ? "P-256" : "P-384";
+        const x = publicKey[-2] instanceof Uint8Array ? publicKey[-2] : new Uint8Array(publicKey[-2]);
+        const y = publicKey[-3] instanceof Uint8Array ? publicKey[-3] : new Uint8Array(publicKey[-3]);
+        
+        return await crypto.subtle.importKey(
+            "raw",
+            new Uint8Array([0x04, ...x, ...y]), // Uncompressed point format
+            { name: "ECDSA", namedCurve: crv },
+            false,
+            ["verify"]
+        );
+    } else if (publicKey[1] === 3) {
+        // RSA key
+        throw new Error("RSA verification not yet implemented");
+    }
+    
+    throw new Error("Unknown public key type");
+}
+
+/**
+ * Verify WebAuthn assertion signature
+ */
+async function verifyAssertionSignature(assertion, storedPublicKeyJWK) {
+    const clientDataJSON = new TextDecoder().decode(assertion.response.clientDataJSON);
+    const clientData = JSON.parse(clientDataJSON);
+    
+    const authenticatorData = assertion.response.authenticatorData;
+    const signature = assertion.response.signature;
+    
+    // The signed data is: authenticatorData + SHA256(clientDataJSON)
+    const clientDataHash = await crypto.subtle.digest("SHA-256", assertion.response.clientDataJSON);
+    const signedData = new Uint8Array(authenticatorData.byteLength + clientDataHash.byteLength);
+    signedData.set(new Uint8Array(authenticatorData));
+    signedData.set(new Uint8Array(clientDataHash), authenticatorData.byteLength);
+    
+    const publicKey = await importPublicKey(storedPublicKeyJWK);
+    
+    try {
+        return await crypto.subtle.verify(
+            { name: "ECDSA", hash: "SHA-256" },
+            publicKey,
+            signature,
+            signedData
+        );
+    } catch (e) {
+        console.error("[EncryptedStorage] Signature verification failed:", e);
+        return false;
+    }
+}
+
+/**
  * Derive an encryption key from credential ID
  * Same key is produced every time for the same credential
  */
@@ -251,6 +402,17 @@ export async function registerWebAuthnCredential(displayName) {
         }
         console.log("[EncryptedStorage] WebAuthn credential created successfully");
 
+        // Extract public key from attestation object
+        const attestationObject = new Uint8Array(credential.response.attestationObject);
+        let publicKey;
+        try {
+            publicKey = extractPublicKeyFromAttestation(attestationObject);
+            console.log("[EncryptedStorage] Public key extracted from attestation");
+        } catch (e) {
+            console.error("[EncryptedStorage] Failed to extract public key:", e);
+            throw new Error("Failed to extract public key from credential");
+        }
+
         // Store the credential in IndexedDB
         const db = await Storage.openDB();
         const tx = db.transaction(CREDENTIALS_STORE, "readwrite");
@@ -263,6 +425,8 @@ export async function registerWebAuthnCredential(displayName) {
             const request = store.put({
                 id: credentialIdAsBase64,
                 displayName: username,
+                publicKey: publicKeyToJWK(publicKey),
+                counter: 0,
             });
             request.onsuccess = () => {
                 console.log("[EncryptedStorage] Credential stored successfully in IndexedDB");
@@ -293,9 +457,7 @@ export async function authenticateWithWebAuthn() {
     }
 
     try {
-        console.log("[EncryptedStorage] Starting WebAuthn authentication...");
         const db = await Storage.openDB();
-        console.log("[EncryptedStorage] Database opened for authentication");
         const tx = db.transaction(CREDENTIALS_STORE, "readonly");
         const store = tx.objectStore(CREDENTIALS_STORE);
 
@@ -303,7 +465,6 @@ export async function authenticateWithWebAuthn() {
         const credentials = await new Promise((resolve, reject) => {
             const request = store.getAll();
             request.onsuccess = () => {
-                console.log("[EncryptedStorage] Retrieved credentials from store:", JSON.stringify(request.result));
                 resolve(request.result);
             };
             request.onerror = () => reject(request.error);
@@ -313,16 +474,19 @@ export async function authenticateWithWebAuthn() {
             console.warn("[EncryptedStorage] No credentials found for authentication");
             throw new Error("No registered credentials found. Please register a passkey first.");
         }
-        console.log("[EncryptedStorage] Found credentials:", { count: credentials.length });
 
+        // Generate fresh challenge for this authentication attempt
+        const challenge = crypto.getRandomValues(new Uint8Array(32));
+        
         const allowCredentials = credentials.map((cred) => ({
             id: new Uint8Array(Storage.base64urlToArrayBuffer(cred.id)),
             type: "public-key",
         }));
 
+        // Get an assertion from the user using the registered credentials
         const assertion = await navigator.credentials.get({
             publicKey: {
-                challenge: crypto.getRandomValues(new Uint8Array(32)),
+                challenge: challenge,
                 allowCredentials: allowCredentials,
                 timeout: 60000,
                 userVerification: "preferred",
@@ -333,9 +497,8 @@ export async function authenticateWithWebAuthn() {
             console.warn("[EncryptedStorage] Authentication was cancelled by user");
             throw new Error("Authentication was cancelled");
         }
-        console.log("[EncryptedStorage] WebAuthn assertion received successfully");
 
-        // assertion.id is already a string per WebAuthn spec
+        // assertion.id is a string per WebAuthn spec
         const credentialId = assertion.id;
         const usedCredential = credentials.find((cred) => cred.id === credentialId);
         
@@ -344,8 +507,53 @@ export async function authenticateWithWebAuthn() {
             throw new Error("Credential not found: ID does not match any registered credential");
         }
 
+        // Verify the challenge matches what we sent
+        const clientDataJSON = new TextDecoder().decode(assertion.response.clientDataJSON);
+        const clientData = JSON.parse(clientDataJSON);
+        const challengeBase64 = Storage.arrayBufferToBase64(challenge);
+        
+        if (clientData.challenge !== challengeBase64) {
+            console.error("[EncryptedStorage] Challenge mismatch - possible replay attack");
+            throw new Error("Challenge verification failed");
+        }
+        console.log("[EncryptedStorage] Challenge verified");
+
+        // Verify the signature using the stored public key
+        if (!usedCredential.publicKey) {
+            throw new Error("No public key stored for credential - re-register required");
+        }
+        
+        const signatureValid = await verifyAssertionSignature(assertion, usedCredential.publicKey);
+        if (!signatureValid) {
+            console.error("[EncryptedStorage] Signature verification failed");
+            throw new Error("Signature verification failed");
+        }
+        console.log("[EncryptedStorage] Signature verified");
+
+        // Verify counter to detect cloned authenticators
+        const authenticatorData = assertion.response.authenticatorData;
+        const counterBytes = new DataView(authenticatorData.slice(33, 37));
+        const signCount = counterBytes.getUint32(0);
+        
+        if (signCount <= usedCredential.counter) {
+            console.warn("[EncryptedStorage] Sign count did not increase - possible cloned authenticator");
+            throw new Error("Authenticator sign count verification failed - possible clone detected");
+        }
+        console.log("[EncryptedStorage] Sign count verified:", { previous: usedCredential.counter, current: signCount });
+
+        // Update counter in database
+        const txWrite = db.transaction(CREDENTIALS_STORE, "readwrite");
+        const storeWrite = txWrite.objectStore(CREDENTIALS_STORE);
+        await new Promise((resolve, reject) => {
+            usedCredential.counter = signCount;
+            const request = storeWrite.put(usedCredential);
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+
         sessionEncryptionKey = await deriveKeyFromCredentialId(usedCredential.id);
         isAuthenticatedFlag = true;
+        console.log("[EncryptedStorage] WebAuthn authentication successful");
         return true;
     } catch (error) {
         console.error("[EncryptedStorage] WebAuthn authentication failed:", error);
