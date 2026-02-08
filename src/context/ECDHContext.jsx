@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useRef, useMemo } from "react";
-import { saveBase64, loadBase64 } from "../services/Storage.js";
+import { saveBase64, loadBase64 } from "../services/EncryptedStorage.js";
 import { ec as EC } from "elliptic";
 import { create, toBinary, fromBinary } from "@bufbuild/protobuf";
 

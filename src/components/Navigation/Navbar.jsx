@@ -15,7 +15,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 import { useBLEContext, ConnectionStatus } from "../../context/BLEContext";
-import { isAuthenticated } from "../../services/Storage";
+import { isAuthenticated } from "../../services/EncryptedStorage";
 import AuthenticationOverlay from "../overlays/AuthenticationOverlay";
 import ToothPaste from "../../assets/ToothPaste.png";
 import { createRenamePacket } from "../../services/packetService/packetFunctions";

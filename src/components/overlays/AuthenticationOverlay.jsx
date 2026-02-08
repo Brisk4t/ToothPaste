@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button, Typography } from "@material-tailwind/react";
 import { ShieldCheckIcon } from '@heroicons/react/24/outline';
-import { registerWebAuthnCredential, authenticateWithWebAuthn, isAuthenticated, credentialsExist } from '../../services/Storage';
+import { registerWebAuthnCredential, authenticateWithWebAuthn, isAuthenticated, credentialsExist } from '../../services/EncryptedStorage';
 
 const AuthenticationOverlay = ({ onAuthSuccess, onClose }) => {
     const [mode, setMode] = useState(null); // 'login' | 'register' | 'loading'

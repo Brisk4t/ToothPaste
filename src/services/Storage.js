@@ -1,144 +1,160 @@
 /**
- * Storage.js - Unified storage interface
+ * Storage.js - Simple IndexedDB storage (no encryption)
  * 
- * This is a facade that conditionally uses either:
- * - WebAuthnAdapter + BaseStorage (secure, requires WebAuthn authentication)
- * - BaseStorage with insecure default key (fallback for development)
- * 
- * Set WEBAUTHN_ENABLED = false to use insecure storage without requiring WebAuthn
+ * Provides basic CRUD operations for storing key-value pairs per client
  */
 
-import * as BaseStorage from './BaseStorage.js';
-import * as WebAuthnAdapter from './WebAuthnAdapter.js';
+const DB_NAME = "ToothPasteDB";
+const STORE_NAME = "deviceKeys";
+const CREDENTIALS_STORE = "webauthnCredentials";
+const DB_VERSION = 3;
 
-// Configuration: set to false to use insecure storage without WebAuthn
-const WEBAUTHN_ENABLED = true;
+// Open or create a new DB store and set the primary key to clientID
+export function openDB() {
+    return new Promise((resolve, reject) => {
+        console.log("[Storage] Opening database...", { name: DB_NAME, version: DB_VERSION });
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-// Insecure default key for development (DO NOT USE IN PRODUCTION)
-const INSECURE_DEFAULT_KEY_PASSWORD = "insecure-default-key-do-not-use";
+        request.onupgradeneeded = (event) => {
+            console.log("[Storage] onupgradeneeded triggered", { oldVersion: event.oldVersion, newVersion: event.newVersion });
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                console.log("[Storage] Creating objectStore:", STORE_NAME);
+                db.createObjectStore(STORE_NAME, { keyPath: "clientID" });
+            }
+            if (!db.objectStoreNames.contains(CREDENTIALS_STORE)) {
+                console.log("[Storage] Creating objectStore:", CREDENTIALS_STORE);
+                db.createObjectStore(CREDENTIALS_STORE, { keyPath: "id" });
+            }
+        };
 
-/**
- * Generate insecure default encryption key for non-WebAuthn mode
- * Only used if WEBAUTHN_ENABLED is false
- */
-async function getInsecureDefaultKey() {
-    console.warn("[Storage] WARNING: Using insecure storage without WebAuthn. Do not use in production!");
-    
-    const keyMaterial = await crypto.subtle.importKey(
-        "raw",
-        new TextEncoder().encode(INSECURE_DEFAULT_KEY_PASSWORD),
-        "HKDF",
-        false,
-        ["deriveKey"]
-    );
+        request.onsuccess = () => {
+            const db = request.result;
+            console.log("[Storage] Database opened successfully", { stores: Array.from(db.objectStoreNames) });
+            
+            // Verify all required stores exist
+            const hasDeviceKeyStore = db.objectStoreNames.contains(STORE_NAME);
+            const hasCredentialStore = db.objectStoreNames.contains(CREDENTIALS_STORE);
+            
+            console.log("[Storage] Store verification", { hasDeviceKeyStore, hasCredentialStore });
+            
+            if (hasDeviceKeyStore && hasCredentialStore) {
+                console.log("[Storage] All stores present, database ready");
+                resolve(db);
+            } else {
+                // Stores are missing - database may be corrupted or was deleted
+                console.warn("[Storage] Database corrupted or incomplete. Deleting and recreating...");
+                db.close();
+                
+                // Delete the database completely and recreate it
+                const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
+                deleteRequest.onsuccess = () => {
+                    console.log("[Storage] Database deleted successfully, recreating...");
+                    // Wait briefly then retry opening - this will trigger onupgradeneeded
+                    setTimeout(() => {
+                        openDB().then(resolve).catch(reject);
+                    }, 50);
+                };
+                deleteRequest.onerror = () => {
+                    console.error("[Storage] Failed to delete database:", deleteRequest.error);
+                    reject(new Error("Failed to recover database: " + deleteRequest.error));
+                };
+            }
+        };
 
-    return await crypto.subtle.deriveKey(
-        {
-            name: "HKDF",
-            hash: "SHA-256",
-            salt: new TextEncoder().encode("insecure-salt"),
-            info: new TextEncoder().encode("insecure-encryption"),
-        },
-        keyMaterial,
-        {
-            name: "AES-GCM",
-            length: 256,
-        },
-        false,
-        ["encrypt", "decrypt"]
-    );
+        request.onerror = () => {
+            console.error("[Storage] Error opening database:", request.error);
+            reject(request.error);
+        };
+    });
 }
 
-// Initialize insecure storage mode (only if WebAuthn is disabled)
-export async function initializeInsecureStorage() {
-    if (WEBAUTHN_ENABLED) {
-        throw new Error("Cannot initialize insecure storage when WebAuthn is enabled");
-    }
-    
-    console.warn("[Storage] Initializing insecure storage (no WebAuthn)");
-    const key = await getInsecureDefaultKey();
-    BaseStorage.setSessionEncryptionKey(key);
-    return true;
+// Save value under a given key in the store for a specific client
+export async function saveBase64(clientID, key, value) {
+    // Open the database
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    const store = await tx.objectStore(STORE_NAME);
+
+    // Wrap the IDbRequest in a promise and get the clientID key's value
+    const existing = await new Promise((resolve, reject) => {
+        const request = store.get(clientID);
+        request.onsuccess = () =>
+            resolve(request.result ?? { clientID, data: {} });
+        request.onerror = () => reject(request.error);
+    });
+
+    // Put the new value into the clientID key
+    existing.data[key] = value;
+    await new Promise((resolve, reject) => {
+        const request = store.put(existing);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+    });
+
+    return new Promise((resolve, reject) => {
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => reject(tx.error);
+    });
 }
 
-/**
- * Register a WebAuthn credential (only available if WEBAUTHN_ENABLED)
- */
-export async function registerWebAuthnCredential(displayName) {
-    if (!WEBAUTHN_ENABLED) {
-        throw new Error("WebAuthn is not enabled. Use initializeInsecureStorage() instead.");
-    }
-    return WebAuthnAdapter.registerWebAuthnCredential(displayName);
+// Load value for a given client and key
+export async function loadBase64(clientID, key) {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, "readonly");
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.get(clientID);
+
+    return new Promise((resolve, reject) => {
+        req.onsuccess = () => {
+            const data = req.result?.data?.[key] ?? null;
+            resolve(data);
+        };
+        req.onerror = () => reject(req.error);
+    });
 }
 
-/**
- * Authenticate with WebAuthn (only available if WEBAUTHN_ENABLED)
- */
-export async function authenticateWithWebAuthn() {
-    if (!WEBAUTHN_ENABLED) {
-        throw new Error("WebAuthn is not enabled. Use initializeInsecureStorage() instead.");
-    }
-    return WebAuthnAdapter.authenticateWithWebAuthn();
-}
+// Check if device keys exist for a client
+export async function keyExists(clientID) {
+    try {
+        const selfPublicKey = await loadBase64(clientID, "SelfPublicKey");
+        const sharedSecret = await loadBase64(clientID, "sharedSecret");
+        const peerPublicKey = await loadBase64(clientID, "PeerPublicKey");
 
-/**
- * Check if WebAuthn credentials exist (only meaningful if WEBAUTHN_ENABLED)
- */
-export async function credentialsExist() {
-    if (!WEBAUTHN_ENABLED) {
+        return !!(selfPublicKey && sharedSecret && peerPublicKey);
+    } catch (error) {
+        console.error("[Storage] Error retrieving keys:", error);
         return false;
     }
-    return WebAuthnAdapter.credentialsExist();
 }
 
-/**
- * Check if user is authenticated
- */
-export function isAuthenticated() {
-    if (WEBAUTHN_ENABLED) {
-        return WebAuthnAdapter.isAuthenticated();
-    } else {
-        return BaseStorage.hasSessionKey();
+// Helper: Convert ArrayBuffer to Base64
+export function arrayBufferToBase64(buffer) {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
     }
+    return btoa(binary);
 }
 
-/**
- * Clear the session
- */
-export function clearSession() {
-    if (WEBAUTHN_ENABLED) {
-        WebAuthnAdapter.clearSession();
-    } else {
-        BaseStorage.clearSessionKey();
+// Helper: Convert Base64 to ArrayBuffer
+export function base64ToArrayBuffer(base64) {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
     }
+    return bytes.buffer;
 }
 
-/**
- * Save encrypted base64 data
- */
-export async function saveBase64(clientID, key, value) {
-    return BaseStorage.saveBase64(clientID, key, value);
+// Helper: Convert URL-safe Base64 to ArrayBuffer
+export function base64urlToArrayBuffer(base64url) {
+    // Convert URL-safe base64 to standard base64
+    const standardBase64 = base64url
+        .replace(/-/g, '+')
+        .replace(/_/g, '/');
+    
+    return base64ToArrayBuffer(standardBase64);
 }
-
-/**
- * Load encrypted base64 data
- */
-export async function loadBase64(clientID, key) {
-    return BaseStorage.loadBase64(clientID, key);
-}
-
-/**
- * Check if device keys exist
- */
-export async function keyExists(clientID) {
-    return BaseStorage.keyExists(clientID);
-}
-
-/**
- * Export base64 and array buffer conversion utilities
- */
-export const arrayBufferToBase64 = BaseStorage.arrayBufferToBase64;
-export const base64ToArrayBuffer = BaseStorage.base64ToArrayBuffer;
-export const base64urlToArrayBuffer = BaseStorage.base64urlToArrayBuffer;
-export const openDB = BaseStorage.openDB;
 
