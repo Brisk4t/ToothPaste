@@ -201,7 +201,7 @@ export default function LiveCapture() {
     }
 
     return (
-        <div className="flex flex-col flex-1 w-full p-4 bg-background text-text">
+        <div className="flex flex-col flex-1 w-full p-4 bg-transparent text-text z-10">
             <div className="hidden xl:block">
                 <Keyboard listenerRef={inputRef} deviceStatus={status}></Keyboard>
             </div>

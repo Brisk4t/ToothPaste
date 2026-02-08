@@ -58,7 +58,7 @@ export default function BulkSend() {
 
 
     return (
-        <div className="flex flex-col flex-1 w-full p-6 bg-background text-text">
+        <div className="flex flex-col flex-1 w-full p-6 bg-transparent text-text z-10">
 
             <div id="bulk-send-container" className="flex flex-col flex-1 mt-5">
                 <Textarea

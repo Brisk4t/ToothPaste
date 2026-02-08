@@ -107,12 +107,13 @@ export default function About() {
 
     return (
         //  Background with grid pattern - also serves as scroll container
-        <div ref={containerRef} className="relative flex-1 w-full bg-background text-text overflow-hidden">
+        <div ref={containerRef} className="relative flex-1 w-full bg-transparent text-text overflow-hidden">
+            {/* Colored squares overlay - no grid lines */}
             <GridBackground
                 filledSquares={currentSectionSquares}
                 squareSize={25}
-                borderColor="rgba(255, 255, 255, 0.1)"
-                borderWidth={1}
+                borderColor="transparent"
+                borderWidth={0}
             />
 
             {/* 3D Model Container */}

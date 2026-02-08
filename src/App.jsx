@@ -14,6 +14,7 @@ import About from "./views/about/About";
 
 
 import ToothPaste from "./assets/ToothPaste.png";
+import { Grid } from "@react-three/drei";
 
 function App() {
     const [showOverlay, setShowOverlay] = useState(false);
@@ -53,8 +54,8 @@ function App() {
     return (
     <ECDHProvider>
       <BLEProvider setShowOverlay={setShowOverlay} showOverlay={showOverlay}>
-        <div className="flex flex-col h-dvh overflow-hidden">
-          {/* Navbar with hamburger toggle */}
+        <div className="flex flex-col h-dvh overflow-hidden bg-background relative">
+          {/* Navbar - top layer */}
           <Navbar
             showNavbar={showNavbar}
             setshowNavbar={setshowNavbar}
@@ -62,11 +63,20 @@ function App() {
             onChangeOverlay={setActiveOverlay}
             activeOverlay={activeOverlay}
             activeView={activeView}
+            className="relative z-40"
           />
 
-          {/* Main content area */}
-          <main className="flex flex-col flex-1 overflow-auto min-h-0">
+          {/* Main content area - middle layer */}
+          <main className="flex flex-col flex-1 overflow-auto min-h-0 relative z-0 bg-transparent">
+
             {renderView()}
+                        <GridBackground
+              filledSquares={[]}
+              squareSize={25}
+              borderColor="rgba(255, 255, 255, 0.1)"
+              borderWidth={1}
+              className="z-0"
+            />
           </main>
 
           {/* Overlay */}
