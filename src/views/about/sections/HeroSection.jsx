@@ -28,7 +28,7 @@ export default function HeroSection({ currentSlide, getSectionOpacity }) {
                         <div className="mb-40">
                             <Typography className="font-header text-8xl font-bold text-primary ">ToothPaste</Typography>
                             <Typography style={{ fontFamily: '"Libre Barcode 39 Extended", system-ui' }} className="text-2xl leading-relaxed">ToothPaste</Typography>
-                            <Typography className="font-body text-4xl font-light italic text-gray-500 leading-relaxed ">Plug In. Pair. Paste</Typography>
+                            <Typography className="font-body text-4xl font-light italic text-gray-500 leading-relaxed ">Plug In. Pair. Paste.</Typography>
                         </div>
                         <div className="flex flex-col gap-4 ">
                             <Typography type="h5" className="font-body text-white leading-relaxed mb-0">
