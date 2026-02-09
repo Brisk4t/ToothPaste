@@ -6,10 +6,30 @@ import React, { useState, useRef } from "react";
  */
 export function KeyboardShortcutButton({ label, keySequence, wasSwipe, onSendKeyboardShortcut }) {
     const [isPressed, setIsPressed] = useState(false);
+    const touchStartRef = useRef({ x: 0, y: 0 });
+    const isSwiping = useRef(false);
+    const MOVEMENT_THRESHOLD = 15; // pixels of movement before considering it a swipe
+
+    const handleTouchStart = (e) => {
+        touchStartRef.current = {
+            x: e.touches[0].clientX,
+            y: e.touches[0].clientY
+        };
+        isSwiping.current = false;
+    };
+
+    const handleTouchMove = (e) => {
+        const deltaX = Math.abs(e.touches[0].clientX - touchStartRef.current.x);
+        const deltaY = Math.abs(e.touches[0].clientY - touchStartRef.current.y);
+        
+        if (deltaX > MOVEMENT_THRESHOLD || deltaY > MOVEMENT_THRESHOLD) {
+            isSwiping.current = true;
+        }
+    };
 
     const handlePress = () => {
-        // Don't press if this was a swipe gesture
-        if (wasSwipe.current) return;
+        // Don't press if this was a swipe gesture or carousel swipe
+        if (isSwiping.current || wasSwipe.current) return;
         
         setIsPressed(true);
         onSendKeyboardShortcut(keySequence);
@@ -21,7 +41,9 @@ export function KeyboardShortcutButton({ label, keySequence, wasSwipe, onSendKey
             className={`h-14 flex justify-center items-center flex-1 transition-colors cursor-pointer select-none ${
                 isPressed ? "bg-white text-shelf" : "bg-background text-text"
             }`}
-            onTouchStart={handlePress}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handlePress}
             onMouseDown={handlePress}
         >
             <span className="text-sm font-medium text-center px-2 line-clamp-2">{label}</span>
@@ -34,30 +56,36 @@ export function KeyboardShortcutButton({ label, keySequence, wasSwipe, onSendKey
  */
 export function KeyboardShortcutCarousel({ shortcuts, onSendKeyboardShortcut }) {
     const [currentSlide, setCurrentSlide] = useState(0);
-    const touchStartX = useRef(0);
-    const touchEndX = useRef(0);
+    const pointerStart = useRef({ x: 0, y: 0 });
     const carouselRef = useRef(null);
     const wasSwipe = useRef(false);
-    const SWIPE_THRESHOLD = 50; // minimum swipe distance in pixels
+    const SWIPE_THRESHOLD = 50; // minimum horizontal swipe distance in pixels
+    const ASPECT_RATIO = 2; // require horizontal movement to be 2x larger than vertical
 
-    const handleTouchStart = (e) => {
-        touchStartX.current = e.touches[0].clientX;
+    const handlePointerDown = (e) => {
+        pointerStart.current = {
+            x: e.clientX || e.touches?.[0].clientX,
+            y: e.clientY || e.touches?.[0].clientY
+        };
         wasSwipe.current = false;
     };
 
-    const handleTouchMove = (e) => {
-        e.preventDefault();
-        // Detect if this is a swipe by checking movement distance
-        const currentX = e.touches[0].clientX;
-        const diff = Math.abs(touchStartX.current - currentX);
-        if (diff > SWIPE_THRESHOLD) {
+    const handlePointerMove = (e) => {
+        const currentX = e.clientX || e.touches?.[0].clientX;
+        const currentY = e.clientY || e.touches?.[0].clientY;
+        
+        const deltaX = Math.abs(currentX - pointerStart.current.x);
+        const deltaY = Math.abs(currentY - pointerStart.current.y);
+        
+        // Only consider it a horizontal swipe if X movement >> Y movement
+        if (deltaX > SWIPE_THRESHOLD && deltaX > deltaY * ASPECT_RATIO) {
             wasSwipe.current = true;
         }
     };
 
-    const handleTouchEnd = (e) => {
-        touchEndX.current = e.changedTouches[0].clientX;
-        const diff = touchStartX.current - touchEndX.current;
+    const handlePointerUp = (e) => {
+        const endX = e.clientX || e.changedTouches?.[0].clientX;
+        const diff = pointerStart.current.x - endX;
 
         if (wasSwipe.current) {
             if (diff > 0) {
@@ -70,24 +98,27 @@ export function KeyboardShortcutCarousel({ shortcuts, onSendKeyboardShortcut }) 
         }
     };
 
-    // Use useEffect to attach non-passive touch listeners
+    // Attach pointer listeners
     React.useEffect(() => {
         const carousel = carouselRef.current;
         if (!carousel) return;
 
-        carousel.addEventListener("touchmove", handleTouchMove, { passive: false });
+        carousel.addEventListener("pointerdown", handlePointerDown);
+        carousel.addEventListener("pointermove", handlePointerMove);
+        carousel.addEventListener("pointerup", handlePointerUp);
 
         return () => {
-            carousel.removeEventListener("touchmove", handleTouchMove);
+            carousel.removeEventListener("pointerdown", handlePointerDown);
+            carousel.removeEventListener("pointermove", handlePointerMove);
+            carousel.removeEventListener("pointerup", handlePointerUp);
         };
-    }, []);
+    }, [shortcuts.length]);
 
     return (
         <div
             ref={carouselRef}
-            className="flex flex-col bg-background border border-hover border-b-0 border-x-0 relative"
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
+            className="flex flex-col bg-background border border-hover border-b-0 border-x-0 relative select-none"
+            style={{ touchAction: 'pan-y' }}
         >
             {/* Slide container with animation */}
             <div className="flex h-14 overflow-hidden w-full">
