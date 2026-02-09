@@ -63,11 +63,11 @@ export default function HeroSection({ currentSlide, getSectionOpacity }) {
                 <div className="flex flex-col">
                     <div>
                         <div className="mb-40">
-                            <Typography className="font-header text-8xl font-bold text-primary ">ToothPaste</Typography>
+                            <Typography className="font-header text-6xl font-bold text-primary ">ToothPaste</Typography>
                             <Typography style={{ fontFamily: '"Libre Barcode 39 Extended", system-ui' }} className="text-2xl leading-relaxed">ToothPaste</Typography>
-                            <Typography className="font-body text-4xl font-light italic text-gray-500 leading-relaxed ">Plug In. Pair. Paste</Typography>
+                            <Typography className="font-body text-2xl font-light italic text-gray-500 leading-relaxed ">Plug In. Pair. Paste</Typography>
                         </div>
-                        <div className="flex flex-col gap-4 ">
+                        <div className="flex flex-col gap-4 mr-10">
                             <Typography type="h5" className="font-body text-white leading-relaxed mb-0">
                                 Because sometimes you just want to type                                
                             </Typography>

@@ -112,9 +112,9 @@ export default function About() {
         if (isMobile) {
             return {
                 hero: [
-                    { row: 20, col: 1, color: appColors.secondary },
-                    { row: 20, col: 3, color: appColors.orange },
-                    { row: 20, col: 5, color: appColors.primary },
+                    { row: 10, col: 1, color: appColors.secondary },
+                    { row: 10, col: 3, color: appColors.orange },
+                    { row: 10, col: 5, color: appColors.primary },
                 ],
                 why: generateRepeatingStars(gridDimensions.cols),
                 security: [

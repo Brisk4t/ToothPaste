@@ -352,7 +352,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                         aria-label="Toggle menu"
                     >
                         <div className="flex flex-col flex-1 min-w-0 p-1">
-                            <Typography variant="h6" color="text" className="text-lg font-header font-medium normal-case truncate">
+                            <Typography variant="h6" color="text" className="text-md font-header font-medium normal-case truncate">
                                 {device?.name || "Not Connected"}
                             </Typography>
                         </div>
