@@ -256,7 +256,10 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                 {/* Left: Logo */}
                 <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setIsOpen(false)}>
                     <img src={ToothPaste} alt="ToothPaste" className="h-10 w-10" />
-                    <Typography type="h3" className="select-none font-header font-bold text-text">
+                    <Typography type="h3" className="hidden md:block select-none font-header font-bold text-text">
+                        ToothPaste
+                    </Typography>
+                    <Typography type="h5" className="md:hidden select-none font-header font-bold text-text">
                         ToothPaste
                     </Typography>
                 </div>

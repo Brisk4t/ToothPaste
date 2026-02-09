@@ -56,10 +56,10 @@ export default function Touchpad({
                 {rightButtonColumn}
             </div>
 
-            <div className="flex items-center justify-center opacity-70 pointer-events-none select-none text-text p-4 whitespace-pre-wrap absolute left-0 right-0 top-1/2 -translate-y-1/2 w-full z-10 text-center gap-2">
+            <div className="flex items-center justify-center opacity-70 pointer-events-none select-none text-text p-4 whitespace-pre-wrap absolute left-0 right-0 top-1/2 -translate-y-1/2 w-full z-10 text-center gap-1">
                 <CursorArrowRaysIcon className="h-10 w-10 opacity-70 text-text" />
                 <Typography
-                    type="h5"
+                    type="h6"
                     className="font-light"
                     aria-hidden="true"
                 >
@@ -69,7 +69,7 @@ export default function Touchpad({
 
             {captureMouse && (
                 <Typography
-                    type="h5"
+                    type="h6"
                     className="flex items-center justify-center mt-2 opacity-70 pointer-events-none select-none text-text whitespace-pre-wrap font-light absolute left-0 right-0 top-1/2 translate-y-3 w-full z-10 text-center"
                     aria-hidden="true"
                 >
@@ -97,7 +97,7 @@ export default function Touchpad({
                     <ArrowUpOnSquareStackIcon className="h-6 w-6 opacity-70 mr-2" />
                     <Typography
                         type="small"
-                        className=",r"
+                        className="font-light"
                         aria-hidden="true"
                     >
                         Enable Command Passthrough to use shortcuts

@@ -207,7 +207,7 @@ export default function LiveCapture() {
             </div>
 
             {/* Mobile Input Area - Visible only on small screens */}
-            <div className="xl:hidden flex flex-row my-4 rounded-lg transition-all border border-hover min-h-12 bg-shelf focus-within:bg-background relative group opacity-50">
+            <div className="xl:hidden flex flex-row my-1 rounded-lg transition-all border border-hover min-h-12 bg-shelf focus-within:bg-background relative group opacity-50">
                 <Typography
                     type="h5"
                     className="flex items-center justify-center opacity-70 pointer-events-none select-none text-white p-4 whitespace-pre-wrap font-light absolute inset-0 z-0 group-focus-within:hidden"
