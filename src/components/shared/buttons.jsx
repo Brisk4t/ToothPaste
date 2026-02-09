@@ -236,7 +236,7 @@ export function IconToggleButton({
             >
                 {Icon && <Icon className="h-5 w-5" />}
                 {(isHovered || isClicked) && hoverText && (
-                    <span className="mx-2 whitespace-nowrap text-sm font-medium">
+                    <span className="font-header mx-2 whitespace-nowrap text-sm font-medium">
                         {hoverText}
                     </span>
                 )}

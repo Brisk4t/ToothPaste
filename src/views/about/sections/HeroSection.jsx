@@ -1,7 +1,7 @@
 import React from 'react';
 import { Typography } from "@material-tailwind/react";
 import { ArrowDownIcon } from "@heroicons/react/24/outline";
-import TypingAnimation from '../../../components/TypingAnimation';
+import TypingAnimation from '../../../components/shared/TypingAnimation';
 
 export default function HeroSection({ currentSlide, getSectionOpacity }) {
     return (
@@ -36,9 +36,9 @@ export default function HeroSection({ currentSlide, getSectionOpacity }) {
                             </Typography>
                             <TypingAnimation
                                 texts={[
-                                    'MySecurePassword123!@#',
-                                    'Long Street, Longer Avenue, Ugh City, State, Country - 123 123',
-                                    'Or just casual government secrets.....'
+                                    'MySecurePassword123(づ￣ 3￣)づ',
+                                    'Long Street, Longer Avenue, Ugh City, State, Country - ABC 123',
+                                    '↑ ↑ ↓ ↓ ← → ← → B A Start'
                                 ]}
                                 typingSpeed={10}
                                 pauseTime={1000}

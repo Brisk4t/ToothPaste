@@ -12,31 +12,31 @@ const WELCOME_STEP = {
     title: (
         <>
             <div className="inline-flex items-center gap-1 mb-3">
-                <Typography type="h3">Welcome To ToothPaste</Typography>
-                <img src={ToothPaste} alt="ToothPaste" className="h-12 w-12" />
+                <img src={ToothPaste} alt="ToothPaste" className="h-12 w-12 mr-4" />
+                <Typography type="h3" className="font-header">Welcome To ToothPaste</Typography>
             </div>
         </>
     ),
     description: (
         <>
             <div className="mb-6">
-                <Typography type="paragraph" className="text-xl">
+                <Typography type="paragraph" className="font-body text-xl">
                     A tool to quickly capture and send clipboard data across devices without compromising security.
                 </Typography>
             </div>
 
-            <div className="flex flex-col gap-5 text-lg">
+            <div className="flex mb-6 flex-col gap-5 text-lg">
                 <div className="flex gap-3">
                     <LockClosedIcon className="h-6 w-6 text-primary font-bold" />
-                    <Typography className="text-lg">End-to-end encrypted communication</Typography>
+                    <Typography className="font-body text-lg">End-to-end encrypted communication</Typography>
                 </div>
                 <div className="flex gap-3">
                     <WifiIcon className="h-6 w-6 text-primary font-bold" />
-                    <Typography className="text-lg">Real-time keyboard and mouse capture</Typography>
+                    <Typography className="font-body text-lg">Real-time keyboard and mouse capture</Typography>
                 </div>
                 <div className="flex gap-3">
                     <CheckCircleIcon className="h-6 w-6 text-primary font-bold" />
-                    <Typography className="text-lg">Easy device pairing and management</Typography>
+                    <Typography className="font-body text-lg">Easy device pairing and management</Typography>
                 </div>
             </div>
         </>
@@ -63,23 +63,23 @@ const NAV_MENU_STEP = {
 };
 
 const CONNECTION_STATUS_STEP = {
-    title: (<><Typography type="h4">Connect Button</Typography></>),
+    title: (<><Typography type="h4" className="font-header">Connect Button</Typography></>),
     description: (
         <>
             <div className="mb-4">
-                <Typography className="text-xl">Click to connect to a ToothPaste device via BLE.</Typography>
+                <Typography className="text-xl font-body">Click to connect to a ToothPaste device via BLE.</Typography>
             </div>
             <div className="border border-2 border-hover mb-4"></div>
             <div className="">
-                <Typography className="text-lg mb-2">Different border colors indicate connection status:</Typography>
+                <Typography className="text-lg font-body mb-2">Different border colors indicate connection status:</Typography>
                 <ul className="list-disc list-inside space-y-1 text-sm">
-                    <Typography><span className="text-primary font-semibold">Green</span> - Connected</Typography>
-                    <Typography><span className="text-orange font-semibold">Orange</span> - Connected, Not Paired</Typography>
-                    <Typography><span className="text-secondary font-semibold">Red</span> - Disconnected</Typography>
+                    <Typography className="font-body"><span className="text-primary font-body font-semibold">Green</span> - Connected</Typography>
+                    <Typography className="font-body"><span className="text-orange font-body font-semibold">Orange</span> - Connected, Not Paired</Typography>
+                    <Typography className="font-body"><span className="text-secondary font-body font-semibold">Red</span> - Disconnected</Typography>
                 </ul>
             </div>
             <br/>
-            <Typography type="paragraph" className="text-xl font-extralight">Once connected, <span className="font-semibold">hold this button </span>to rename the connected device.</Typography>
+            <Typography className="text-lg font-body font-extralight">Once connected, <span className="font-semibold">hold this button </span>to rename the connected device.</Typography>
 
         </>
     ),
@@ -190,7 +190,7 @@ export default function QuickStartOverlay({ onChangeOverlay, activeView = 'live'
     const getGridPosition = (step) => {
         return {
             gridColumn: `${step.gridColumn} / span ${step.columnSpan}`,
-            gridRow: `${step.gridRow} / span ${step.rowSpan}`,
+            gridRow: `${step.gridRow}`,
         };
     };
 
@@ -270,43 +270,41 @@ export default function QuickStartOverlay({ onChangeOverlay, activeView = 'live'
                 {/* Tooltip Card */}
                 <div
                     key={currentStep}
-                    className="bg-shelf p-5 rounded-lg shadow-lg pointer-events-auto flex flex-col"
-                    style={gridStyles}
+                    className="bg-shelf p-5 rounded-lg shadow-lg pointer-events-auto flex flex-col overflow-visible"
+                    style={{...gridStyles, height: 'auto'}}
                     onClick={(e) => e.stopPropagation()}
                 >
                     <div className="flex justify-between items-start mb-3">
-                        <Typography variant="h5" className="text-text font-sans normal-case font-semibold">
+                        <Typography type="h5" className="font-header text-text">
                             {step.title}
                         </Typography>
-                        <span className="text-xs font-semibold text-primary ml-2">
+                        <span className="text-xs font-header text-primary ml-2">
                             {currentStep + 1} / {steps.length}
                         </span>
                     </div>
 
-                    <div className="flex-1 text-text mb-4 text-sm leading-relaxed">
+                    <div className="flex-1 font-body text-text mb-4 text-sm leading-relaxed">
                         {step.description}
                     </div>
 
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 flex-wrap">
                         {currentStep > 0 && (
                             <Button
                                 onClick={handlePrevious}
-                                variant="outline"
-                                className="flex-1 h-10 border-hover text-text hover:bg-hover font-sans normal-case"
+                                className="flex-1 min-w-fit h-10 border-hover text-text hover:bg-hover font-header normal-case"
                             >
                                 Previous
                             </Button>
                         )}
                         <Button
                             onClick={handleSkip}
-                            variant="outline"
-                            className="flex-1 h-10 border-hover text-text hover:bg-hover font-sans normal-case"
+                            className="flex-1 min-w-fit h-10 border-hover text-text hover:bg-hover font-header normal-case"
                         >
                             Skip
                         </Button>
                         <Button
                             onClick={handleNext}
-                            className="flex-1 h-10 bg-primary text-text hover:bg-primary font-sans normal-case"
+                            className="flex-1 min-w-fit h-10 bg-primary text-text hover:bg-primary font-header normal-case"
                         >
                             {isLastStep ? 'Done' : 'Next'}
                         </Button>

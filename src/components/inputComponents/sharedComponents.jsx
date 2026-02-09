@@ -214,7 +214,7 @@ export function RightButtonColumn({
                                         sendKeyboardShortcut(shortcut.keys);
                                         setIsMenuOpen(false);
                                     }}
-                                    className="w-full px-4 py-2 text-left text-sm font-medium bg-shelf text-text rounded-lg border border-hover hover:bg-white hover:text-shelf transition-colors"
+                                    className="w-full font-header px-4 py-2 text-left text-sm font-medium bg-shelf text-text rounded-lg border border-hover hover:bg-white hover:text-shelf transition-colors"
                                 >
                                     {shortcut.label}
                                 </button>

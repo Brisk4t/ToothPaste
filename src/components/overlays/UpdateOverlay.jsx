@@ -106,8 +106,8 @@ export default function UpdateController({onChangeOverlay}) {
   };
 
   return (
-        <div className="fixed inset-0 bg-hover/80 flex flex-col justify-center items-center z-[9999]" onClick={() => onChangeOverlay(null)}>
-            <div className="bg-shelf p-5 rounded-lg w-11/12 max-w-md flex flex-col justify-center items-center shadow-lg relative" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-hover/80 flex flex-col justify-center items-center z-[9999] p-4" onClick={() => onChangeOverlay(null)}>
+            <div className="bg-shelf p-8 rounded-lg w-full max-w-2xl flex flex-col justify-center items-center shadow-lg relative" onClick={(e) => e.stopPropagation()}>
                 {/* Close Button*/}
                 <button
                     onClick={() => onChangeOverlay(null)}
@@ -116,7 +116,7 @@ export default function UpdateController({onChangeOverlay}) {
                 ×
                 </button>
 
-                <Typography variant="h4" className="text-text font-sans normal-case font-semibold mb-4">
+                <Typography type="h4" className="text-text font-header normal-case font-semibold mb-4">
                     <span className="text-text">Update Your ToothPaste</span>
                 </Typography>
                             
@@ -136,7 +136,7 @@ export default function UpdateController({onChangeOverlay}) {
                     {/* <KeyIcon className={`h-7 w-7 mr-2  ${isLoading? "hidden":""}`} /> */}
 
                     {/* Paste to Device */}
-                    <Typography variant="h6" className={`text-text font-sans normal-case font-semibold ${connected ? "hidden" : ""}`}>Pair</Typography>
+                    <Typography variant="h6" className={`text-text font-body normal-case font-semibold ${connected ? "hidden" : ""}`}>Pair</Typography>
                 </Button>
 
                 <Button
@@ -151,15 +151,15 @@ export default function UpdateController({onChangeOverlay}) {
                     {/* <KeyIcon className={`h-7 w-7 mr-2  ${isLoading? "hidden":""}`} /> */}
 
                     {/* Paste to Device */}
-                    <Typography variant="h6" className={`text-text font-sans normal-case font-semibold`}>Write</Typography>
+                    <Typography variant="h6" className={`text-text font-body normal-case font-semibold`}>Write</Typography>
                 </Button>
 
-                <Typography variant="h6" className={`text-gray-300 text-sm text-center ${connected ? "hidden" : ""}`}>
+                <Typography variant="h6" className={`font-body text-gray-300 text-sm text-center ${connected ? "hidden" : ""}`}>
                   Hold down the button on your ToothPaste while plugging it in to a USB port to enter pairing mode. 
                   Then click "Pair" and find the device in the list.
                 </Typography>
 
-                <Typography variant="h6" className={`text-gray-300 text-sm text-center ${status === UpdateStatus.COMPLETE ? "" : "hidden"}`}>
+                <Typography variant="h6" className={`font-body text-gray-300 text-sm text-center ${status === UpdateStatus.COMPLETE ? "" : "hidden"}`}>
                   Your ToothPaste has been updated successfully! Unplug and replug it to get started.
                 </Typography>
 

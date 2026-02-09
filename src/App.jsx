@@ -8,7 +8,7 @@ import { BLEProvider } from "./context/BLEContext";
 import ECDHOverlay from "./components/overlays/ECDHOverlay";
 import UpdateController from "./components/overlays/UpdateOverlay";
 import QuickStartOverlay from "./components/overlays/QuickStartOverlay";
-import GridBackground from './components/GridBackground';
+import GridBackground from './components/shared/GridBackground';
 import { ECDHContext, ECDHProvider } from "./context/ECDHContext";
 import About from "./views/about/About";
 

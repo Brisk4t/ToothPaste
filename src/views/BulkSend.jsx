@@ -62,7 +62,7 @@ export default function BulkSend() {
 
             <div id="bulk-send-container" className="flex flex-col flex-1 mt-5">
                 <Textarea
-                    className={`flex flex-1 resize-none bg-shelf border-2 focus:border-hover outline-none text-text 
+                    className={`flex flex-1 resize-none bg-shelf border-2 focus:border-hover outline-none text-text font-body
                         ${status===1?'hover:border-primary border-primary':'hover:border-secondary border-secondary'} `}
                     ref={editorRef}
                     value={input}
@@ -76,10 +76,10 @@ export default function BulkSend() {
                     disabled={status !== 1}
                     className='my-4 bg-primary disabled:bg-hover disabled:border-secondary text-text active:bg-primary-active flex items-center justify-center size-lg '>
 
-                    <ClipboardIcon className="h-7 w-7 mr-2" />
+                    <ClipboardIcon className="h-7 w-7 mr-4" />
 
                     {/* Paste to Device */}
-                    <Typography variant="h4" className="text-text font-sans normal-case font-semibold">Paste to Device</Typography>
+                    <Typography type="h5" className="text-text font-header normal-case font-semibold">Paste to Device</Typography>
                 </Button>
             </div>
         </div>

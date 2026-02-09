@@ -52,7 +52,7 @@ export default function LiveCapture() {
     const DOUBLE_TAP_THRESHOLD = 300; // ms
     const DOUBLE_TAP_DISTANCE = 50; // pixels
 
-    
+
 
     const displacementList = useRef([]);
 
@@ -122,7 +122,7 @@ export default function LiveCapture() {
         const displacementX = e.clientX - mouseStartPos.current.x;
         const displacementY = e.clientY - mouseStartPos.current.y;
         displacementList.current.push({ x: displacementX, y: displacementY });
-        
+
         // Update start position for next calculation
         mouseStartPos.current = { x: e.clientX, y: e.clientY };
     }
@@ -132,7 +132,7 @@ export default function LiveCapture() {
         if (!isFocused || !captureMouse) return; // Only capture when focused and enabled  
         e.preventDefault(); // Prevent page scrolling
 
-        var reportDelta  = -e.deltaY * 0.01; // Scale down the scroll delta
+        var reportDelta = -e.deltaY * 0.01; // Scale down the scroll delta
         mouseHandler.sendMouseScroll(reportDelta, sendEncrypted);
     }
 
@@ -141,16 +141,16 @@ export default function LiveCapture() {
         const touch = e.touches[0];
         const currentTime = Date.now();
         const currentPos = { x: touch.clientX, y: touch.clientY };
-        
+
         // Check if this is a double tap
         const timeSinceLastTap = currentTime - lastTapTime.current;
-        const distanceFromLastTap = lastTapPos.current 
+        const distanceFromLastTap = lastTapPos.current
             ? Math.sqrt(
-                Math.pow(currentPos.x - lastTapPos.current.x, 2) + 
+                Math.pow(currentPos.x - lastTapPos.current.x, 2) +
                 Math.pow(currentPos.y - lastTapPos.current.y, 2)
-              )
+            )
             : Infinity;
-        
+
         if (timeSinceLastTap < DOUBLE_TAP_THRESHOLD && distanceFromLastTap < DOUBLE_TAP_DISTANCE) {
             // Double tap detected - send left click
             if (captureMouse) {
@@ -164,7 +164,7 @@ export default function LiveCapture() {
             lastTapTime.current = currentTime;
             lastTapPos.current = currentPos;
         }
-        
+
         isTouching.current = true;
     }
 
@@ -178,7 +178,7 @@ export default function LiveCapture() {
 
         // Add displacement to list for batched reporting
         displacementList.current.push({ x: displacementX, y: displacementY });
-        
+
         // Update position for next calculation
         touchStartPos.current = { x: touch.clientX, y: touch.clientY };
     }
@@ -189,7 +189,7 @@ export default function LiveCapture() {
     }
 
     // Make a mouse packet and send it
-    function sendMouseReport(LClick, RClick, scrollDelta=0) {
+    function sendMouseReport(LClick, RClick, scrollDelta = 0) {
         const mouseFrames = displacementList.current.slice(0, 8);
         mouseHandler.sendMouseReport(mouseFrames, LClick, RClick, scrollDelta, sendEncrypted);
         displacementList.current = []; // reset list
@@ -207,7 +207,7 @@ export default function LiveCapture() {
             </div>
 
             {/* Mobile Input Area - Visible only on small screens */}
-            <div className="xl:hidden flex flex-row my-4 rounded-lg transition-all border border-hover min-h-12 bg-shelf focus-within:bg-background relative group">
+            <div className="xl:hidden flex flex-row my-4 rounded-lg transition-all border border-hover min-h-12 bg-shelf focus-within:bg-background relative group opacity-50">
                 <Typography
                     type="h5"
                     className="flex items-center justify-center opacity-70 pointer-events-none select-none text-white p-4 whitespace-pre-wrap font-light absolute inset-0 z-0 group-focus-within:hidden"
@@ -215,7 +215,7 @@ export default function LiveCapture() {
                 >
                     <div className="flex items-center gap-2">
                         Tap to focus keyboard
-                        <CommandLineIcon className="h-6 w-6 text-white opacity-50"/>
+                        <CommandLineIcon className="h-6 w-6 text-white opacity-50" />
                     </div>
                 </Typography>
 

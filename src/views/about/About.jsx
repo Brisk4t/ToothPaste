@@ -4,38 +4,67 @@ import HeroSection from './sections/HeroSection';
 import WhySection from './sections/WhySection';
 import SecuritySection from './sections/SecuritySection';
 import CTASection from './sections/CTASection';
-import GridBackground from '../../components/GridBackground';
+import GridBackground from '../../components/shared/GridBackground';
 import { Typography } from "@material-tailwind/react";
 import { appColors } from '../../styles/colors';
 import { useBreakpoint } from '../../services/useBreakpoint';
+import {LockClosedIcon} from "@heroicons/react/24/outline";
 
 
 const star = [
-                    { row: 1, col: 0, color: appColors.primary },
-                    { row: 1, col: 3, color: appColors.primary },
-                    { row: 1, col: 6, color: appColors.primary },
-                    
-                    { row: 2, col: 1, color: appColors.primary },
-                    { row: 2, col: 3, color: appColors.primary },
-                    { row: 2, col: 5, color: appColors.primary },
+    { row: 1, col: 0, color: appColors.primary },
+    { row: 1, col: 3, color: appColors.primary },
+    { row: 1, col: 6, color: appColors.primary },
+    
+    { row: 2, col: 1, color: appColors.primary },
+    { row: 2, col: 3, color: appColors.primary },
+    { row: 2, col: 5, color: appColors.primary },
 
-                    { row: 3, col: 2, color: appColors.primary },
-                    { row: 3, col: 3, color: appColors.primary },
-                    { row: 3, col: 4, color: appColors.primary },
+    { row: 3, col: 2, color: appColors.primary },
+    { row: 3, col: 3, color: appColors.primary },
+    { row: 3, col: 4, color: appColors.primary },
 
-                    { row: 4, col: 4, color: appColors.primary },
-                    { row: 4, col: 3, color: appColors.primary },
-                    { row: 4, col: 2, color: appColors.primary },
+    { row: 4, col: 4, color: appColors.primary },
+    { row: 4, col: 3, color: appColors.primary },
+    { row: 4, col: 2, color: appColors.primary },
 
 
-                    { row: 5, col: 1, color: appColors.primary },
-                    { row: 5, col: 3, color: appColors.primary },
-                    { row: 5, col: 5, color: appColors.primary },
-                    
-                    { row: 6, col: 0, color: appColors.primary },
-                    { row: 6, col: 3, color: appColors.primary },
-                    { row: 6, col: 6, color: appColors.primary },
+    { row: 5, col: 1, color: appColors.primary },
+    { row: 5, col: 3, color: appColors.primary },
+    { row: 5, col: 5, color: appColors.primary },
+    
+    { row: 6, col: 0, color: appColors.primary },
+    { row: 6, col: 3, color: appColors.primary },
+    { row: 6, col: 6, color: appColors.primary },
 ]
+
+const bluetoothSquares = [
+    { row: 1, col: 2, color: appColors.text },
+    { row: 3, col: 0, color: appColors.text },
+    { row: 2, col: 2, color: appColors.text },
+    { row: 4, col: 1, color: appColors.text },
+    { row: 2, col: 4, color: appColors.text },
+    { row: 3, col: 2, color: appColors.text },
+
+    { row: 3, col: 5, color: appColors.text },
+    { row: 4, col: 2, color: appColors.text },
+    { row: 4, col: 4, color: appColors.text },
+    
+    { row: 1, col: 3, color: appColors.text },
+    { row: 5, col: 3, color: appColors.text },
+    
+    { row: 6, col: 1, color: appColors.text },
+    { row: 5, col: 2, color: appColors.text },
+    { row: 6, col: 4, color: appColors.text },
+    { row: 6, col: 2, color: appColors.text },
+    { row: 7, col: 5, color: appColors.text },
+    { row: 7, col: 0, color: appColors.text },
+    { row: 7, col: 2, color: appColors.text },
+    { row: 8, col: 4, color: appColors.text },
+    { row: 9, col: 3, color: appColors.text },
+    { row: 8, col: 2, color: appColors.text },
+    { row: 9, col: 2, color: appColors.text },
+];
 
 // Generate repeating pattern of 3 stars with equal spacing
 const generateRepeatingStars = (cols, rowOffset = 20) => {
@@ -85,7 +114,7 @@ export default function About() {
                 hero: [
                     { row: 20, col: 1, color: appColors.secondary },
                     { row: 20, col: 3, color: appColors.orange },
-                    { row: 20, col: 5, color: appColors.primary }
+                    { row: 20, col: 5, color: appColors.primary },
                 ],
                 why: generateRepeatingStars(gridDimensions.cols),
                 security: [
@@ -102,7 +131,8 @@ export default function About() {
                 hero: [
                     { row: 20, col: 44, color: appColors.secondary },
                     { row: 20, col: 46, color: appColors.orange },
-                    { row: 20, col: 48, color: appColors.primary }
+                    { row: 20, col: 48, color: appColors.primary },
+
                 ],
                 why: generateRepeatingStars(gridDimensions.cols),
                 security: [
@@ -164,10 +194,12 @@ export default function About() {
         //  Background with grid pattern - also serves as scroll container
         <div ref={containerRef} className="relative flex-1 w-full bg-transparent text-text overflow-hidden">
             {/* Colored squares overlay - no grid lines */}
+            <LockClosedIcon className='absolute top-2 -left-6 w-12 h-12 text-hover' />
+
             <GridBackground
                 filledSquares={currentSectionSquares}
                 squareSize={25}
-                borderColor="transparent"
+                borderColor={appColors.hover}
                 borderWidth={0}
                 onDimensionsChange={setGridDimensions}
             />
