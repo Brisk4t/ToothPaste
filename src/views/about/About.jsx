@@ -194,8 +194,7 @@ export default function About() {
         //  Background with grid pattern - also serves as scroll container
         <div ref={containerRef} className="relative flex-1 w-full bg-transparent text-text overflow-hidden">
             {/* Colored squares overlay - no grid lines */}
-            <LockClosedIcon className='absolute top-2 -left-6 w-12 h-12 text-hover' />
-
+\
             <GridBackground
                 filledSquares={currentSectionSquares}
                 squareSize={25}
