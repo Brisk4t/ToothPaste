@@ -102,24 +102,24 @@ const ECDHOverlay = ({ onChangeOverlay }) => {
                 </Button>
 
 
-                <Typography variant="h6" className={`font-body text-text text-sm text-center my-2`}>
+                <Typography variant="h6" className={`text-text text-sm text-center my-2`}>
                         How to Pair your ToothPaste Device:
                 </Typography>
 
                 <div className="bg-hover rounded-lg p-4 my-2 gap-2 flex flex-col justify-center items-center">
 
 
-                    <Typography variant="h6" className={`font-body text-text text-md text-center mb-2`}> 
+                    <Typography variant="h6" className={`text-text text-md text-center mb-2`}> 
                         1. Click the Pairing Key text input above to highlight it.
                     </Typography>
 
-                    <Typography variant="h6" className={`font-body text-text text-md text-center`}>
+                    <Typography variant="h6" className={`text-text text-md text-center`}>
                         2. Hold the Button on your ToothPaste for 10 seconds until the LED starts blinking.
                     </Typography>
 
                 </div>
 
-                <Typography variant="h6" className={`font-body text-primary text-sm text-center mt-2`}>     
+                <Typography variant="h6" className={`text-primary text-sm text-center mt-2`}>     
                     The device will input the pairing key into the text box, wait for it finish and the device will be paired.  
                 </Typography>
 

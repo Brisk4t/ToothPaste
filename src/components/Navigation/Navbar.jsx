@@ -92,7 +92,7 @@ function EditableDeviceName({ name, setName, isEditing, setIsEditing, isHovering
                     <Typography
                         type="h6"
                         color="text"
-                        className={`font-body text-lg text-text font-header font-medium normal-case transition-opacity duration-1000 absolute inset-0 flex items-center ${isHovering ? "opacity-100" : "opacity-0"}`}
+                        className={`text-lg text-text font-header font-medium normal-case transition-opacity duration-1000 absolute inset-0 flex items-center ${isHovering ? "opacity-100" : "opacity-0"}`}
                         style={{ cursor: "pointer" }}
                     >
                         Hold to Rename

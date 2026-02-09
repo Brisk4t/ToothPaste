@@ -14,7 +14,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        // sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+        sans: ['Ubuntu Sans Mono', 'sans-serif'],
         header: ['Roboto Mono', 'sans-serif'],
         body: ['Ubuntu Sans Mono', 'sans-serif'],
         barcode: ['Libre Barcode 39 Extended', 'system-ui'],

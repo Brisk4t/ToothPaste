@@ -28,15 +28,15 @@ const WELCOME_STEP = {
             <div className="flex mb-6 flex-col gap-5 text-lg">
                 <div className="flex gap-3">
                     <LockClosedIcon className="h-6 w-6 text-primary font-bold" />
-                    <Typography className="font-body text-lg">End-to-end encrypted communication</Typography>
+                    <Typography className="text-lg">End-to-end encrypted communication</Typography>
                 </div>
                 <div className="flex gap-3">
                     <WifiIcon className="h-6 w-6 text-primary font-bold" />
-                    <Typography className="font-body text-lg">Real-time keyboard and mouse capture</Typography>
+                    <Typography className="text-lg">Real-time keyboard and mouse capture</Typography>
                 </div>
                 <div className="flex gap-3">
                     <CheckCircleIcon className="h-6 w-6 text-primary font-bold" />
-                    <Typography className="font-body text-lg">Easy device pairing and management</Typography>
+                    <Typography className="text-lg">Easy device pairing and management</Typography>
                 </div>
             </div>
         </>
