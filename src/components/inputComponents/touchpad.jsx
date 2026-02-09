@@ -92,9 +92,9 @@ export default function Touchpad({
                     <KeyboardShortcutCarousel shortcuts={TOUCHPAD_SHORTCUTS} onSendKeyboardShortcut={onSendKeyboardShortcut} />
                 </div>
             ) : (
-                <div className="flex items-center justify-center opacity-70 pointer-events-none select-none text-text p-2 whitespace-pre-wrap absolute bottom-16 left-0 right-0 w-full z-20 mb-2"
+                <div className="flex flex-col items-center justify-center text-center opacity-70 pointer-events-none select-none text-text px-2 py-1 absolute bottom-16 left-2 right-2 z-20 mb-2 gap-1"
                     >
-                    <ArrowUpOnSquareStackIcon className="h-6 w-6 opacity-70 mr-2" />
+                    <ArrowUpOnSquareStackIcon className="h-5 w-5 opacity-70 flex-shrink-0" />
                     <Typography
                         type="small"
                         className="font-light"
