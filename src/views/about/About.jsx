@@ -114,42 +114,31 @@ export default function About() {
 
     // Define filled squares for each section and screen size
     const getSquaresForScreenSize = () => {
-        if (isMobile) {
-            return {
-                hero: [
-                    { row: 10, col: 1, color: appColors.secondary },
-                    { row: 10, col: 3, color: appColors.orange },
-                    { row: 10, col: 5, color: appColors.primary },
-                ],
-                why: generateRepeatingStars(gridDimensions.cols),
-                security: [
-                    { row: 8, col: 4, color: appColors.primary },
-                    { row: 9, col: 5, color: appColors.secondary }
-                ],
-                cta: [
-                    { row: 11, col: 6, color: appColors.primary },
-                    { row: 12, col: 7, color: appColors.secondary }
-                ]
-            };
-        } else {
-            return {
-                hero: [
-                    { row: 11, col: 31, color: appColors.secondary },
-                    { row: 11, col: 33, color: appColors.orange },
-                    { row: 11, col: 35, color: appColors.primary },
+        const { rows, cols } = gridDimensions;
+        if (rows === 0 || cols === 0) return { hero: [], why: [], security: [], cta: [] };
 
-                ],
-                why: generateRepeatingStars(gridDimensions.cols),
-                security: [
-                    { row: 8, col: 4, color: appColors.primary },
-                    { row: 9, col: 5, color: appColors.secondary }
-                ],
-                cta: [
-                    { row: 11, col: 6, color: appColors.primary },
-                    { row: 12, col: 7, color: appColors.secondary }
-                ]
-            };
-        }
+        // Proportional positions based on grid dimensions
+        const thirdCol = Math.floor(cols * (3/7));
+        const twoThirdCol = Math.floor((cols * 2) / 3);
+        const thirdRow = Math.floor(rows * (3/7));
+        const twoThirdRow = Math.floor((rows * 2) / 3);
+
+        return {
+            hero: [
+                { row: thirdRow, col: thirdCol, color: appColors.secondary },
+                { row: thirdRow, col: thirdCol + 2, color: appColors.orange },
+                { row: thirdRow, col: thirdCol + 4, color: appColors.primary },
+            ],
+            why: generateRepeatingStars(cols),
+            security: [
+                { row: twoThirdRow, col: thirdCol + 4, color: appColors.primary },
+                { row: twoThirdRow + 1, col: thirdCol + 5, color: appColors.secondary }
+            ],
+            cta: [
+                { row: twoThirdRow, col: twoThirdCol, color: appColors.primary },
+                { row: twoThirdRow + 1, col: twoThirdCol + 1, color: appColors.secondary }
+            ]
+        };
     };
 
     const sectionSquares = useMemo(() => getSquaresForScreenSize(), [gridDimensions, isMobile]);
