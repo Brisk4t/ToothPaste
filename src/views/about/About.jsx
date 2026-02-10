@@ -8,7 +8,6 @@ import GridBackground from '../../components/shared/GridBackground';
 import { Typography } from "@material-tailwind/react";
 import { appColors } from '../../styles/colors';
 import { useBreakpoint } from '../../services/useBreakpoint';
-import {LockClosedIcon} from "@heroicons/react/24/outline";
 
 
 const star = [
@@ -105,40 +104,67 @@ export default function About() {
     const containerRef = useRef(null);
     const maxSlides = 4;
     const scrollThreshold = useRef(0);
-    const scrollSensitivity = 1000; // Adjust this value to change how many clicks required
+    const scrollSensitivity = 500; // How many pixels of scroll to trigger slide change
     const touchSensitivity = 50; // Pixels of swipe to trigger slide change
     const pointerStartYRef = useRef(0);
     const isPointerDownRef = useRef(false);
     const lastSlideChangeTimeRef = useRef(0);
-    const slideChangeCooldownRef = useRef(500); // Cooldown in milliseconds
+    const slideChangeCooldownRef = useRef(300); // Cooldown in milliseconds
 
     // Define filled squares for each section and screen size
     const getSquaresForScreenSize = () => {
         const { rows, cols } = gridDimensions;
         if (rows === 0 || cols === 0) return { hero: [], why: [], security: [], cta: [] };
 
-        // Proportional positions based on grid dimensions
-        const thirdCol = Math.floor(cols * (3/7));
-        const twoThirdCol = Math.floor((cols * 2) / 3);
-        const thirdRow = Math.floor(rows * (3/7));
-        const twoThirdRow = Math.floor((rows * 2) / 3);
+        if (isMobile) {
+            // Mobile proportional positions
+            const startCol = 1;
+            const twoThirdCol = Math.floor((cols * 2) / 3);
+            const thirdRow = Math.floor(rows / 3);
+            const twoThirdRow = Math.floor((rows * 2) / 3);
 
-        return {
-            hero: [
-                { row: thirdRow, col: thirdCol, color: appColors.secondary },
-                { row: thirdRow, col: thirdCol + 2, color: appColors.orange },
-                { row: thirdRow, col: thirdCol + 4, color: appColors.primary },
-            ],
-            why: generateRepeatingStars(cols),
-            security: [
-                { row: twoThirdRow, col: thirdCol + 4, color: appColors.primary },
-                { row: twoThirdRow + 1, col: thirdCol + 5, color: appColors.secondary }
-            ],
-            cta: [
-                { row: twoThirdRow, col: twoThirdCol, color: appColors.primary },
-                { row: twoThirdRow + 1, col: twoThirdCol + 1, color: appColors.secondary }
-            ]
-        };
+            return {
+                hero: [
+                    { row: thirdRow, col: startCol, color: appColors.secondary },
+                    { row: thirdRow, col: startCol + 2, color: appColors.orange },
+                    { row: thirdRow, col: startCol + 4, color: appColors.primary },
+                ],
+                why: generateRepeatingStars(cols),
+                security: [
+                    { row: twoThirdRow, col: startCol + 2, color: appColors.primary },
+                    { row: twoThirdRow + 1, col: startCol + 3, color: appColors.secondary }
+                ],
+                cta: [
+                    { row: twoThirdRow, col: twoThirdCol, color: appColors.primary },
+                    { row: twoThirdRow + 1, col: twoThirdCol + 1, color: appColors.secondary }
+                ]
+            };
+        } 
+        
+        else {
+            // Desktop proportional positions
+            const thirdCol = Math.floor(cols * (3/7));
+            const twoThirdCol = Math.floor((cols * 2) / 3);
+            const thirdRow = Math.floor(rows * (3/7));
+            const twoThirdRow = Math.floor((rows * 2) / 3);
+
+            return {
+                hero: [
+                    { row: thirdRow, col: thirdCol, color: appColors.secondary },
+                    { row: thirdRow, col: thirdCol + 2, color: appColors.orange },
+                    { row: thirdRow, col: thirdCol + 4, color: appColors.primary },
+                ],
+                why: generateRepeatingStars(cols),
+                security: [
+                    { row: twoThirdRow, col: thirdCol + 4, color: appColors.primary },
+                    { row: twoThirdRow + 1, col: thirdCol + 5, color: appColors.secondary }
+                ],
+                cta: [
+                    { row: twoThirdRow, col: twoThirdCol, color: appColors.primary },
+                    { row: twoThirdRow + 1, col: twoThirdCol + 1, color: appColors.secondary }
+                ]
+            };
+        }
     };
 
     const sectionSquares = useMemo(() => getSquaresForScreenSize(), [gridDimensions, isMobile]);
@@ -267,7 +293,7 @@ export default function About() {
 
             {/* Barcode ToothPaste */}
             <div className='rotate-90 absolute bottom-0 right-0 -translate-y-full translate-x-[43%] pointer-events-none'>
-                            <Typography style={{ fontFamily: '"Libre Barcode 39 Extended", system-ui' }} className="text-8xl leading-relaxed">ToothPaste</Typography>
+                            <Typography style={{ fontFamily: '"Libre Barcode 39 Extended", system-ui' }} className="text-8xl leading-relaxed text-gray-500">ToothPaste</Typography>
             </div>
         </div>
     );

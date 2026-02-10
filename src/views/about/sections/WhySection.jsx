@@ -39,9 +39,11 @@ export default function WhySection({ currentSlide, getSectionOpacity }) {
                     </div>
                     <div className="row-span-2"></div>
                     <div className="col-span-2 row-span-2 flex flex-col gap-40 text-left">
-                        {/* <Typography className="font-body text-3xl font-light text-white">
-                        So that you can paste that 50 character password, or that long address without worrying about typos or keyloggers.
-                        </Typography> */}
+                        <Typography className="font-body text-3xl font-light text-white">
+                        ToothPaste acts a keyboard that types for you. <br/>
+                        Just copy on one device, and paste on another - no cloud, no middleman, no hassle.
+                        And it does it all securely.
+                        </Typography>
                     </div>
                     
                     {/* Row 2 - Height 1 */}
@@ -52,9 +54,9 @@ export default function WhySection({ currentSlide, getSectionOpacity }) {
                     </div>
                     <div className="row-span-1"></div>
                     <div className="col-span-2 row-span-1 flex flex-col gap-40 text-left">
-                        {/* <Typography className="font-body text-3xl font-light text-white">
-                        [Right Content Row 2]
-                        </Typography> */}
+                        <Typography className="font-body text-xl font-light text-white italic">
+                        Of course, thats's not all it can do.
+                        </Typography>
                     </div>
                     
                     {/* Row 3 - Height 2 */}
@@ -65,9 +67,10 @@ export default function WhySection({ currentSlide, getSectionOpacity }) {
                     </div>
                     <div className="row-span-2"></div>
                     <div className="col-span-2 row-span-2 flex flex-col gap-40 text-left">
-                        {/* <Typography className="font-body text-3xl font-light text-white">
-                        [Right Content Row 3]
-                        </Typography> */}
+                        <Typography className="font-body text-3xl font-light text-white">
+                        It can also act as a mouse, a media controller, or even something 
+                        more..... nefarious.
+                        </Typography>
                     </div>
                 </div>
             </div>
