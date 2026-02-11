@@ -7,7 +7,7 @@
  * 2. Passwordless: Uses a hardcoded insecure key (development only)
  */
 
-import * as Storage from './Storage.js';
+import * as Storage from '../Storage.js';
 import argon2 from 'argon2-wasm-esm';
 
 // Session-based encryption key and salt (salt is used for key re-derivation, not secret)

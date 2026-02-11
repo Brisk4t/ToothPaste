@@ -16,7 +16,7 @@ import {
 
 import { useBLEContext, ConnectionStatus } from "../../context/BLEContext";
 import AuthenticationOverlay from "../overlays/AuthenticationOverlay";
-import { authStateManager, AuthState } from "../../services/AuthStateManager";
+import { authStateManager, AuthState } from "../../services/localSecurity/AuthStateManager";
 import ToothPaste from "../../assets/ToothPaste.png";
 import { createRenamePacket } from "../../services/packetService/packetFunctions";
 

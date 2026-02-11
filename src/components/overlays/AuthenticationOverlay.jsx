@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Typography, Input } from "@material-tailwind/react";
 import { ShieldCheckIcon } from '@heroicons/react/24/outline';
-import { unlockWithPassword, unlockPasswordless } from '../../services/EncryptedStorage';
-import { authStateManager, AuthState } from '../../services/AuthStateManager';
+import { unlockWithPassword, unlockPasswordless } from '../../services/localSecurity/EncryptedStorage';
+import { authStateManager, AuthState } from '../../services/localSecurity/AuthStateManager';
 
 const AuthenticationOverlay = ({ onAuthSuccess, onClose }) => {
     const [password, setPassword] = useState('');

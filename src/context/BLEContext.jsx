@@ -5,7 +5,7 @@ import React, {
     useRef,
     useMemo,
 } from "react";
-import { keyExists, loadBase64 } from "../services/EncryptedStorage.js";
+import { keyExists, loadBase64 } from "../services/localSecurity/EncryptedStorage.js";
 import { ECDHContext } from "./ECDHContext.jsx";
 import { createUnencryptedPacket, unpackResponsePacket } from "../services/packetService/packetFunctions.js";
 import { PacketQueue } from "../services/packetService/PacketQueue.js";
