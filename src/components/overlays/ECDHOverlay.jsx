@@ -1,13 +1,14 @@
 import React, { useState, useContext, useRef, useEffect } from 'react';
 import { ECDHContext } from '../../context/ECDHContext';
 import { Button, Typography, Spinner } from "@material-tailwind/react";
-import { KeyIcon } from '@heroicons/react/24/outline';
+import { KeyIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { BLEContext } from '../../context/BLEContext';
 
 const ECDHOverlay = ({ onChangeOverlay }) => {
     const { processPeerKeyAndGenerateSharedSecret } = useContext(ECDHContext);
     const [keyInput, setkeyInput] = useState("");
     const [error, setError] = useState(null);
+    const [capsLockEnabled, setCapsLockEnabled] = useState(false);
     const { device, pktCharacteristic, status, sendUnencrypted } = useContext(BLEContext);
     const keyRef = useRef(null);
 
@@ -16,6 +17,26 @@ const ECDHOverlay = ({ onChangeOverlay }) => {
     function sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
+
+    // Handle capslock detection
+    const handleKeyDown = (event) => {
+        handleSubmit(event);
+    };
+
+    const handleKeyUp = (event) => {
+        // Check capslock on key up to detect toggle
+        setCapsLockEnabled(event.getModifierState("CapsLock"));
+    };
+
+    const handleFocus = (event) => {
+        // Check capslock on focus
+        setCapsLockEnabled(event.getModifierState("CapsLock"));
+    };
+
+    const handleClick = (event) => {
+        // Check capslock on click
+        setCapsLockEnabled(event.getModifierState("CapsLock"));
+    };
 
     // Handle submit when user (or ToothPaste) presses Enter in the input field
     const handleSubmit =  (event) =>{
@@ -46,6 +67,7 @@ const ECDHOverlay = ({ onChangeOverlay }) => {
 
         } catch (e) {
             setError('Error: ' + e.message);
+            setisLoading(false);
         }
     };
 
@@ -78,21 +100,35 @@ const ECDHOverlay = ({ onChangeOverlay }) => {
                 </Typography>
                             
                 <input
+                    ref={keyRef}
                     type="password"
                     placeholder="Pairing Key"
                     value={keyInput}
                     onChange={(e) => setkeyInput(e.target.value)}
-                    onKeyDown={handleSubmit}
+                    onFocus={handleFocus}
+                    onClick={handleClick}
+                    onKeyDown={handleKeyDown}
+                    onKeyUp={handleKeyUp}
                     className='w-full h-10 opacity-1 text-text bg-shelf border border-3 border-hover rounded-md p-2 my-4 font-body
                     focus:outline-none focus:border-primary focus:ring-primary-hover'
                 />
+
+                {capsLockEnabled && (
+                    <div className="w-full bg-orange/20 border border-orange rounded-md p-3 mb-2 flex items-center gap-2">
+                        <ExclamationTriangleIcon className="h-6 w-6 text-orange" />
+                        <Typography variant="h6" className="text-orange text-sm">
+                            Caps Lock is enabled - Please disable to continue.
+                        </Typography>
+                    </div>
+                )}
 
                 <Button
                     ref={keyRef}
                     onClick={computeSecret}
                     loading={isLoading.toString()}
-                    disabled={keyInput.trim().length < 44 || !pktCharacteristic || isLoading}
-                    className='w-full h-10 my-4 bg-primary text-text hover:bg-primary-hover focus:bg-primary-focus active:bg-primary-active flex items-center justify-center size-sm'>
+                    disabled={keyInput.trim().length < 44 || !pktCharacteristic || isLoading || capsLockEnabled}
+                    className='w-full h-10 my-4 bg-primary text-text hover:bg-primary-hover focus:bg-primary-focus active:bg-primary-active
+                     border-none flex items-center justify-center size-sm'>
 
                     <KeyIcon className={`h-7 w-7 mr-2  ${isLoading? "hidden":""}`} />
                     <Spinner className={`h-7 w-7 mr-2  ${isLoading? "":"hidden"}`} />
