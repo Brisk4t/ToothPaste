@@ -106,8 +106,8 @@ export default function UpdateController({ onChangeOverlay }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-hover/80 flex flex-col justify-center items-center z-[9999] p-4" onClick={() => onChangeOverlay(null)}>
-      <div className="bg-shelf p-8 rounded-lg w-full max-w-2xl flex flex-col justify-center items-center shadow-lg relative" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-ash/80 flex flex-col justify-center items-center z-[9999] p-4" onClick={() => onChangeOverlay(null)}>
+      <div className="bg-ink p-8 rounded-lg w-full max-w-2xl flex flex-col justify-center items-center shadow-lg relative" onClick={(e) => e.stopPropagation()}>
         {/* Close Button*/}
         <button
           onClick={() => onChangeOverlay(null)}
@@ -120,7 +120,7 @@ export default function UpdateController({ onChangeOverlay }) {
           <span className="text-text">Update Your ToothPaste</span>
         </Typography>
 
-        <Progress value={progress} className="w-full my-2 bg-hover" barProps={{ className: "bg-primary" }} label="">
+        <Progress value={progress} className="w-full my-2 bg-ash" barProps={{ className: "bg-primary" }} label="">
           <Progress.Bar />
         </Progress>
 
@@ -129,8 +129,8 @@ export default function UpdateController({ onChangeOverlay }) {
           onClick={connect}
           loading={false}
           disabled={false}
-          className={`w-full h-10 my-4 bg-orange text-text hover:bg-primary-hover border-none
-                    focus:bg-primary-focus active:bg-primary-active flex items-center justify-center size-sm disabled:bg-hover
+          className={`w-full h-10 my-4 bg-orange text-text hover:bg-primary-ash border-none
+                    focus:bg-primary-focus active:bg-primary-active flex items-center justify-center size-sm disabled:bg-ash
                     ${connected ? "hidden" : ""}`}>
 
           <LinkIcon className={`h-7 w-7 mr-2  ${connected ? "hidden" : ""}`} />
@@ -144,8 +144,8 @@ export default function UpdateController({ onChangeOverlay }) {
           onClick={flashFirmware}
           loading={false}
           disabled={false}
-          className={`w-full h-10 my-4 bg-primary text-text hover:bg-primary-hover focus:bg-primary-focus 
-                      active:bg-primary-active flex items-center justify-center size-sm disabled:bg-hover
+          className={`w-full h-10 my-4 bg-primary text-text hover:bg-primary-ash focus:bg-primary-focus 
+                      active:bg-primary-active flex items-center justify-center size-sm disabled:bg-ash
                       ${!connected || status === UpdateStatus.COMPLETE ? "hidden" : ""}`}>
 
           <ArrowUpCircleIcon className={`h-7 w-7 mr-2  ${!connected ? "hidden" : ""}`} />

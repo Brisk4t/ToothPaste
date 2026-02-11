@@ -214,7 +214,7 @@ export default function LiveCapture() {
             </div>
 
             {/* Mobile Input Area - Visible only on small screens */}
-            <div className="xl:hidden flex flex-row my-1 rounded-lg transition-all border border-hover min-h-12 bg-shelf focus-within:bg-background relative group opacity-50">
+            <div className="xl:hidden flex flex-row my-1 rounded-lg transition-all border border-ash min-h-12 bg-ink focus-within:bg-background relative group opacity-50">
                 <Typography
                     type="h5"
                     className="flex items-center justify-center opacity-70 pointer-events-none select-none text-white p-4 whitespace-pre-wrap font-light absolute inset-0 z-0 group-focus-within:hidden"
@@ -271,7 +271,7 @@ export default function LiveCapture() {
                 </div>
 
                 {/* Autofill input for password managers */}
-                {/* <div className="relative w-10 h-12 flex items-center justify-center border-l border-hover bg-hover focus-within:bg-background">
+                {/* <div className="relative w-10 h-12 flex items-center justify-center border-l border-ash bg-ash focus-within:bg-background">
                     <LockOpenIcon className="h-6 w-6 text-white opacity-50 absolute pointer-events-none z-0" />
                     <input
                         id="mobile-autofill-input"

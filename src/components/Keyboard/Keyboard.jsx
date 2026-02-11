@@ -159,8 +159,8 @@ const Keyboard = ({ listenerRef, deviceStatus }) => {
             <Button
                 variant="outline"
                 onClick={handleToggle}
-                className={`hidden lg:block p-3 border border-gray-500 text-text hover:bg-white hover:text-shelf 
-                    ${showKeyboard ? "bg-white text-shelf" : "bg-shelf "}`}
+                className={`hidden lg:block p-3 border border-gray-500 text-text hover:bg-white hover:text-ink 
+                    ${showKeyboard ? "bg-white text-ink" : "bg-ink "}`}
             >
                 Keyboard
             </Button>
@@ -349,7 +349,7 @@ const Keyboard = ({ listenerRef, deviceStatus }) => {
                                     key={eventCode}
                                     className={`${
                                         width ?? "w-12"
-                                    } h-12 mx-1 border-2 border-hover flex items-center justify-center text-lg rounded-lg ${
+                                    } h-12 mx-1 border-2 border-ash flex items-center justify-center text-lg rounded-lg ${
                                         rowIndex === 0 ? "mb-5" : ""
                                     } ${isKeyActive(eventCode) ? backgroundColor : "bg-background"}`}
                                 >
@@ -369,7 +369,7 @@ const Keyboard = ({ listenerRef, deviceStatus }) => {
                                     key={eventCode}
                                     className={`${
                                         width ?? "w-12"
-                                    } h-12 mx-1 border-2 border-hover flex items-center justify-center text-lg rounded-lg ${
+                                    } h-12 mx-1 border-2 border-ash flex items-center justify-center text-lg rounded-lg ${
                                         isKeyActive(eventCode) ? backgroundColor : "bg-background"
                                     }`}
                                 >
@@ -389,7 +389,7 @@ const Keyboard = ({ listenerRef, deviceStatus }) => {
                                     key={eventCode}
                                     className={`${
                                         width ?? "w-12"
-                                    } h-12 mx-1 border-2 border-hover flex items-center justify-center text-lg rounded-lg ${
+                                    } h-12 mx-1 border-2 border-ash flex items-center justify-center text-lg rounded-lg ${
                                         isKeyActive(eventCode) ? backgroundColor : "bg-background"
                                     }`}
                                 >
@@ -402,7 +402,7 @@ const Keyboard = ({ listenerRef, deviceStatus }) => {
             </div>
 
             {/* Command History Container Styling */}
-            <div className="rounded-lg bg-shelf px-2 py-2 mt-4 min-h-12 w-full max-w-full overflow-x-hidden">
+            <div className="rounded-lg bg-ink px-2 py-2 mt-4 min-h-12 w-full max-w-full overflow-x-hidden">
                 {/* Command History Container Function */}
                 <div className="flex flex-nowrap space-x-2">
                     <ShowKeyboardButton/>

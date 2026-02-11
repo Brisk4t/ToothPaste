@@ -251,7 +251,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
         }
     }, [activeOverlay, status, onChangeOverlay]);
     return (
-        <div id="navbar" className="w-full bg-shelf text-white">
+        <div id="navbar" className="w-full bg-ink text-white">
             <div className="relative flex justify-between h-24 items-center px-4">
                 {/* Left: Logo */}
                 <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setIsOpen(false)}>
@@ -269,8 +269,8 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                     <div className="flex items-center space-x-5">
                         <button
                             disabled={status === ConnectionStatus.connected || status === ConnectionStatus.unsupported}
-                            className={`flex items-center space-x-1 p-2 gap-2 rounded disabled:text-hover disabled:hover:bg-transparent ${
-                                activeView === "live" ? "disabled:border-hover border border-text" : "hover:bg-hover"
+                            className={`flex items-center space-x-1 p-2 gap-2 rounded disabled:text-ash disabled:hover:bg-transparent ${
+                                activeView === "live" ? "disabled:border-ash border border-text" : "hover:bg-ash"
                             }`}
                             onClick={() => onNavigate("live")}
                         >
@@ -280,8 +280,8 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
 
                         <button
                             disabled={status === ConnectionStatus.connected || status === ConnectionStatus.unsupported}
-                            className={`flex items-center space-x-1 p-2 gap-2 rounded disabled:text-hover disabled:hover:bg-transparent ${
-                                activeView === "paste" ? "disabled:border-hover border border-text" : "hover:bg-hover"
+                            className={`flex items-center space-x-1 p-2 gap-2 rounded disabled:text-ash disabled:hover:bg-transparent ${
+                                activeView === "paste" ? "disabled:border-ash border border-text" : "hover:bg-ash"
                             }`}
                             onClick={() => onNavigate("paste")}
                         >
@@ -291,8 +291,8 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                         
                         <button
                             disabled={false}
-                            className={`flex items-center space-x-1 p-2 gap-2 rounded disabled:text-hover disabled:hover:bg-transparent ${
-                                activeView === "about" ? "disabled:border-hover border border-text" : "hover:bg-hover"
+                            className={`flex items-center space-x-1 p-2 gap-2 rounded disabled:text-ash disabled:hover:bg-transparent ${
+                                activeView === "about" ? "disabled:border-ash border border-text" : "hover:bg-ash"
                             }`}
                             onClick={() => onNavigate("about")}
                         >
@@ -307,8 +307,8 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                     <div className="flex items-center space-x-5">
                         <button
                             disabled={status === ConnectionStatus.connected}
-                            className={`flex items-center space-x-1 p-2 gap-2 rounded disabled:text-hover disabled:hover:bg-transparent ${
-                                activeView === "update" ? "disabled:border-hover border border-text" : "hover:bg-hover"
+                            className={`flex items-center space-x-1 p-2 gap-2 rounded disabled:text-ash disabled:hover:bg-transparent ${
+                                activeView === "update" ? "disabled:border-ash border border-text" : "hover:bg-ash"
                             }`}
                             onClick={() => onChangeOverlay("update")}
                         >
@@ -318,7 +318,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
 
                         <button
                             disabled={false}
-                            className="flex items-center space-x-1 p-2 gap-2 rounded hover:bg-hover"
+                            className="flex items-center space-x-1 p-2 gap-2 rounded hover:bg-ash"
                             onClick={() => onChangeOverlay("quickstart")}
                             title="Show Quick Start Guide"
                         >
@@ -328,7 +328,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
 
                         {status === ConnectionStatus.connected && (
                             <button
-                                className="flex items-center space-x-1 p-2 gap-2 rounded hover:bg-hover"
+                                className="flex items-center space-x-1 p-2 gap-2 rounded hover:bg-ash"
                                 onClick={() => onChangeOverlay("pair")}
                             >
                                 <LinkIcon className="h-5 w-5" />
@@ -351,7 +351,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                     <button
                         id="navbar-toggle"
                         onClick={() => setIsOpen(!isOpen)}
-                        className={`xl:hidden flex items-center space-x-2 px-3 py-2 rounded hover:bg-hover border border-2 ${borderClass} focus:outline-none max-w-[200px] overflow-hidden`}
+                        className={`xl:hidden flex items-center space-x-2 px-3 py-2 rounded hover:bg-ash border border-2 ${borderClass} focus:outline-none max-w-[200px] overflow-hidden`}
                         aria-label="Toggle menu"
                     >
                         <div className="flex flex-col min-w-0 flex-1 p-1">
@@ -370,8 +370,8 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                     <div className="flex flex-col space-y-2">
                         <button
                             disabled={status === ConnectionStatus.connected || status === ConnectionStatus.unsupported}
-                            className={`flex font-header items-center space-x-1 px-3 py-2 gap-1 rounded disabled:text-hover disabled:hover:bg-transparent ${
-                                activeView === "live" ? "bg-hover" : "hover:bg-hover"
+                            className={`flex font-header items-center space-x-1 px-3 py-2 gap-1 rounded disabled:text-ash disabled:hover:bg-transparent ${
+                                activeView === "live" ? "bg-ash" : "hover:bg-ash"
                             }`}
                             onClick={() => {
                                 onNavigate("live");
@@ -384,8 +384,8 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
 
                         <button
                             disabled={status === ConnectionStatus.connected || status === ConnectionStatus.unsupported}
-                            className={`flex font-header items-center space-x-1 px-3 py-2 gap-1 rounded hover:bg-hover disabled:text-hover disabled:hover:bg-transparent ${
-                                activeView === "paste" ? "bg-hover" : "hover:bg-hover"
+                            className={`flex font-header items-center space-x-1 px-3 py-2 gap-1 rounded hover:bg-ash disabled:text-ash disabled:hover:bg-transparent ${
+                                activeView === "paste" ? "bg-ash" : "hover:bg-ash"
                             }`}
                             onClick={() => {
                                 onNavigate("paste");
@@ -398,8 +398,8 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
 
                         <button
                             disabled={false}
-                            className={`flex font-header items-center space-x-1 px-3 py-2 gap-1 rounded disabled:text-hover disabled:hover:bg-transparent ${
-                                activeView === "about" ? "bg-hover" : "hover:bg-hover"
+                            className={`flex font-header items-center space-x-1 px-3 py-2 gap-1 rounded disabled:text-ash disabled:hover:bg-transparent ${
+                                activeView === "about" ? "bg-ash" : "hover:bg-ash"
                             }`}
                             onClick={() => {
                                 onNavigate("about");
@@ -417,8 +417,8 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                     <div className="flex flex-col space-y-2">
                         <button
                             disabled={status === ConnectionStatus.connected}
-                            className={`flex font-header items-center space-x-1 px-3 py-2 gap-1 rounded disabled:text-hover disabled:hover:bg-transparent ${
-                                activeView === "update" ? "bg-hover" : "hover:bg-hover"
+                            className={`flex font-header items-center space-x-1 px-3 py-2 gap-1 rounded disabled:text-ash disabled:hover:bg-transparent ${
+                                activeView === "update" ? "bg-ash" : "hover:bg-ash"
                             }`}
                             onClick={() => {
                                 onChangeOverlay("update");
@@ -431,7 +431,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
 
                         <button
                             disabled={false}
-                            className="flex font-header items-center space-x-1 px-3 py-2 gap-1 rounded hover:bg-hover"
+                            className="flex font-header items-center space-x-1 px-3 py-2 gap-1 rounded hover:bg-ash"
                             onClick={() => {
                                 onChangeOverlay("quickstart");
                                 setIsOpen(false);
@@ -443,7 +443,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
 
                         {status === ConnectionStatus.connected && (
                             <button
-                                className="flex font-header items-center space-x-1 px-3 py-2 rounded hover:bg-hover"
+                                className="flex font-header items-center space-x-1 px-3 py-2 rounded hover:bg-ash"
                                 onClick={() => {
                                     onChangeOverlay("pair");
                                     setIsOpen(false);

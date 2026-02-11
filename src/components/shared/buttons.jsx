@@ -39,7 +39,7 @@ export function KeyboardShortcutButton({ label, keySequence, wasSwipe, onSendKey
     return (
         <button
             className={`min-h-14 flex justify-center items-center flex-1 min-w-0 transition-colors cursor-pointer select-none overflow-hidden ${
-                isPressed ? "bg-white text-shelf" : "bg-background text-text"
+                isPressed ? "bg-white text-ink" : "bg-background text-text"
             }`}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
@@ -117,7 +117,7 @@ export function KeyboardShortcutCarousel({ shortcuts, onSendKeyboardShortcut }) 
     return (
         <div
             ref={carouselRef}
-            className="flex flex-col bg-background border border-hover border-b-0 border-x-0 relative select-none"
+            className="flex flex-col bg-background border border-ash border-b-0 border-x-0 relative select-none"
             style={{ touchAction: 'pan-y' }}
         >
             {/* Slide container with animation */}
@@ -137,7 +137,7 @@ export function KeyboardShortcutCarousel({ shortcuts, onSendKeyboardShortcut }) 
                                         onSendKeyboardShortcut={onSendKeyboardShortcut}
                                     />
                                     {btnIdx < slide.length - 1 && (
-                                        <div className="w-px bg-hover" />
+                                        <div className="w-px bg-ash" />
                                     )}
                                 </React.Fragment>
                             ))}
@@ -152,7 +152,7 @@ export function KeyboardShortcutCarousel({ shortcuts, onSendKeyboardShortcut }) 
                     <div
                         key={idx}
                         className={`h-1 w-4 rounded-full transition-colors ${
-                            idx === currentSlide ? "bg-hover" : "bg-shelf"
+                            idx === currentSlide ? "bg-ash" : "bg-ink"
                         }`}
                         onClick={() => setCurrentSlide(idx)}
                     />
@@ -186,12 +186,12 @@ export function ClickButtonGroup({ buttons, onButtonPress, onButtonRelease }) {
 
     const getButtonClass = (buttonId, rounded) => {
         const isPressed = pressedButton === buttonId;
-        const bgColor = isPressed ? "bg-white text-shelf" : "bg-shelf text-text";
+        const bgColor = isPressed ? "bg-white text-ink" : "bg-ink text-text";
         return `h-16 flex justify-center items-center flex-1 transition-colors cursor-pointer select-none ${bgColor} ${rounded}`;
     };
 
     return (
-        <div className="absolute bottom-0 left-0 right-0 flex rounded-b-xl z-10 border-t border-hover">
+        <div className="absolute bottom-0 left-0 right-0 flex rounded-b-xl z-10 border-t border-ash">
             {buttons.map((button, idx) => (
                 <React.Fragment key={button.id}>
                     <button
@@ -205,7 +205,7 @@ export function ClickButtonGroup({ buttons, onButtonPress, onButtonRelease }) {
 
                     {/* Divider - skip after last button */}
                     {idx < buttons.length - 1 && (
-                        <div className="w-px bg-hover" />
+                        <div className="w-px bg-ash" />
                     )}
                 </React.Fragment>
             ))}
@@ -237,7 +237,7 @@ export function IconToggleButton({
     };
 
     const getButtonStyle = () => {
-        const bgColor = "bg-shelf";
+        const bgColor = "bg-ink";
         const clickBgColor = connectionStatus === 0 ? "bg-secondary" : "bg-primary";
         const positionClass = expandDirection === "right" ? "left-0" : "right-0";
         const flexOrder = expandDirection === "right" ? "" : "flex-row-reverse";
@@ -247,10 +247,10 @@ export function IconToggleButton({
         }
 
         if (isHovered) {
-            return `absolute ${positionClass} top-0 w-auto px-3 bg-white text-shelf ${flexOrder}`;
+            return `absolute ${positionClass} top-0 w-auto px-3 bg-white text-ink ${flexOrder}`;
         }
 
-        return `w-10 ${toggled ? "bg-white text-shelf" : `${bgColor} text-text`}`;
+        return `w-10 ${toggled ? "bg-white text-ink" : `${bgColor} text-text`}`;
     };
 
     return (
@@ -261,7 +261,7 @@ export function IconToggleButton({
                 onMouseDown={(e) => e.preventDefault()}
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
-                className={`border border-hover h-10 flex justify-center items-center p-2 rounded-lg transition-all ${
+                className={`border border-ash h-10 flex justify-center items-center p-2 rounded-lg transition-all ${
                     connectionStatus === 0 ? "cursor-not-allowed" : "cursor-pointer"
                 } select-none ${getButtonStyle()} ${className}`}
             >

@@ -62,8 +62,8 @@ const ECDHOverlay = ({ onChangeOverlay }) => {
     }, [device, onChangeOverlay]); 
 
     return (
-        <div className="fixed inset-0 bg-hover/60 flex flex-col justify-center items-center z-[9999]" onClick={() => onChangeOverlay(null)}>
-            <div className="bg-shelf p-5 rounded-lg w-11/12 max-w-lg flex flex-col justify-center items-center shadow-lg relative" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-ash/60 flex flex-col justify-center items-center z-[9999]" onClick={() => onChangeOverlay(null)}>
+            <div className="bg-ink p-5 rounded-lg w-11/12 max-w-lg flex flex-col justify-center items-center shadow-lg relative" onClick={(e) => e.stopPropagation()}>
                 {/* Close Button*/}
                 <button
                     onClick={() => onChangeOverlay(null)}
@@ -83,8 +83,8 @@ const ECDHOverlay = ({ onChangeOverlay }) => {
                     value={keyInput}
                     onChange={(e) => setkeyInput(e.target.value)}
                     onKeyDown={handleSubmit}
-                    className='w-full h-10 opacity-1 text-text bg-shelf border border-3 border-hover rounded-md p-2 my-4 font-body
-                    focus:outline-none focus:border-primary focus:ring-primary-hover'
+                    className='w-full h-10 opacity-1 text-text bg-ink border border-3 border-ash rounded-md p-2 my-4 font-body
+                    focus:outline-none focus:border-primary focus:ring-primary-ash'
                 />
 
                 <Button
@@ -92,7 +92,7 @@ const ECDHOverlay = ({ onChangeOverlay }) => {
                     onClick={computeSecret}
                     loading={isLoading.toString()}
                     disabled={keyInput.trim().length < 44 || !pktCharacteristic || isLoading}
-                    className='w-full h-10 my-4 bg-primary text-text hover:bg-primary-hover focus:bg-primary-focus active:bg-primary-active flex items-center justify-center size-sm'>
+                    className='w-full h-10 my-4 bg-primary text-text hover:bg-primary-ash focus:bg-primary-focus active:bg-primary-active flex items-center justify-center size-sm'>
 
                     <KeyIcon className={`h-7 w-7 mr-2  ${isLoading? "hidden":""}`} />
                     <Spinner className={`h-7 w-7 mr-2  ${isLoading? "":"hidden"}`} />
@@ -106,7 +106,7 @@ const ECDHOverlay = ({ onChangeOverlay }) => {
                         How to Pair your ToothPaste Device:
                 </Typography>
 
-                <div className="bg-hover rounded-lg p-4 my-2 gap-2 flex flex-col justify-center items-center">
+                <div className="bg-ash rounded-lg p-4 my-2 gap-2 flex flex-col justify-center items-center">
 
 
                     <Typography variant="h6" className={`text-text text-md text-center mb-2`}> 

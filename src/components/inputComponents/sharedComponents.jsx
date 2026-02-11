@@ -203,7 +203,7 @@ export function RightButtonColumn({
                 />
                 {isMenuOpen && (
                     <div
-                        className="absolute right-0 top-12 rounded-lg z-50 w-48 max-h-80 overflow-y-auto p-2 border-2 border-hover"
+                        className="absolute right-0 top-12 rounded-lg z-50 w-48 max-h-80 overflow-y-auto p-2 border-2 border-ash"
                         style={{ scrollbarColor: "#555 transparent" }}
                     >
                         <div className="flex flex-col gap-2">
@@ -214,7 +214,7 @@ export function RightButtonColumn({
                                         sendKeyboardShortcut(shortcut.keys);
                                         setIsMenuOpen(false);
                                     }}
-                                    className="w-full font-header px-4 py-2 text-left text-sm font-medium bg-shelf text-text rounded-lg border border-hover hover:bg-white hover:text-shelf transition-colors"
+                                    className="w-full font-header px-4 py-2 text-left text-sm font-medium bg-ink text-text rounded-lg border border-ash hover:bg-white hover:text-ink transition-colors"
                                 >
                                     {shortcut.label}
                                 </button>

@@ -69,7 +69,7 @@ const CONNECTION_STATUS_STEP = {
             <div className="mb-4">
                 <Typography className="text-xl font-body">Click to connect to a ToothPaste device via BLE.</Typography>
             </div>
-            <div className="border border-2 border-hover mb-4"></div>
+            <div className="border border-2 border-ash mb-4"></div>
             <div className="">
                 <Typography className="text-lg font-body mb-2">Different border colors indicate connection status:</Typography>
                 <ul className="list-disc list-inside space-y-1 text-sm">
@@ -270,7 +270,7 @@ export default function QuickStartOverlay({ onChangeOverlay, activeView = 'live'
                 {/* Tooltip Card */}
                 <div
                     key={currentStep}
-                    className="bg-shelf p-5 rounded-lg shadow-lg pointer-events-auto flex flex-col overflow-visible"
+                    className="bg-ink p-5 rounded-lg shadow-lg pointer-events-auto flex flex-col overflow-visible"
                     style={{...gridStyles, height: 'auto'}}
                     onClick={(e) => e.stopPropagation()}
                 >
@@ -288,23 +288,23 @@ export default function QuickStartOverlay({ onChangeOverlay, activeView = 'live'
                     </div>
 
                     <div className="flex gap-3 flex-wrap">
+                        <Button
+                            onClick={handleSkip}
+                            className="flex-1 min-w-fit h-10 bg-ash border-ash text-text font-header normal-case"
+                        >
+                            Skip
+                        </Button>
                         {currentStep > 0 && (
                             <Button
                                 onClick={handlePrevious}
-                                className="flex-1 min-w-fit h-10 border-hover text-text hover:bg-hover font-header normal-case"
+                                className="flex-1 min-w-fit h-10 bg-orange border-ash text-text font-header normal-case"
                             >
                                 Previous
                             </Button>
                         )}
                         <Button
-                            onClick={handleSkip}
-                            className="flex-1 min-w-fit h-10 border-hover text-text hover:bg-hover font-header normal-case"
-                        >
-                            Skip
-                        </Button>
-                        <Button
                             onClick={handleNext}
-                            className="flex-1 min-w-fit h-10 bg-primary text-text hover:bg-primary font-header normal-case"
+                            className="flex-1 min-w-fit h-10 bg-primary text-text font-header normal-case"
                         >
                             {isLastStep ? 'Done' : 'Next'}
                         </Button>

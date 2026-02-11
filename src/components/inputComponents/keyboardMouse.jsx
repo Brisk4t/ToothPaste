@@ -92,8 +92,8 @@ export default function KeyboardMouse({
     };
     return (
         <div className="hidden xl:flex flex-col flex-1 my-4 rounded-xl transition-all 
-        border border-hover bg-shelf
-        focus-within:border-hover focus-within:bg-background 
+        border border-ash bg-ink
+        focus-within:border-ash focus-within:bg-background 
         relative group">
 
             <div className="absolute top-2 left-2 z-10">
