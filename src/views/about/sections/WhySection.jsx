@@ -30,7 +30,7 @@ export default function WhySection({ currentSlide, getSectionOpacity }) {
             </div>
 
             {/* Content Grid - 1 text row + 1 large container for remaining rows */}
-            <div className="flex-1 relative w-full flex flex-col gap-1 md:gap-0 z-50 xl:z-25">
+            <div className="flex-1 relative w-full flex flex-col gap-1 md:gap-0 z-50 md:z-25">
 
                     {/* Row 1 - Text Content */}
                     <div className="flex flex-col justify-center text-center p-4 z-25 flex-shrink">
@@ -41,9 +41,9 @@ export default function WhySection({ currentSlide, getSectionOpacity }) {
                     
                     {/* Container - flex-1 fills remaining space */}
                     <div 
-                        className="flex-1 flex flex-col gap-0 w-full bg-background/60 px-3 
-                        md:px-8 py-4 md:py-8 
-                        border-t-2 border-white text-center z-55 xl:z-25 overflow-hidden"
+                        className="flex-1 flex flex-col gap-0 w-full bg-background/60 px-2 
+                        md:px-8 py-1 md:py-2 
+                        border-t-2 border-white text-center z-55 md:z-25 overflow-hidden"
                         style={{ boxShadow: '0 0 50px rgba(255, 255, 255, 0.3)' }}
                     >   
                         {/* Top 1/3 - "So I made ToothPaste" */}
@@ -54,8 +54,8 @@ export default function WhySection({ currentSlide, getSectionOpacity }) {
                         </div>
 
                         {/* 3 Why squares */}
-                        <div className="flex-1 flex flex-col w-full gap-8 py-8 px-8
-                        xl:flex-row xl:gap-6 xl:py-12 xl:px-8 ">
+                        <div className="flex-1 flex flex-col w-full gap-8 py-5 px-2 md:gap-4 md:py-4 md:px-4 min-h-0
+                        xl:flex-row xl:gap-6 xl:py-8 xl:px-8 ">
 
                             {/* Square 1 */}
                             <div className="whybox border-secondary shadow-secondary">
@@ -64,7 +64,7 @@ export default function WhySection({ currentSlide, getSectionOpacity }) {
                                     style={{ filter: `drop-shadow(0 0px 3px ${appColors.secondary})` }}
                                 />
                                 <div className="flex flex-col items-center justify-center gap-4 px-4">
-                                    <Typography className="font-body text-xl font-light text-text leading-relaxed">
+                                    <Typography className="font-body text-md xl:text-2xl font-light text-text leading-relaxed">
                                     As a maker and tinkerer, I often find myself needing to quickly paste passwords, commands, 
                                     or text snippets into devices that aren't connected to the internet.
                                     </Typography>
@@ -72,12 +72,12 @@ export default function WhySection({ currentSlide, getSectionOpacity }) {
                             </div>
                             
                             {/* Square 2 */}
-                            <div className="whybox border-orange shadow-orange">
+                            <div className="whybox border-orange shadow-orange min-w-0">
                                 <EyeSlashIcon className="h-12 w-12 md:h-16 md:w-16 text-orange"
                                     style={{ filter: `drop-shadow(0 0px 3px ${appColors.orange})` }}/>
                                 
                                 <div className="flex flex-col items-center justify-center gap-4 px-4">
-                                    <Typography className="font-body text-xl font-light text-text leading-relaxed">
+                                    <Typography className="font-body text-md xl:text-2xl font-light text-text leading-relaxed">
                                     And sometimes I just don't want to login to my password manager on some a sketchy makerspace computer.
                                     </Typography>
                                     
@@ -93,11 +93,11 @@ export default function WhySection({ currentSlide, getSectionOpacity }) {
                             </div>
                             
                             {/* Square 3 */}
-                            <div className="whybox border-primary shadow-primary">
+                            <div className="whybox border-primary shadow-primary min-w-0">
                                 <HeartIcon className="h-12 w-12 xl:h-16 xl:w-16 text-primary" 
                                     style={{ filter: `drop-shadow(0 0px 3px ${appColors.primary})` }}/>
                                 <div className="flex flex-col items-center justify-center gap-2 px-4">
-                                    <Typography className="font-body text-xl xl:text-2xl font-light text-text">
+                                    <Typography className="font-body text-md xl:text-2xl font-light text-text">
                                     And I just needed a reason to solder some stuff and write some code 
                                     </Typography>
                                     <Typography className="font-body text-xs md:text-sm font-light text-text">
