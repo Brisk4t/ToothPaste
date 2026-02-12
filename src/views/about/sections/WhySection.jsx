@@ -49,7 +49,7 @@ export default function WhySection({ currentSlide, getSectionOpacity }) {
                     >
                         <div className="grid grid-cols-3 gap-12 w-full h-2/3 p-4 mt-auto mb-10">
                             {/* Column 1 */}
-                            <div className="border-2 rounded-lg border-secondary bg-ink shadow-lg shadow-secondary h-full p-4">
+                            <div className="border-2 rounded-lg border-secondary bg-ink shadow-lg shadow-secondary h-full p-2">
                                 <div className="flex flex-col h-full gap-5 m-5">
                                     <CogIcon 
                                         className="h-1/3 w-1/3 text-secondary self-center flex-shrink-0" 
@@ -65,12 +65,12 @@ export default function WhySection({ currentSlide, getSectionOpacity }) {
                             </div>
                             
                             {/* Column 2 */}
-                            <div className="border-2 rounded-lg border-orange bg-ink shadow-lg shadow-orange h-full p-4">
+                            <div className="border-2 rounded-lg border-orange bg-ink shadow-lg shadow-orange h-full p-2">
                                 <div className="flex flex-col h-full gap-5 m-5">
                                     <EyeSlashIcon className="h-1/3 w-1/3 text-orange self-center flex-shrink-0"
                                     style={{ filter: `drop-shadow(0 0px 3px ${appColors.orange})` }}/>
                                     
-                                    <div className="flex-1 flex flex-col items-center justify-start px-6 py-2 gap-4 overflow-y-auto">
+                                    <div className="flex-1 flex flex-col items-center justify-start px-6 py-2 gap-6 overflow-y-auto">
                                         <Typography className="font-body text-2xl font-light text-text leading-relaxed">
                                         And sometimes I just don't want to login to my password manager on some a sketchy makerspace computer.
                                         </Typography>
@@ -88,7 +88,7 @@ export default function WhySection({ currentSlide, getSectionOpacity }) {
                             </div>
                             
                             {/* Column 3 */}
-                            <div className="border-2 rounded-lg border-primary bg-ink shadow-lg shadow-primary h-full p-4">
+                            <div className="border-2 rounded-lg border-primary bg-ink shadow-lg shadow-primary h-full p-2">
                                 <div className="flex flex-col h-full gap-5 m-5">
                                     <HeartIcon className="h-1/3 w-1/3 text-primary self-center flex-shrink-0" 
                                         style={{ filter: `drop-shadow(0 0px 3px ${appColors.primary})` }}/>
