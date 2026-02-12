@@ -66,7 +66,7 @@ const bluetoothSquares = [
 ];
 
 // Generate repeating pattern of 3 stars with equal spacing
-const generateRepeatingStars = (cols, rowOffset = 20) => {
+const generateRepeatingStars = (cols, rowOffset = 8) => {
     const starWidth = 7;
     const colors = [appColors.secondary, appColors.orange, appColors.primary];
     const groupSpacing = 12;
@@ -85,7 +85,7 @@ const generateRepeatingStars = (cols, rowOffset = 20) => {
                         col: square.col + starCol,
                         row: square.row + rowOffset,
                         color: colors[i],
-                        opacity: 0.3
+                        opacity: 0.5
                     }))
                 );
             }

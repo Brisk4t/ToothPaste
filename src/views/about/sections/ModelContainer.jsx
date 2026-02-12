@@ -6,14 +6,14 @@ import { AxesHelper } from 'three';
 // Per-slide configuration: lighting intensity, translation (as % of viewport), and autorotation
 const SLIDE_CONFIG = {
     mobile: [
-        { ambient: 0.2, directional: 0.5, translateXPercent: 50, translateYPercent: 50, translateZ: 0, autorotate: true },      // Slide 0 - Hero
-        { ambient: 0.3, directional: 0.15, translateXPercent: 50, translateYPercent: 50, translateZ: 0, autorotate: true },     // Slide 1 - Why
-        { ambient: 0.3, directional: 0.15, translateXPercent: 50, translateYPercent: 50, translateZ: 0, autorotate: true },     // Slide 2 - Security
-        { ambient: 0.5, directional: 0.1, translateXPercent: 50, translateYPercent: 50, translateZ: 6, autorotate: false }       // Slide 3 - CTA
+        { ambient: 0.2, directional: 0.5, translateXPercent: 0, translateYPercent: 0, translateZ: 0, autorotate: true },      // Slide 0 - Hero
+        { ambient: 0.3, directional: 0.15, translateXPercent: 0, translateYPercent: 0, translateZ: 0, autorotate: true },     // Slide 1 - Why
+        { ambient: 0.3, directional: 0.15, translateXPercent: 0, translateYPercent: 0, translateZ: 0, autorotate: true },     // Slide 2 - Security
+        { ambient: 0.5, directional: 0.1, translateXPercent: 0, translateYPercent: 0, translateZ: 6, autorotate: false }       // Slide 3 - CTA
     ],
     desktop: [
         { ambient: 2, directional: 1, translateXPercent: -110, translateYPercent: 0, translateZ: -3, autorotate: true },          // Slide 0 - Hero
-        { ambient: 2, directional: 1, translateXPercent: -5, translateYPercent: 0, translateZ: -3, autorotate: true },       // Slide 1 - Why
+        { ambient: 2, directional: 1, translateXPercent: 0, translateYPercent: 90, translateZ: -3, autorotate: true },       // Slide 1 - Why
         { ambient: 1, directional: 0.1, translateXPercent: 110, translateYPercent: 0, translateZ: -3, autorotate: true },       // Slide 2 - Security
         { ambient: 0.5, directional: 0.1, translateXPercent: 0, translateYPercent: 0, translateZ: 6, autorotate: false }        // Slide 3 - CTA
     ]
@@ -115,7 +115,7 @@ export default function ModelContainer({ currentSlide, scrollDeltaRef, isMobile 
     const slideConfig = config[currentSlide] || config[0];
 
     return (
-        <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute inset-0 pointer-events-none z-30">
             <div className="relative w-full h-full">
                 <Canvas className="w-full h-full">
                     <ambientLight intensity={slideConfig.ambient} />

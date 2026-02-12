@@ -5,7 +5,7 @@ import { FaGithub } from 'react-icons/fa';
 export default function CTASection({ currentSlide, getSectionOpacity }) {
     return (
         <section
-            className="absolute inset-0 flex flex-col items-center justify-center px-6 md:px-12 z-10"
+            className="absolute inset-0 flex flex-col items-center justify-center px-6 md:px-12 z-50"
             style={{
                 opacity: getSectionOpacity(3),
                 transition: 'opacity 0.3s ease-in-out',

@@ -63,7 +63,7 @@ function App() {
             onChangeOverlay={setActiveOverlay}
             activeOverlay={activeOverlay}
             activeView={activeView}
-            className="relative z-40"
+            className="relative z-50"
           />
 
           {/* Main content area - middle layer */}

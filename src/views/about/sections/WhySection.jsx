@@ -1,11 +1,13 @@
 import React from 'react';
 import { Typography } from "@material-tailwind/react";
-import { ArrowDownIcon, QuestionMarkCircleIcon } from "@heroicons/react/24/outline";
+import { ArrowDownIcon, QuestionMarkCircleIcon, DevicePhoneMobileIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
+import GridBackground from '../../../components/shared/GridBackground';
+import { appColors } from '../../../styles/colors';
 
 export default function WhySection({ currentSlide, getSectionOpacity }) {
     return (
         <section
-            className="absolute inset-0 flex flex-col px-6 md:px-12 py-48 z-10 pb-10 items-center justify-center"
+            className="absolute inset-0 flex flex-col px-0 md:px-0 py-0 z-2 items-center justify-center"
             style={{
                 opacity: getSectionOpacity(1),
                 transition: 'opacity 0.3s ease-in-out',
@@ -27,48 +29,24 @@ export default function WhySection({ currentSlide, getSectionOpacity }) {
                 </div>
             </div>
 
-            {/* Content Grid with Model Breaking Out */}
-            <div className="flex-1 relative">
-                <div className="grid grid-cols-5 grid-rows-5 gap-8 h-full">
-                    {/* Row 1 - Height 2 */}
-                    <div className="col-span-2 row-span-2 flex flex-col gap-40 text-left">
-                        <Typography type="h1" className="font-body text-3xl font-light text-white">
+            {/* Content Grid - 1 text row + 1 large container for remaining rows */}
+            <div className="flex-1 relative w-full">
+                <div className="grid grid-cols-1 grid-rows-4 gap-8 h-full">
+
+                    {/* Row 1 - Text Content */}
+                    <div className="row-span-1 flex flex-col justify-center text-center px-8">
+                        <Typography type="h1" className="font-header text-3xl font-light text-white">
                         Secure passwords are annoying to type and easy to mess up.
                         </Typography>
-
-                    </div>
-                    <div className="row-span-2"></div>
-                    <div className="col-span-2 row-span-2 flex flex-col gap-40 text-left">
-                        {/* <Typography className="font-body text-3xl font-light text-white">
-                        ToothPaste acts a keyboard that types for you. <br/>
-                        Just copy on one device, and paste on another - no cloud, no middleman, no hassle.
-                        </Typography> */}
                     </div>
                     
-                    {/* Row 2 - Height 1 */}
-                    <div className="col-span-2 row-span-1 flex flex-col gap-40 text-left">
-                        {/* <Typography className="font-body text-3xl font-light text-white">
-                        [Left Content Row 2]
-                        </Typography> */}
-                    </div>
-                    <div className="row-span-1"></div>
-                    <div className="col-span-2 row-span-1 flex flex-col gap-40 text-left">
-                        <Typography className="font-header text-3xl font-light text-white">
-                        ToothPaste acts a keyboard that types for you.
+                    {/* Container - Rows 2-4 spanning full width */}
+                    <div className="row-span-3 flex flex-col w-full gap-10 bg-ink/60 rounded-sm border-t-4  
+                    border-white items-center justify-center text-center">
+                        <Typography className="font-body text-2xl font-light text-text italic">
+                        Placeholder content
                         </Typography>
-                    </div>
-                    
-                    {/* Row 3 - Height 2 */}
-                    <div className="col-span-2 row-span-2 flex flex-col gap-40 text-left">
-                        <Typography type="h3" className="font-body text-lg font-light text-text italic ">
-                        And installing clipboard sharing apps isn't always an option.
-                        </Typography>
-                    </div>
-                    <div className="row-span-2"></div>
-                    <div className="col-span-2 row-span-2 flex flex-col gap-40 text-left">
-                        {/* <Typography className="font-body text-3xl font-light text-white">
-                        [Right Content Row 3]
-                        </Typography> */}
+                        <DevicePhoneMobileIcon className="h-16 w-16 text-white" />
                     </div>
                 </div>
             </div>
