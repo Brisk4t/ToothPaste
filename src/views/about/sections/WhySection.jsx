@@ -56,8 +56,7 @@ export default function WhySection({ currentSlide, getSectionOpacity }) {
                         <div className="flex-1 flex flex-col w-full gap-8 py-8 px-8 min-h-0 
                         xl:flex-row xl:gap-6 xl:py-12 xl:px-8 ">
                             {/* Square 1 */}
-                            <div className="flex-1 border-2 rounded-lg border-secondary bg-ink shadow-lg shadow-secondary 
-                            h-full p-2 md:p-3 flex flex-col items-center min-h-0">
+                            <div className="whybox border-secondary shadow-secondary">
                                 <CogIcon 
                                     className="h-12 w-12 xl:h-16 xl:w-16 text-secondary flex-shrink-0 mt-1 md:mb-2" 
                                     style={{ filter: `drop-shadow(0 0px 3px ${appColors.secondary})` }}
@@ -71,7 +70,7 @@ export default function WhySection({ currentSlide, getSectionOpacity }) {
                             </div>
                             
                             {/* Square 2 */}
-                            <div className="flex-1 border-2 rounded-lg border-orange bg-ink shadow-lg shadow-orange h-full p-2 md:p-3 flex flex-col items-center min-h-0">
+                            <div className="whybox border-orange shadow-orange">
                                 <EyeSlashIcon className="h-12 w-12 md:h-16 md:w-16 text-orange flex-shrink-0 mb-1 md:mb-2"
                                     style={{ filter: `drop-shadow(0 0px 3px ${appColors.orange})` }}/>
                                 
@@ -92,11 +91,11 @@ export default function WhySection({ currentSlide, getSectionOpacity }) {
                             </div>
                             
                             {/* Square 3 */}
-                            <div className="flex-1 border-2 rounded-lg border-primary bg-ink shadow-lg shadow-primary 
-                                h-full p-2 md:p-3 flex flex-col items-center justify-center min-h-0">
-                                <HeartIcon className="h-12 w-12 md:h-16 md:w-16 text-primary flex-shrink-0 mb-1 md:mb-2" 
+                            <div className="whybox border-primary shadow-primary">
+                                <HeartIcon className="h-12 w-12 xl:h-16 xl:w-16 text-primary flex-shrink-0 mb-1 md:mb-2" 
                                     style={{ filter: `drop-shadow(0 0px 3px ${appColors.primary})` }}/>
-                                <div className="flex-1 flex flex-col items-center justify-center overflow-y-auto gap-2 md:gap-4 px-4 min-h-0">
+                                <div className="flex-1 flex flex-col items-center justify-center overflow-y-auto gap-2 md:gap-4 
+                                    px-4 min-h-0">
                                     <Typography className="font-body text-xs md:text-sm lg:text-base font-light text-text">
                                     And I just needed a reason to solder some stuff and write some code 
                                     </Typography>

@@ -36,6 +36,15 @@ export default {
   },
 
   // Material Tailwind Config
-  plugins: [mtConfig]
+  plugins: [
+    function ({ addComponents }) {
+      addComponents({
+        '.whybox': {
+          '@apply flex-1 border-2 rounded-lg bg-ink shadow-lg h-full p-2 md:p-3 flex flex-col items-center min-h-0': {}
+        }
+      })
+    },
+    mtConfig
+  ]
 
 };
