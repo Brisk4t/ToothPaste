@@ -180,13 +180,19 @@ function ConnectionButton({ showAuthOverlay, setShowAuthOverlay, authState }) {
         setProgress(0);
 
         if (!longPressTriggered.current) {
-            // Check auth state before connecting - only proceed if explicitly UNLOCKED
-            // Show auth overlay for any other state (LOADING, FIRST_TIME, AWAITING_*, CORRUPTED, or null)
+            // Don't proceed if auth state is still initializing
+            if (authState === null) {
+                return;
+            }
+            
+            // Show auth overlay only if authentication is required (not UNLOCKED)
             if (authState !== AuthState.UNLOCKED) {
                 setShowAuthOverlay(true);
                 return;
             }
-            clickFn?.(); // only run click if long press didn't trigger
+            
+            // If already UNLOCKED, proceed with connection
+            clickFn?.();
         }
     };
 
@@ -244,17 +250,17 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
             console.log("[Navbar] Auth state changed to:", newState);
             setAuthState(newState);
             
-            // Auto-hide auth overlay on successful unlock
-            if (newState === AuthState.UNLOCKED) {
+            // Auto-hide auth overlay if it becomes unlocked (prevents flashing)
+            if (newState === AuthState.UNLOCKED && showAuthOverlay) {
                 setShowAuthOverlay(false);
             }
         });
 
-        // Initialize auth state on mount
+        // Initialize auth state on mount - do NOT show overlay automatically
         authStateManager.initialize();
 
         return unsubscribe;
-    }, []);
+    }, [showAuthOverlay]);
 
     const borderClass =
         {
