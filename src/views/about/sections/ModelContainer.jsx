@@ -1,43 +1,54 @@
 import React, { useRef } from 'react';
-import { Canvas, useLoader, useFrame } from '@react-three/fiber';
+import { Canvas, useLoader, useFrame, useThree } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { AxesHelper } from 'three';
 
-// Per-slide configuration: lighting intensity, translation, and autorotation
+// Per-slide configuration: lighting intensity, translation (as % of viewport), and autorotation
 const SLIDE_CONFIG = {
     mobile: [
-        { ambient: 0.2, directional: 0.5, translateX: 0, translateY: 0, translateZ: 0, autorotate: true },      // Slide 0 - Hero
-        { ambient: 0.3, directional: 0.15, translateX: 0, translateY: 0, translateZ: 0, autorotate: true },     // Slide 1 - Why
-        { ambient: 0.3, directional: 0.15, translateX: 0, translateY: 0, translateZ: 0, autorotate: true },     // Slide 2 - Security
-        { ambient: 0.5, directional: 0.1, translateX: 0, translateY: 0, translateZ: 6, autorotate: false }       // Slide 3 - CTA
+        { ambient: 0.2, directional: 0.5, translateXPercent: 50, translateYPercent: 50, translateZ: 0, autorotate: true },      // Slide 0 - Hero
+        { ambient: 0.3, directional: 0.15, translateXPercent: 50, translateYPercent: 50, translateZ: 0, autorotate: true },     // Slide 1 - Why
+        { ambient: 0.3, directional: 0.15, translateXPercent: 50, translateYPercent: 50, translateZ: 0, autorotate: true },     // Slide 2 - Security
+        { ambient: 0.5, directional: 0.1, translateXPercent: 50, translateYPercent: 50, translateZ: 6, autorotate: false }       // Slide 3 - CTA
     ],
     desktop: [
-        { ambient: 2, directional: 1, translateX: -6.5, translateY: 0, translateZ: -1, autorotate: true },          // Slide 0 - Hero
-        { ambient: 2, directional: 1, translateX: 0, translateY: 0, translateZ: -3, autorotate: true },       // Slide 1 - Why
-        { ambient: 1, directional: 0.1, translateX: 5, translateY: -5, translateZ: 0, autorotate: true },       // Slide 2 - Security
-        { ambient: 0.5, directional: 0.1, translateX: 0.02, translateY: 0, translateZ: 6, autorotate: false }        // Slide 3 - CTA
+        { ambient: 2, directional: 1, translateXPercent: -110, translateYPercent: 0, translateZ: -3, autorotate: true },          // Slide 0 - Hero
+        { ambient: 2, directional: 1, translateXPercent: -5, translateYPercent: 0, translateZ: -3, autorotate: true },       // Slide 1 - Why
+        { ambient: 1, directional: 0.1, translateXPercent: 110, translateYPercent: 0, translateZ: -3, autorotate: true },       // Slide 2 - Security
+        { ambient: 0.5, directional: 0.1, translateXPercent: 0, translateYPercent: 0, translateZ: 6, autorotate: false }        // Slide 3 - CTA
     ]
 };
 
-const Model = ({ url, scrollDeltaRef, translateX, translateY, translateZ, autorotate = true }) => {
+const Model = ({ url, scrollDeltaRef, translateXPercent, translateYPercent, translateZ, autorotate = true }) => {
     const groupRef = useRef();
     const axesHelperRef = useRef(null);
     const gltf = useLoader(GLTFLoader, url);
     const targetRotation = useRef(0);
     const autorotationDirection = useRef(1);
     const rotationSpeed = 0.005;
+    const { viewport } = useThree();
     
     // Position interpolation
     const currentPos = useRef([0, 0, 0]);
-    const targetX = useRef(translateX);
-    const targetY = useRef(translateY);
+    const targetX = useRef(0);
+    const targetY = useRef(0);
     const targetZ = useRef(translateZ || 0);
     const interpolationSpeed = 0.08;
 
-    // Update target position when props change
+    // Calculate 3D position from percentages based on viewport
+    const calculatePosition = () => {
+        // Convert percentage to 3D units
+        // Assuming viewport width/height maps to camera frustum
+        const x3D = (translateXPercent / 100) * viewport.width * 0.5;
+        const y3D = (translateYPercent / 100) * viewport.height * 0.5;
+        return [x3D, y3D];
+    };
+
+    // Update target position when props or viewport changes
     useFrame(() => {
-        targetX.current = translateX;
-        targetY.current = translateY;
+        const [x, y] = calculatePosition();
+        targetX.current = x;
+        targetY.current = y;
         targetZ.current = translateZ || 0;
     });
 
@@ -81,11 +92,11 @@ const Model = ({ url, scrollDeltaRef, translateX, translateY, translateZ, autoro
             />
 
             {/* Axes Helper - visualizes the center point and axes */}
-            <primitive
+            {/* <primitive
                 ref={axesHelperRef}
                 object={new AxesHelper(5)}
                 position={[0, 0, 0]}
-            />
+            /> */}
 
             {/* // This primitive is the actual 3D model loaded from the GLB file
             // We dont manipulate its position or rotation directly since it isnt centered on the origin */}
@@ -116,8 +127,8 @@ export default function ModelContainer({ currentSlide, scrollDeltaRef, isMobile 
                     <Model 
                         url="/ToothPaste.glb" 
                         scrollDeltaRef={scrollDeltaRef}
-                        translateX={slideConfig.translateX}
-                        translateY={slideConfig.translateY}
+                        translateXPercent={slideConfig.translateXPercent}
+                        translateYPercent={slideConfig.translateYPercent}
                         translateZ={slideConfig.translateZ}
                         autorotate={slideConfig.autorotate}
                     />
