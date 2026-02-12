@@ -9,7 +9,7 @@ const SLIDE_CONFIG = {
         { ambient: 0.2, directional: 0.5, translateX: 0, translateY: 0, translateZ: 0, autorotate: true },      // Slide 0 - Hero
         { ambient: 0.3, directional: 0.15, translateX: 0, translateY: 0, translateZ: 0, autorotate: true },     // Slide 1 - Why
         { ambient: 0.3, directional: 0.15, translateX: 0, translateY: 0, translateZ: 0, autorotate: true },     // Slide 2 - Security
-        { ambient: 0.2, directional: 0.1, translateX: 0, translateY: 0, translateZ: 0, autorotate: true }       // Slide 3 - CTA
+        { ambient: 0.5, directional: 0.1, translateX: 0, translateY: 0, translateZ: 6, autorotate: false }       // Slide 3 - CTA
     ],
     desktop: [
         { ambient: 2, directional: 1, translateX: -6.5, translateY: 0, translateZ: -1, autorotate: true },          // Slide 0 - Hero

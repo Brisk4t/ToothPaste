@@ -221,23 +221,23 @@ export default function About() {
             }
         };
 
-        // Unified pointer events handler (touch, mouse, pen)
-        const handlePointerDown = (event) => {
-            pointerStartYRef.current = event.clientY;
+        // Unified touch events handler
+        const handleTouchStart = (event) => {
+            pointerStartYRef.current = event.touches[0].clientY;
             isPointerDownRef.current = true;
         };
 
-        const handlePointerMove = (event) => {
-            if (isPointerDownRef.current && event.isPrimary) {
-                const currentY = event.clientY;
-                const pointerDelta = pointerStartYRef.current - currentY;
+        const handleTouchMove = (event) => {
+            if (isPointerDownRef.current) {
+                const currentY = event.touches[0].clientY;
+                const touchDelta = pointerStartYRef.current - currentY;
                 // Touch: reduced model rotation (0.5x), normal slide threshold
-                handleScrollInput(pointerDelta, touchSensitivity, 5);
+                handleScrollInput(touchDelta, touchSensitivity, 5);
                 pointerStartYRef.current = currentY;
             }
         };
 
-        const handlePointerUp = () => {
+        const handleTouchEnd = () => {
             isPointerDownRef.current = false;
         };
 
@@ -248,17 +248,15 @@ export default function About() {
         };
 
         window.addEventListener('wheel', handleWheel, { passive: false });
-        window.addEventListener('pointerdown', handlePointerDown, { passive: true });
-        window.addEventListener('pointermove', handlePointerMove, { passive: true });
-        window.addEventListener('pointerup', handlePointerUp, { passive: true });
-        window.addEventListener('pointercancel', handlePointerUp, { passive: true });
+        window.addEventListener('touchstart', handleTouchStart, { passive: true });
+        window.addEventListener('touchmove', handleTouchMove, { passive: true });
+        window.addEventListener('touchend', handleTouchEnd, { passive: true });
         
         return () => {
             window.removeEventListener('wheel', handleWheel);
-            window.removeEventListener('pointerdown', handlePointerDown);
-            window.removeEventListener('pointermove', handlePointerMove);
-            window.removeEventListener('pointerup', handlePointerUp);
-            window.removeEventListener('pointercancel', handlePointerUp);
+            window.removeEventListener('touchstart', handleTouchStart);
+            window.removeEventListener('touchmove', handleTouchMove);
+            window.removeEventListener('touchend', handleTouchEnd);
         };
     }, []);
 
@@ -306,9 +304,9 @@ export default function About() {
             />
 
             {/* Barcode ToothPaste */}
-            <div className='rotate-90 absolute bottom-0 right-0 -translate-y-full translate-x-[43%] pointer-events-none'>
+            {/* <div className='rotate-90 absolute bottom-0 right-0 -translate-y-full translate-x-[43%] pointer-events-none'>
                             <Typography style={{ fontFamily: '"Libre Barcode 39 Extended", system-ui'}} className="text-8xl leading-relaxed text-dust">ToothPaste</Typography>
-            </div>
+            </div> */}
         </div>
     );
 }
