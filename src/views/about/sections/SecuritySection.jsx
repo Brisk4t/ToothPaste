@@ -6,7 +6,7 @@ import { appColors } from '../../../styles/colors';
 export default function SecuritySection({ currentSlide, getSectionOpacity }) {
     return (
         <section
-            className="absolute inset-0 flex flex-col px-6 md:px-12 py-12 z-10 pb-32"
+            className="absolute inset-0 flex flex-col px-6 md:px-12 py-12 z-10"
             style={{
                 opacity: getSectionOpacity(2),
                 transition: 'opacity 0.3s ease-in-out',
@@ -22,15 +22,16 @@ export default function SecuritySection({ currentSlide, getSectionOpacity }) {
             </div>
 
             {/* 50/50 Split Container */}
-            <div className="flex-1 relative flex items-stretch justify-center gap-8 min-h-0">
+            <div className="flex-1 relative flex items-stretch justify-center gap-8">
                 {/* Left Side */}
                 <div className="flex-1 flex flex-col">
                     <Typography type="h4" className="text-lg md:text-2xl font-semibold text-secondary mb-4 text-center">
                         The Problem
                     </Typography>
-                    <div className="flex flex-wrap gap-3 content-start flex-1 min-h-0">
-                        <div className="flex-shrink-0" style={{ width: 'calc(50% - 6px)' }}>
-                            <div className="whybox border-secondary shadow-secondary">
+
+                    <div className="flex flex-wrap gap-3 content-start flex-1 h-full">
+                        <div className="flex-shrink-0 flex" style={{ width: 'calc(50% - 6px)', height: 'calc(50% - 6px)' }}>
+                            <div className="whybox border-secondary shadow-secondary flex-1">
                                 <EyeIcon className="h-12 w-12 md:h-16 md:w-16 text-secondary flex-shrink-0" 
                                     style={{ filter: `drop-shadow(0 0px 3px ${appColors.secondary})` }}/>
                                 <div className="flex flex-col items-center justify-center gap-4 px-4">
@@ -40,8 +41,8 @@ export default function SecuritySection({ currentSlide, getSectionOpacity }) {
                                 </div>
                             </div>
                         </div>
-                        <div className="flex-shrink-0" style={{ width: 'calc(50% - 6px)' }}>
-                            <div className="whybox border-secondary shadow-secondary">
+                        <div className="flex-shrink-0 flex" style={{ width: 'calc(50% - 6px)', height: 'calc(50% - 6px)' }}>
+                            <div className="whybox border-secondary shadow-secondary flex-1">
                                 <EyeIcon className="h-12 w-12 md:h-16 md:w-16 text-secondary flex-shrink-0" 
                                     style={{ filter: `drop-shadow(0 0px 3px ${appColors.secondary})` }}/>
                                 <div className="flex flex-col items-center justify-center gap-4 px-4">
@@ -51,8 +52,8 @@ export default function SecuritySection({ currentSlide, getSectionOpacity }) {
                                 </div>
                             </div>
                         </div>
-                        <div className="flex-shrink-0" style={{ width: 'calc(50% - 6px)' }}>
-                            <div className="whybox border-secondary shadow-secondary">
+                        <div className="flex-shrink-0 flex" style={{ width: 'calc(50% - 6px)', height: 'calc(50% - 6px)' }}>
+                            <div className="whybox border-secondary shadow-secondary flex-1">
                                 <EyeIcon className="h-12 w-12 md:h-16 md:w-16 text-secondary flex-shrink-0" 
                                     style={{ filter: `drop-shadow(0 0px 3px ${appColors.secondary})` }}/>
                                 <div className="flex flex-col items-center justify-center gap-4 px-4">
@@ -62,8 +63,8 @@ export default function SecuritySection({ currentSlide, getSectionOpacity }) {
                                 </div>
                             </div>
                         </div>
-                        <div className="flex-shrink-0" style={{ width: 'calc(50% - 6px)' }}>
-                            <div className="whybox border-secondary shadow-secondary">
+                        <div className="flex-shrink-0 flex" style={{ width: 'calc(50% - 6px)', height: 'calc(50% - 6px)' }}>
+                            <div className="whybox border-secondary shadow-secondary flex-1">
                                 <EyeIcon className="h-12 w-12 md:h-16 md:w-16 text-secondary flex-shrink-0" 
                                     style={{ filter: `drop-shadow(0 0px 3px ${appColors.secondary})` }}/>
                                 <div className="flex flex-col items-center justify-center gap-4 px-4">
@@ -81,9 +82,9 @@ export default function SecuritySection({ currentSlide, getSectionOpacity }) {
                     <Typography type="h4" className="text-lg md:text-2xl font-semibold text-primary mb-4 text-center">
                         The Solution
                     </Typography>
-                    <div className="flex flex-wrap gap-3 content-start flex-1 min-h-0">
-                        <div className="flex-shrink-0" style={{ width: 'calc(50% - 6px)' }}>
-                            <div className="whybox border-primary shadow-primary">
+                    <div className="flex flex-wrap gap-3 content-start flex-1 h-full">
+                        <div className="flex-shrink-0 flex" style={{ width: 'calc(50% - 6px)', height: 'calc(50% - 6px)' }}>
+                            <div className="whybox border-primary shadow-primary flex-1">
                                 <EyeSlashIcon className="h-12 w-12 md:h-16 md:w-16 text-primary flex-shrink-0" 
                                     style={{ filter: `drop-shadow(0 0px 3px ${appColors.primary})` }}/>
                                 <div className="flex flex-col items-center justify-center gap-4 px-4">
@@ -93,8 +94,8 @@ export default function SecuritySection({ currentSlide, getSectionOpacity }) {
                                 </div>
                             </div>
                         </div>
-                        <div className="flex-shrink-0" style={{ width: 'calc(50% - 6px)' }}>
-                            <div className="whybox border-primary shadow-primary">
+                        <div className="flex-shrink-0 flex" style={{ width: 'calc(50% - 6px)', height: 'calc(50% - 6px)' }}>
+                            <div className="whybox border-primary shadow-primary flex-1">
                                 <EyeSlashIcon className="h-12 w-12 md:h-16 md:w-16 text-primary flex-shrink-0" 
                                     style={{ filter: `drop-shadow(0 0px 3px ${appColors.primary})` }}/>
                                 <div className="flex flex-col items-center justify-center gap-4 px-4">
@@ -104,8 +105,8 @@ export default function SecuritySection({ currentSlide, getSectionOpacity }) {
                                 </div>
                             </div>
                         </div>
-                        <div className="flex-shrink-0" style={{ width: 'calc(50% - 6px)' }}>
-                            <div className="whybox border-primary shadow-primary">
+                        <div className="flex-shrink-0 flex" style={{ width: 'calc(50% - 6px)', height: 'calc(50% - 6px)' }}>
+                            <div className="whybox border-primary shadow-primary flex-1">
                                 <EyeSlashIcon className="h-12 w-12 md:h-16 md:w-16 text-primary flex-shrink-0" 
                                     style={{ filter: `drop-shadow(0 0px 3px ${appColors.primary})` }}/>
                                 <div className="flex flex-col items-center justify-center gap-4 px-4">
@@ -115,8 +116,8 @@ export default function SecuritySection({ currentSlide, getSectionOpacity }) {
                                 </div>
                             </div>
                         </div>
-                        <div className="flex-shrink-0" style={{ width: 'calc(50% - 6px)' }}>
-                            <div className="whybox border-primary shadow-primary">
+                        <div className="flex-shrink-0 flex" style={{ width: 'calc(50% - 6px)', height: 'calc(50% - 6px)' }}>
+                            <div className="whybox border-primary shadow-primary flex-1">
                                 <EyeSlashIcon className="h-12 w-12 md:h-16 md:w-16 text-primary flex-shrink-0" 
                                     style={{ filter: `drop-shadow(0 0px 3px ${appColors.primary})` }}/>
                                 <div className="flex flex-col items-center justify-center gap-4 px-4">
