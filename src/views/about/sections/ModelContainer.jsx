@@ -14,7 +14,7 @@ const SLIDE_CONFIG = {
     desktop: [
         { ambient: 2, directional: 1, translateXPercent: -110, translateYPercent: 0, translateZ: -3, autorotate: true },          // Slide 0 - Hero
         { ambient: 2, directional: 1, translateXPercent: 0, translateYPercent: 90, translateZ: -3, autorotate: true },       // Slide 1 - Why
-        { ambient: 1, directional: 0.1, translateXPercent: 0, translateYPercent: 0, translateZ: -3, autorotate: true },       // Slide 2 - Security
+        { ambient: 1, directional: 0.1, translateXPercent: 0, translateYPercent: 0, translateZ: 0, autorotate: true },       // Slide 2 - Security
         { ambient: 0.5, directional: 0.1, translateXPercent: 0, translateYPercent: 0, translateZ: 6, autorotate: false }        // Slide 3 - CTA
     ]
 };

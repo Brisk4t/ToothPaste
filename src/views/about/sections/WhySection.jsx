@@ -78,7 +78,7 @@ export default function WhySection({ currentSlide, getSectionOpacity }) {
                                 
                                 <div className="flex flex-col items-center justify-center gap-4 px-4">
                                     <Typography className="font-body text-md xl:text-2xl font-light text-text leading-relaxed">
-                                    And sometimes I just don't want to login to my password manager on some a sketchy makerspace computer.
+                                    And sometimes I just don't want to login to my password manager on some sketchy makerspace computer.
                                     </Typography>
                                     
                                     <div className="text-center flex-shrink-0">
