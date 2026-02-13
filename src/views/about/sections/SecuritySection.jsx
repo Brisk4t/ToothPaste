@@ -1,7 +1,7 @@
 import React from 'react';
 import { Typography } from "@material-tailwind/react";
-import { ArrowDownIcon, LockClosedIcon, ComputerDesktopIcon, ArrowsRightLeftIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
-import ToothPaste from "/ToothPaste.svg";
+import { ArrowDownIcon, LockClosedIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import { appColors } from '../../../styles/colors';
 
 export default function SecuritySection({ currentSlide, getSectionOpacity }) {
     return (
@@ -21,49 +21,110 @@ export default function SecuritySection({ currentSlide, getSectionOpacity }) {
                 </Typography>
             </div>
 
-            {/* Content Grid with Model Breaking Out - Rows first, columns inside */}
-            <div className="flex-1 relative flex items-center justify-center">
-                <div className="grid grid-rows-5 gap-20">
-                    {/* Row 1-2: Top text */}
-                    <div className="row-span-2 grid grid-cols-5 gap-8">
-                        <div className="col-span-2 flex flex-col justify-end">
-                            <Typography type="h4" className="text-lg text-white font-light leading-relaxed">
-                                While convenient, WEB BLE isn't inherently secure. It's susceptible to snooping and <br/><span className="text-secondary">Man In The Middle (MITM)</span> attacks.
-                            </Typography>
+            {/* 50/50 Split Container */}
+            <div className="flex-1 relative flex items-stretch justify-center gap-8 min-h-0">
+                {/* Left Side */}
+                <div className="flex-1 flex flex-col">
+                    <Typography type="h4" className="text-lg md:text-2xl font-semibold text-secondary mb-4 text-center">
+                        The Problem
+                    </Typography>
+                    <div className="flex flex-wrap gap-3 content-start flex-1 min-h-0">
+                        <div className="flex-shrink-0" style={{ width: 'calc(50% - 6px)' }}>
+                            <div className="whybox border-secondary shadow-secondary">
+                                <EyeIcon className="h-12 w-12 md:h-16 md:w-16 text-secondary flex-shrink-0" 
+                                    style={{ filter: `drop-shadow(0 0px 3px ${appColors.secondary})` }}/>
+                                <div className="flex flex-col items-center justify-center gap-4 px-4">
+                                    <Typography className="font-body text-md md:text-lg font-light text-text leading-relaxed">
+                                        Not Inherently Secure
+                                    </Typography>
+                                </div>
+                            </div>
                         </div>
-                        <div className="flex items-center justify-center"></div>
-                        <div className="col-span-2 flex flex-col justify-end">
-                            <Typography type="h4" className="text-lg font-light text-white leading-relaxed">
-                                ToothPaste uses <span className="font-bold">ECDSA Cryptography</span> to exchange information over custom packets. Even if a <span className="italic">certain someone</span> can sniff out the data, it will be unusable.
-                            </Typography>
+                        <div className="flex-shrink-0" style={{ width: 'calc(50% - 6px)' }}>
+                            <div className="whybox border-secondary shadow-secondary">
+                                <EyeIcon className="h-12 w-12 md:h-16 md:w-16 text-secondary flex-shrink-0" 
+                                    style={{ filter: `drop-shadow(0 0px 3px ${appColors.secondary})` }}/>
+                                <div className="flex flex-col items-center justify-center gap-4 px-4">
+                                    <Typography className="font-body text-md md:text-lg font-light text-text leading-relaxed">
+                                        Snooping Attacks
+                                    </Typography>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex-shrink-0" style={{ width: 'calc(50% - 6px)' }}>
+                            <div className="whybox border-secondary shadow-secondary">
+                                <EyeIcon className="h-12 w-12 md:h-16 md:w-16 text-secondary flex-shrink-0" 
+                                    style={{ filter: `drop-shadow(0 0px 3px ${appColors.secondary})` }}/>
+                                <div className="flex flex-col items-center justify-center gap-4 px-4">
+                                    <Typography className="font-body text-md md:text-lg font-light text-text leading-relaxed">
+                                        MITM Attacks
+                                    </Typography>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex-shrink-0" style={{ width: 'calc(50% - 6px)' }}>
+                            <div className="whybox border-secondary shadow-secondary">
+                                <EyeIcon className="h-12 w-12 md:h-16 md:w-16 text-secondary flex-shrink-0" 
+                                    style={{ filter: `drop-shadow(0 0px 3px ${appColors.secondary})` }}/>
+                                <div className="flex flex-col items-center justify-center gap-4 px-4">
+                                    <Typography className="font-body text-md md:text-lg font-light text-text leading-relaxed">
+                                        Password Theft Risk
+                                    </Typography>
+                                </div>
+                            </div>
                         </div>
                     </div>
+                </div>
 
-                    {/* Row 3: Icons */}
-                    <div className="grid grid-cols-5 gap-8">
-                        <div className="col-span-2 flex items-center justify-between px-20">
-                            <ComputerDesktopIcon className="h-12 w-12" /> <ArrowsRightLeftIcon className="h-12 w-12 mx-4" /> <EyeIcon className="h-12 w-12 text-secondary" /> 
-                            <ArrowsRightLeftIcon className="h-12 w-12 mx-4" /> <img src={ToothPaste} alt="ToothPaste" className="h-12 w-12" />
+                {/* Right Side */}
+                <div className="flex-1 flex flex-col">
+                    <Typography type="h4" className="text-lg md:text-2xl font-semibold text-primary mb-4 text-center">
+                        The Solution
+                    </Typography>
+                    <div className="flex flex-wrap gap-3 content-start flex-1 min-h-0">
+                        <div className="flex-shrink-0" style={{ width: 'calc(50% - 6px)' }}>
+                            <div className="whybox border-primary shadow-primary">
+                                <EyeSlashIcon className="h-12 w-12 md:h-16 md:w-16 text-primary flex-shrink-0" 
+                                    style={{ filter: `drop-shadow(0 0px 3px ${appColors.primary})` }}/>
+                                <div className="flex flex-col items-center justify-center gap-4 px-4">
+                                    <Typography className="font-body text-md md:text-lg font-light text-text leading-relaxed">
+                                        ECDSA Cryptography
+                                    </Typography>
+                                </div>
+                            </div>
                         </div>
-                        <div className="flex items-center justify-center"></div>
-                        <div className="col-span-2 flex items-center justify-between px-20">
-                            <ComputerDesktopIcon className="h-12 w-12" /> <ArrowsRightLeftIcon className="h-12 w-12 mx-4" /> <EyeSlashIcon className="h-12 w-12 text-primary" /> 
-                            <ArrowsRightLeftIcon className="h-12 w-12 mx-4" /> <img src={ToothPaste} alt="ToothPaste" className="h-12 w-12" />
+                        <div className="flex-shrink-0" style={{ width: 'calc(50% - 6px)' }}>
+                            <div className="whybox border-primary shadow-primary">
+                                <EyeSlashIcon className="h-12 w-12 md:h-16 md:w-16 text-primary flex-shrink-0" 
+                                    style={{ filter: `drop-shadow(0 0px 3px ${appColors.primary})` }}/>
+                                <div className="flex flex-col items-center justify-center gap-4 px-4">
+                                    <Typography className="font-body text-md md:text-lg font-light text-text leading-relaxed">
+                                        Custom Packets
+                                    </Typography>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-
-                    {/* Row 4-5: Bottom text */}
-                    <div className="row-span-2 grid grid-cols-5 gap-8">
-                        <div className="col-span-2 flex flex-col justify-start">
-                            <Typography type="h4" className="text-lg text-white leading-relaxed">
-                                Since I wanted to paste passwords over the air, <span className="text-secondary">this wouldn't do.</span> 
-                            </Typography>
+                        <div className="flex-shrink-0" style={{ width: 'calc(50% - 6px)' }}>
+                            <div className="whybox border-primary shadow-primary">
+                                <EyeSlashIcon className="h-12 w-12 md:h-16 md:w-16 text-primary flex-shrink-0" 
+                                    style={{ filter: `drop-shadow(0 0px 3px ${appColors.primary})` }}/>
+                                <div className="flex flex-col items-center justify-center gap-4 px-4">
+                                    <Typography className="font-body text-md md:text-lg font-light text-text leading-relaxed">
+                                        Unsniffable Data
+                                    </Typography>
+                                </div>
+                            </div>
                         </div>
-                        <div className="flex items-center justify-center"></div>
-                        <div className="col-span-2 flex flex-col justify-start">
-                            <Typography type="h4" className="text-lg font-light text-white leading-relaxed">
-                                A ToothPaste shows up as a standard HID keyboard, so the receiving system doesn't need any special software or drivers to use it.
-                            </Typography>
+                        <div className="flex-shrink-0" style={{ width: 'calc(50% - 6px)' }}>
+                            <div className="whybox border-primary shadow-primary">
+                                <EyeSlashIcon className="h-12 w-12 md:h-16 md:w-16 text-primary flex-shrink-0" 
+                                    style={{ filter: `drop-shadow(0 0px 3px ${appColors.primary})` }}/>
+                                <div className="flex flex-col items-center justify-center gap-4 px-4">
+                                    <Typography className="font-body text-md md:text-lg font-light text-text leading-relaxed">
+                                        HID Keyboard
+                                    </Typography>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
