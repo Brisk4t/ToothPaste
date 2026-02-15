@@ -36,24 +36,28 @@ export const SHORTCUTS_MENU = [
 
 // Key composition buttons for building custom key combos
 export const KEY_COMPOSER_BUTTONS = [
-    // Modifiers
+    // Pg1
     { label: "Ctrl", key: "Control", type: "modifier" },
     { label: "Shift", key: "Shift", type: "modifier" },
     { label: "Alt", key: "Alt", type: "modifier" },
     { label: "Win", key: "Meta", type: "modifier" },
-    // Navigation
+    { label: "Tab", key: "Tab", type: "common" },
+
+    // Pg2
     { label: "↑", key: "ArrowUp", type: "navigation" },
     { label: "↓", key: "ArrowDown", type: "navigation" },
     { label: "←", key: "ArrowLeft", type: "navigation" },
     { label: "→", key: "ArrowRight", type: "navigation" },
-    // Common keys
+    { label: "Esc", key: "Escape", type: "common" },
+
+    // Pg3
     { label: "Home", key: "Home", type: "common" },
     { label: "End", key: "End", type: "common" },
     { label: "PgUp", key: "PageUp", type: "common" },
     { label: "PgDn", key: "PageDown", type: "common" },
     { label: "Del", key: "Delete", type: "common" },
-    { label: "Esc", key: "Escape", type: "common" },
-    { label: "Tab", key: "Tab", type: "common" },
+
+    // Pg4
     { label: "Enter", key: "Enter", type: "common" },
 ];
 
@@ -165,7 +169,7 @@ export function KeyComposer({ onSendKeyboardShortcut }) {
     return (
         <div 
             ref={composerRef}
-            className="flex flex-col bg-background border border-ash border-b-0 border-x-0 relative select-none"
+            className="flex flex-col bg-none border border-2 border-ash border-b-0 border-x-0 relative select-none"
             style={{ touchAction: 'pan-y' }}
         >
             {/* Key Composer Buttons Carousel */}
@@ -183,7 +187,7 @@ export function KeyComposer({ onSendKeyboardShortcut }) {
                                         className={`min-h-14 flex justify-center items-center flex-1 min-w-0 transition-colors cursor-pointer select-none overflow-hidden ${
                                             selectedKeys.includes(button.key)
                                                 ? "bg-primary text-white"
-                                                : "bg-background text-text hover:bg-white hover:text-ink"
+                                                : "bg-none text-text hover:bg-white hover:text-ink"
                                         }`}
                                     >
                                         <span className="text-sm font-medium text-center px-1 line-clamp-1">{button.label}</span>
@@ -206,7 +210,7 @@ export function KeyComposer({ onSendKeyboardShortcut }) {
                         <div
                             key={idx}
                             className={`h-1 w-2 rounded-full transition-colors ${
-                                idx === currentSlide ? "bg-ash" : "bg-ink"
+                                idx === currentSlide ? "bg-white" : "bg-ash"
                             }`}
                         />
                     ))}
@@ -215,14 +219,14 @@ export function KeyComposer({ onSendKeyboardShortcut }) {
 
             {/* Composition Display with Controls */}
             <div className="flex border-t border-ash rounded-b-xl">
-                <div className="flex-1 flex items-center justify-center px-3 py-2 bg-background text-text font-mono text-sm overflow-x-auto whitespace-nowrap">
+                <div className="flex-1 flex items-center justify-center px-3 py-2 bg-none text-text font-mono text-md overflow-x-auto whitespace-nowrap">
                     {compositionDisplay}
                 </div>
                 <div className="w-px bg-ash" />
                 <button
                     onClick={sendCombination}
                     disabled={selectedKeys.length === 0}
-                    className={`h-12 px-4 flex justify-center items-center font-medium transition-colors ${
+                    className={`h-12 px-5 flex justify-center items-center font-medium transition-colors ${
                         selectedKeys.length > 0
                             ? "bg-primary text-white hover:bg-blue-700 cursor-pointer"
                             : "bg-ash text-text cursor-not-allowed opacity-50"
