@@ -46,12 +46,12 @@ const WELCOME_STEP = {
     targetSelectorLarge: null,
     enabledOnMobile: true,
     enabledOnDesktop: true,
-    // Small screen (< md)
+    // Small screen (< xl)
     gridColumnSmall: 1,
     gridRowSmall: 6,
     columnSpanSmall: 10,
     rowSpanSmall: 3,
-    // Large screen (>= md)
+    // Large screen (>= xl)
     gridColumn: 4,
     gridRow: 5,
     columnSpan: 4,
@@ -69,12 +69,12 @@ const NAV_MENU_STEP = {
     targetSelectorLarge: '#navbar',
     enabledOnMobile: true,
     enabledOnDesktop: true,
-    // Small screen (< md)
+    // Small screen (< xl)
     gridColumnSmall: 1,
     gridRowSmall: 2,
     columnSpanSmall: 10,
     rowSpanSmall: 1,
-    // Large screen (>= md)
+    // Large screen (>= xl)
     gridColumn: 4,
     gridRow: 2,
     columnSpan: 3,
@@ -106,12 +106,12 @@ const CONNECTION_STATUS_STEP = {
     targetSelectorLarge: '#connection-button',
     enabledOnMobile: true,
     enabledOnDesktop: true,
-    // Small screen (< md)
+    // Small screen (< xl)
     gridColumnSmall: 1,
     gridRowSmall: 2,
     columnSpanSmall: 10,
     rowSpanSmall: 1,
-    // Large screen (>= md)
+    // Large screen (>= xl)
     gridColumn: 8,
     gridRow: 2,
     columnSpan: 3,
@@ -129,12 +129,12 @@ const stepsMap = {
             targetSelectorLarge: '#live-capture-input',
             enabledOnMobile: true,
             enabledOnDesktop: true,
-            // Small screen (< md)
+            // Small screen (< xl)
             gridColumnSmall: 1,
             gridRowSmall: 6,
             columnSpanSmall: 10,
             rowSpanSmall: 1,
-            // Large screen (>= md)
+            // Large screen (>= xl)
             gridColumn: 4,
             gridRow: 1,
             columnSpan: 3,
@@ -151,12 +151,12 @@ const stepsMap = {
             targetSelectorLarge: '#keyboard-container',
             enabledOnMobile: false,
             enabledOnDesktop: true,
-            // Small screen (< md)
+            // Small screen (< xl)
             gridColumnSmall: 1,
             gridRowSmall: 7,
             columnSpanSmall: 10,
             rowSpanSmall: 1,
-            // Large screen (>= md)
+            // Large screen (>= xl)
             gridColumn: 1,
             gridRow: 3,
             columnSpan: 2,
@@ -182,7 +182,7 @@ const stepsMap = {
             gridRowSmall: 6,
             columnSpanSmall: 10,
             rowSpanSmall: 1,
-            // Large screen (>= md)
+            // Large screen (>= xl)
             gridColumn: 5,
             gridRow: 9,
             columnSpan: 2,
