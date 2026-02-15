@@ -60,9 +60,26 @@ export const KEY_COMPOSER_BUTTONS = [
 /**
  * Key composition component that allows users to build custom key combinations
  * by selecting modifier and navigation keys, then sending them
+ * Uses carousel-style swiping to limit buttons per slide
  */
 export function KeyComposer({ onSendKeyboardShortcut }) {
     const [selectedKeys, setSelectedKeys] = React.useState([]);
+    const [currentSlide, setCurrentSlide] = React.useState(0);
+    const pointerStart = React.useRef({ x: 0, y: 0 });
+    const composerRef = React.useRef(null);
+    const wasSwipe = React.useRef(false);
+    const SWIPE_THRESHOLD = 50;
+    const ASPECT_RATIO = 2;
+    const BUTTONS_PER_SLIDE = 5;
+
+    // Organize buttons into slides
+    const buttonSlides = React.useMemo(() => {
+        const slides = [];
+        for (let i = 0; i < KEY_COMPOSER_BUTTONS.length; i += BUTTONS_PER_SLIDE) {
+            slides.push(KEY_COMPOSER_BUTTONS.slice(i, i + BUTTONS_PER_SLIDE));
+        }
+        return slides;
+    }, []);
 
     const toggleKey = (key) => {
         setSelectedKeys(prev => {
@@ -94,34 +111,118 @@ export function KeyComposer({ onSendKeyboardShortcut }) {
         ? selectedKeys.map(getDisplayLabel).join("+")
         : "No keys selected";
 
+    const handlePointerDown = (e) => {
+        pointerStart.current = {
+            x: e.clientX || e.touches?.[0].clientX,
+            y: e.clientY || e.touches?.[0].clientY
+        };
+        wasSwipe.current = false;
+    };
+
+    const handlePointerMove = (e) => {
+        const currentX = e.clientX || e.touches?.[0].clientX;
+        const currentY = e.clientY || e.touches?.[0].clientY;
+        
+        const deltaX = Math.abs(currentX - pointerStart.current.x);
+        const deltaY = Math.abs(currentY - pointerStart.current.y);
+        
+        if (deltaX > SWIPE_THRESHOLD && deltaX > deltaY * ASPECT_RATIO) {
+            wasSwipe.current = true;
+        }
+    };
+
+    const handlePointerUp = (e) => {
+        const endX = e.clientX || e.changedTouches?.[0].clientX;
+        const diff = pointerStart.current.x - endX;
+
+        if (wasSwipe.current) {
+            if (diff > 0) {
+                // Swiped left - go to next slide
+                setCurrentSlide((prev) => (prev + 1) % buttonSlides.length);
+            } else {
+                // Swiped right - go to previous slide
+                setCurrentSlide((prev) => (prev - 1 + buttonSlides.length) % buttonSlides.length);
+            }
+        }
+    };
+
+    // Attach pointer listeners
+    React.useEffect(() => {
+        const composer = composerRef.current;
+        if (!composer) return;
+
+        composer.addEventListener("pointerdown", handlePointerDown);
+        composer.addEventListener("pointermove", handlePointerMove);
+        composer.addEventListener("pointerup", handlePointerUp);
+
+        return () => {
+            composer.removeEventListener("pointerdown", handlePointerDown);
+            composer.removeEventListener("pointermove", handlePointerMove);
+            composer.removeEventListener("pointerup", handlePointerUp);
+        };
+    }, [buttonSlides.length]);
+
     return (
-        <div className="flex flex-col gap-2 bg-background border border-ash rounded-lg p-3">
-            {/* Key Composer Buttons */}
-            <div className="flex flex-wrap gap-1">
-                {KEY_COMPOSER_BUTTONS.map((button) => (
-                    <button
-                        key={button.key}
-                        onClick={() => toggleKey(button.key)}
-                        className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
-                            selectedKeys.includes(button.key)
-                                ? "bg-primary text-white"
-                                : "bg-ink text-text border border-ash hover:bg-white hover:text-ink"
-                        }`}
-                    >
-                        {button.label}
-                    </button>
-                ))}
+        <div 
+            ref={composerRef}
+            className="flex flex-col bg-background border border-ash border-b-0 border-x-0 relative select-none"
+            style={{ touchAction: 'pan-y' }}
+        >
+            {/* Key Composer Buttons Carousel */}
+            <div className="flex min-h-14 w-full overflow-hidden">
+                <div
+                    className="flex transition-transform duration-300 ease-out w-full"
+                    style={{ transform: `translateX(calc(-${currentSlide} * 100%))` }}
+                >
+                    {buttonSlides.map((slide, slideIdx) => (
+                        <div key={slideIdx} className="flex flex-shrink-0 w-full overflow-hidden">
+                            {slide.map((button, btnIdx) => (
+                                <React.Fragment key={button.key}>
+                                    <button
+                                        onClick={() => toggleKey(button.key)}
+                                        className={`min-h-14 flex justify-center items-center flex-1 min-w-0 transition-colors cursor-pointer select-none overflow-hidden ${
+                                            selectedKeys.includes(button.key)
+                                                ? "bg-primary text-white"
+                                                : "bg-background text-text hover:bg-white hover:text-ink"
+                                        }`}
+                                    >
+                                        <span className="text-sm font-medium text-center px-1 line-clamp-1">{button.label}</span>
+                                    </button>
+                                    
+                                    {btnIdx < slide.length - 1 && (
+                                        <div className="w-px bg-ash" />
+                                    )}
+                                </React.Fragment>
+                            ))}
+                        </div>
+                    ))}
+                </div>
             </div>
 
-            {/* Composition Display and Send */}
-            <div className="flex items-center gap-2">
-                <div className="flex-1 px-3 py-2 bg-ink text-text rounded border border-ash font-mono text-sm overflow-x-auto whitespace-nowrap">
+            {/* Slide indicators */}
+            {buttonSlides.length > 1 && (
+                <div className="absolute top-0 right-2 flex gap-1 py-1 pointer-events-none">
+                    {buttonSlides.map((_, idx) => (
+                        <div
+                            key={idx}
+                            className={`h-1 w-2 rounded-full transition-colors ${
+                                idx === currentSlide ? "bg-ash" : "bg-ink"
+                            }`}
+                        />
+                    ))}
+                </div>
+            )}
+
+            {/* Composition Display with Controls */}
+            <div className="flex border-t border-ash rounded-b-xl">
+                <div className="flex-1 flex items-center justify-center px-3 py-2 bg-background text-text font-mono text-sm overflow-x-auto whitespace-nowrap">
                     {compositionDisplay}
                 </div>
+                <div className="w-px bg-ash" />
                 <button
                     onClick={sendCombination}
                     disabled={selectedKeys.length === 0}
-                    className={`px-3 py-2 rounded font-medium text-sm whitespace-nowrap transition-colors ${
+                    className={`h-12 px-4 flex justify-center items-center font-medium transition-colors ${
                         selectedKeys.length > 0
                             ? "bg-primary text-white hover:bg-blue-700 cursor-pointer"
                             : "bg-ash text-text cursor-not-allowed opacity-50"
@@ -129,9 +230,10 @@ export function KeyComposer({ onSendKeyboardShortcut }) {
                 >
                     Send
                 </button>
+                <div className="w-px bg-ash" />
                 <button
                     onClick={clearKeys}
-                    className="px-3 py-2 bg-secondary text-white rounded font-medium text-sm hover:bg-red-700 transition-colors"
+                    className="h-12 px-4 flex justify-center items-center font-medium bg-background text-text hover:bg-white hover:text-ink transition-colors"
                 >
                     Clear
                 </button>

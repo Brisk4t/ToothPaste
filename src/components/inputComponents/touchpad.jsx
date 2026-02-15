@@ -148,7 +148,7 @@ export default function Touchpad({
 
             {/* Key Composer */}
             {commandPassthrough ? (
-                <div className="absolute bottom-16 left-0 right-0 z-20 px-2">
+                <div className="absolute bottom-16 left-0 right-0 z-20">
                     <KeyComposer onSendKeyboardShortcut={onSendKeyboardShortcut} />
                 </div>
             ) : (
