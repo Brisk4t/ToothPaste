@@ -10,6 +10,8 @@ import {
     ArrowUpOnSquareStackIcon,
     CursorArrowRippleIcon,
     EllipsisVerticalIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon,
 } from "@heroicons/react/24/outline";
 import { MediaToggleButton, IconToggleButton } from "../shared/buttons";
 import { keyboardHandler } from "../../services/inputHandlers/keyboardHandler";
@@ -173,7 +175,17 @@ export function KeyComposer({ onSendKeyboardShortcut }) {
             style={{ touchAction: 'pan-y' }}
         >
             {/* Key Composer Buttons Carousel */}
-            <div className="flex min-h-14 w-full overflow-hidden">
+            <div className="flex min-h-14 w-full overflow-hidden relative">
+                {/* Left Chevron */}
+                {buttonSlides.length > 1 && (
+                    <button
+                        onClick={() => setCurrentSlide((prev) => (prev - 1 + buttonSlides.length) % buttonSlides.length)}
+                        className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-1 bg-none text-dust rounded transition-all cursor-pointer"
+                    >
+                        <ChevronLeftIcon className="h-5 w-5" />
+                    </button>
+                )}
+
                 <div
                     className="flex transition-transform duration-300 ease-out w-full"
                     style={{ transform: `translateX(calc(-${currentSlide} * 100%))` }}
@@ -201,6 +213,16 @@ export function KeyComposer({ onSendKeyboardShortcut }) {
                         </div>
                     ))}
                 </div>
+
+                {/* Right Chevron */}
+                {buttonSlides.length > 1 && (
+                    <button
+                        onClick={() => setCurrentSlide((prev) => (prev + 1) % buttonSlides.length)}
+                        className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-1 bg-none text-dust rounded transition-all cursor-pointer"
+                    >
+                        <ChevronRightIcon className="h-5 w-5" />
+                    </button>
+                )}
             </div>
 
             {/* Slide indicators */}
@@ -219,10 +241,18 @@ export function KeyComposer({ onSendKeyboardShortcut }) {
 
             {/* Composition Display with Controls */}
             <div className="flex border-t border-ash rounded-b-xl">
+                <button
+                    onClick={clearKeys}
+                    disabled={selectedKeys.length === 0}
+                    className="h-12 px-4 flex justify-center items-center font-medium bg-ash disabled:opacity-50 disabled:cursor-not-allowed text-text hover:bg-white hover:text-ink transition-colors">Clear
+                </button>
+
+                {/* Composition Text */}
                 <div className="flex-1 flex items-center justify-center px-3 py-2 bg-none text-text font-mono text-md overflow-x-auto whitespace-nowrap">
                     {compositionDisplay}
                 </div>
-                <div className="w-px bg-ash" />
+
+                
                 <button
                     onClick={sendCombination}
                     disabled={selectedKeys.length === 0}
@@ -230,17 +260,9 @@ export function KeyComposer({ onSendKeyboardShortcut }) {
                         selectedKeys.length > 0
                             ? "bg-primary text-white hover:bg-blue-700 cursor-pointer"
                             : "bg-ash text-text cursor-not-allowed opacity-50"
-                    }`}
-                >
-                    Send
+                    }`}>Send
                 </button>
-                <div className="w-px bg-ash" />
-                <button
-                    onClick={clearKeys}
-                    className="h-12 px-4 flex justify-center items-center font-medium bg-background text-text hover:bg-white hover:text-ink transition-colors"
-                >
-                    Clear
-                </button>
+
             </div>
         </div>
     );
