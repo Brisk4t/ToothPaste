@@ -51,11 +51,12 @@ typedef struct _toothpaste_DataPacket {
     toothpaste_DataPacket_tag_t tag; /* 16 bytes */
 } toothpaste_DataPacket;
 
-typedef PB_BYTES_ARRAY_T(200) toothpaste_ResponsePacket_challengeData_t;
+typedef PB_BYTES_ARRAY_T(150) toothpaste_ResponsePacket_challengeData_t;
 /* Packet Sent by receiver to indicate state */
 typedef struct _toothpaste_ResponsePacket {
     toothpaste_ResponsePacket_ResponseType responseType;
-    toothpaste_ResponsePacket_challengeData_t challengeData; /* 32 bytes (if responseType == CHALLENGE) */
+    toothpaste_ResponsePacket_challengeData_t challengeData; /* 150 bytes max */
+    char firmwareVersion[50]; /* 50 bytes max */
 } toothpaste_ResponsePacket;
 
 /* Arbitrary String Data (processed based on packet type byte) */
@@ -152,7 +153,7 @@ extern "C" {
 /* Initializer values for message structs */
 #define toothpaste_DataPacket_init_default       {_toothpaste_DataPacket_PacketID_MIN, 0, 0, 0, {0, {0}}, 0, {0, {0}}, {0, {0}}}
 #define toothpaste_EncryptedData_init_default    {_toothpaste_EncryptedData_PacketType_MIN, 0, {toothpaste_KeyboardPacket_init_default}}
-#define toothpaste_ResponsePacket_init_default   {_toothpaste_ResponsePacket_ResponseType_MIN, {0, {0}}}
+#define toothpaste_ResponsePacket_init_default   {_toothpaste_ResponsePacket_ResponseType_MIN, {0, {0}}, ""}
 #define toothpaste_KeyboardPacket_init_default   {"", 0}
 #define toothpaste_RenamePacket_init_default     {"", 0}
 #define toothpaste_KeycodePacket_init_default    {{0, {0}}, 0}
@@ -162,7 +163,7 @@ extern "C" {
 #define toothpaste_MouseJigglePacket_init_default {0}
 #define toothpaste_DataPacket_init_zero          {_toothpaste_DataPacket_PacketID_MIN, 0, 0, 0, {0, {0}}, 0, {0, {0}}, {0, {0}}}
 #define toothpaste_EncryptedData_init_zero       {_toothpaste_EncryptedData_PacketType_MIN, 0, {toothpaste_KeyboardPacket_init_zero}}
-#define toothpaste_ResponsePacket_init_zero      {_toothpaste_ResponsePacket_ResponseType_MIN, {0, {0}}}
+#define toothpaste_ResponsePacket_init_zero      {_toothpaste_ResponsePacket_ResponseType_MIN, {0, {0}}, ""}
 #define toothpaste_KeyboardPacket_init_zero      {"", 0}
 #define toothpaste_RenamePacket_init_zero        {"", 0}
 #define toothpaste_KeycodePacket_init_zero       {{0, {0}}, 0}
@@ -182,6 +183,7 @@ extern "C" {
 #define toothpaste_DataPacket_tag_tag            8
 #define toothpaste_ResponsePacket_responseType_tag 1
 #define toothpaste_ResponsePacket_challengeData_tag 2
+#define toothpaste_ResponsePacket_firmwareVersion_tag 3
 #define toothpaste_KeyboardPacket_message_tag    1
 #define toothpaste_KeyboardPacket_length_tag     2
 #define toothpaste_RenamePacket_message_tag      1
@@ -238,7 +240,8 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (packetData,mouseJigglePacket,packetData.mous
 
 #define toothpaste_ResponsePacket_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UENUM,    responseType,      1) \
-X(a, STATIC,   SINGULAR, BYTES,    challengeData,     2)
+X(a, STATIC,   SINGULAR, BYTES,    challengeData,     2) \
+X(a, STATIC,   SINGULAR, STRING,   firmwareVersion,   3)
 #define toothpaste_ResponsePacket_CALLBACK NULL
 #define toothpaste_ResponsePacket_DEFAULT NULL
 
@@ -321,7 +324,7 @@ extern const pb_msgdesc_t toothpaste_MouseJigglePacket_msg;
 #define toothpaste_MouseJigglePacket_size        2
 #define toothpaste_MousePacket_size              519
 #define toothpaste_RenamePacket_size             198
-#define toothpaste_ResponsePacket_size           205
+#define toothpaste_ResponsePacket_size           206
 
 #ifdef __cplusplus
 } /* extern "C" */
