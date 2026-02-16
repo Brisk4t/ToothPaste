@@ -7,7 +7,7 @@
     <img src="https://www.toothpasteapp.com/ToothPaste.png" alt="drawing" width="70"/>
     <span style="display: flex; flex-direction: column; align-items: center; line-height: 1;">
       <span style="font-weight: bold; font-size: 1.5em; margin: 1 0 5 0; padding: 0; line-height: 1;">ToothPaste: </span>
-      <span style="font-style: italic; font-size: 0.6em; margin: 1 0 0 0; padding: 0; line-height: 1;">The Copy-Paste We Were Promised</span>
+      <span style="font-style: italic; font-size: 0.6em; margin: 1 0 0 0; padding: 0; line-height: 1;">A better copy-paste.</span>
     </span>
   </span>
 </h1>
@@ -36,7 +36,9 @@ The core idea was to eliminate the need for complicated and lengthy login flows 
 
 This means existing solutions like [KDE Connect](https://github.com/KDE/kdeconnect-kde) are non-starters since, at the very least, they require both devices to run a compatible operating system and allow installing third-party software.
 
-The obvious answer then, is to use an interface system that is universally supported - USB. Specifically the USB **Human Interface Device (HID)** standard. Almost every USB-host compatible device supports using a keyboard as means of controlling it and, because this is presumed to be a direct extension of a user, it is implicitly trusted (*keyboards don't have passwords because how would you enter the password* 😐). The [USB Rubber Ducky by Hak5](https://hak5.org/products/usb-rubber-ducky?variant=39874478932081) used this exact idea to spark a security arms-race to exploit devices, but that doesn't have to be the only reason to use it (but you absolutely still can \**wink*\*).
+The obvious answer then, is to use an interface system that is universally supported - USB. Specifically the USB **Human Interface Device (HID)** standard. Almost every USB-host compatible device supports using a keyboard as means of controlling it and, because this is presumed to be a direct extension of a user, it is implicitly trusted (*keyboards don't have passwords because how would you enter the password* 😐). 
+
+The [USB Rubber Ducky by Hak5](https://hak5.org/products/usb-rubber-ducky?variant=39874478932081) used this exact idea to spark a security arms-race to exploit devices, but that doesn't have to be the only reason to use it (but you absolutely still can \**wink*\*).
 
 ## The Solution Pt. 1 ⭐
 Sounds simple enough - all we need is a device that has some kind of wireless capability and the ability to show up as a USB device like the Rubber Ducky. A few options come to mind - 

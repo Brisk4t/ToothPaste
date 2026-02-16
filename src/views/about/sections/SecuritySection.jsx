@@ -61,7 +61,7 @@ export default function SecuritySection({ currentSlide, getSectionOpacity }) {
                                     />
                                 <div className="flex flex-col items-center justify-center text-center gap-4 px-4">
                                     <Typography className="font-body text-md md:text-lg font-light text-text leading-relaxed">
-                                        Encrypts local data using PBKDF (the same algorithm used by password managers) and never stores keystrokes.
+                                        Encrypts local data using the Argon2 key derivation function (the same algorithm used by password managers) and never stores keystrokes.
                                     </Typography>
                                 </div>
                             </div>
