@@ -25,7 +25,7 @@
 
 
 <p style="text-align: center; font-size: 1.2em;">
-  <strong>ToothPaste</strong> allows a user to transmit keystrokes to any USB-compatible device over an encrypted channel without the need for specialized drivers or extensive set-up using Bluetooth LE and an ESP-32 based receiver.
+  <strong>ToothPaste</strong> allows a user to transmit keystrokes to any USB-compatible device over an encrypted channel without the need for specialized drivers or extensive set-up using WEB-BLE and an ESP-32S3 based receiver.
 </p>
 
 <br/>
@@ -68,13 +68,13 @@ So using Web BLE we can capture inputs on some kind of webpage and transmit it t
 
 ## The Special Sauce (Security) 🔑
 
-Bluetooth by itself isn't a secure protocol, newer implementations have changed this and if we didn't want the extremely flexible cross-platform transmitter we could've delved into using the many security protocols that BLE supports. However, as of now Web BLE only support the "just works" authentication method, which means its practically an open line. Considering that a ToothPaste shows up as a keyboard, it is entirely possible to use it like a wireless [Rubber Ducky](https://hak5.org/products/usb-rubber-ducky?variant=39874478932081) and that itself presents a security flaw. 
+Bluetooth by itself isn't a secure protocol, newer implementations have changed this and if we didn't want the extremely flexible cross-platform transmitter we could've delved into using the many security protocols that BLE supports. 
+
+However, as of now Web BLE only support the "just works" authentication method, which means its practically an open line. Considering that a ToothPaste shows up as a keyboard, it is entirely possible to use it like a wireless [Rubber Ducky](https://hak5.org/products/usb-rubber-ducky?variant=39874478932081) and that itself presents a security flaw. 
 
 **So we need to ensure that only authenticated devices are allowed to send data that is then typed out.**
 
 Without delving into the complete reasoning for **not** choosing any of the other standards for cryptography (sersiously there's way too much information out there for the pros and cons of each) I decided to go with a **TLS (kinda)** encryption workflow combining **ECDH** and an partially Out of Band (OOB: *fancy way of saying the keys arent shared over BLE*) key exchange to derive an **AES-128** key.
 
-Yes that's a lot of jargon. *Refuses to elaborate*.
 
-
-### What this results in is an extremely secure system of communication where the transmitter(s) and device must first complete a pairing flow before sending potentially sensitive data.
+### What this results in is a secure system of communication where the transmitter(s) and device must first complete a pairing flow before sending potentially sensitive data.
