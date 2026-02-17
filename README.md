@@ -44,12 +44,12 @@ The obvious answer then, is to use an interface system that is universally suppo
 
 The [USB Rubber Ducky by Hak5](https://hak5.org/products/usb-rubber-ducky?variant=39874478932081) used this exact idea to spark a security arms-race to exploit devices, but that doesn't have to be the only reason to use it (but you absolutely still can \**wink*\*).
 
+![Pasting Between Devices](/web/public/ToothPasteBare.png)
 
-
-### ToothPaste on a Desktop Browser, controlling a VM
+### ToothPaste on a Desktop Browser, controlling a remote Linux Machine
 ![ToothPasteDemo](/web/public/ToothPasteDemo.gif)
 
-### ToothPaste on a Mobile Browser, controlling the same VM
+### ToothPaste on a Mobile Browser, controlling a remote Linux Machine
 ![ToothPasteDemoMobile](/web/public/ToothPasteDemoMobile.gif)
 
 # Quick Start 📦
