@@ -1,18 +1,21 @@
+
 > If only i could copy this really long password to this really shady computer, we could achieve world peace. Alas! I'm going to type it manually......
 >
 >\- Someone defintely 
 
-<h1 style="text-align: center; margin: 10;">
-  <span style="display: inline-flex; align-items: center; gap: 10px;">
-    <img src="https://www.toothpasteapp.com/ToothPaste.png" alt="drawing" width="70"/>
-    <span style="display: flex; flex-direction: column; align-items: center; line-height: 1;">
-      <span style="font-weight: bold; font-size: 1.5em; margin: 1 0 5 0; padding: 0; line-height: 1;">ToothPaste: </span>
-      <span style="font-style: italic; font-size: 0.6em; margin: 1 0 0 0; padding: 0; line-height: 1;">A better copy-paste.</span>
+<div align="center">
+  <h1 style="text-align: center; margin: 10;">
+    <span style="display: inline-flex; align-items: center; gap: 10px;">
+      <img src="https://www.toothpasteapp.com/ToothPaste.png" alt="drawing" width="70"/>
+      <span style="display: flex; flex-direction: column; align-items: center; line-height: 1;">
+        <span style="font-weight: bold; font-size: 1.5em; margin: 1 0 5 0; padding: 0; line-height: 1;">ToothPaste: </span>
+        <span style="font-style: italic; font-size: 0.6em; margin: 1 0 0 0; padding: 0; line-height: 1;">A better copy-paste.</span>
+      </span>
     </span>
-  </span>
-</h1>
+  </h1>
+</div>
 
-<div style="text-align: center; margin: 20px">
+<div align="center" style="text-align: center; margin: 20px">
   <img src="https://img.shields.io/badge/-Arduino-00979D?style=for-the-badge&logo=Arduino&logoColor=white&logoSize=auto" alt="Arduino"/>
   <img src="https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB&logoSize=auto" alt="React"/>
   <img src="https://img.shields.io/badge/c++-%2300599C.svg?style=for-the-badge&logo=c%2B%2B&logoColor=white&logoSize=auto" alt="C++"/>
@@ -28,7 +31,7 @@
   <strong>ToothPaste</strong> allows a user to transmit encrypted keyboard and mouse commands to any USB-compatible device wirelessly, without the need for specialized drivers or extensive set-up using WEB-BLE and an ESP32-S3 based receiver.
 </p>
 
-![ToothPaste Website About Page Thumbnail](/web/public/AboutPreview.png)
+![ToothPaste Website About Page Thumbnail](/web/public/ToothPasteCoverBlocks.png)
 <br/>
 
 
@@ -40,6 +43,8 @@ This means existing solutions like [KDE Connect](https://github.com/KDE/kdeconne
 The obvious answer then, is to use an interface system that is universally supported - USB. Specifically the USB **Human Interface Device (HID)** standard. Almost every USB-host compatible device supports using a keyboard as means of controlling it and, because this is presumed to be a direct extension of a user, it is implicitly trusted (*keyboards don't have passwords because how would you enter the password* 😐). 
 
 The [USB Rubber Ducky by Hak5](https://hak5.org/products/usb-rubber-ducky?variant=39874478932081) used this exact idea to spark a security arms-race to exploit devices, but that doesn't have to be the only reason to use it (but you absolutely still can \**wink*\*).
+
+
 
 ### ToothPaste on a Desktop Browser, controlling a VM
 ![ToothPasteDemo](/web/public/ToothPasteDemo.gif)
@@ -84,7 +89,7 @@ The other part of the ToothPaste solution is the hardware itself. Since the ESP3
 
 ### For the more discerning, I present...
 
-![ToothPaste Completed](/firmware/images/ToothPaste_Finished.jpg)
+![ToothPaste Completed](/web/public/ToothPasteIPad.png)
 
 
 ### I'm still sorting out the hardware part of this repo but this shot took way too long so here you go:
