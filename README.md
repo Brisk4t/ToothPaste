@@ -46,8 +46,8 @@ The [USB Rubber Ducky by Hak5](https://hak5.org/products/usb-rubber-ducky?varian
 
 ![Pasting Between Devices](/web/public/ToothPasteBare.png)
 
-### ToothPaste on a Desktop Browser, controlling a remote Linux Machine
-![ToothPasteDemo](/web/public/ToothPasteDemo.gif)
+### ToothPaste on a Desktop Browser, controlling an IPad
+![ToothPasteDemo](/web/public/ToothPasteDemoGif.gif)
 
 ### ToothPaste on a Mobile Browser, controlling a remote Linux Machine
 ![ToothPasteDemoMobile](/web/public/ToothPasteDemoMobile.gif)
