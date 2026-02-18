@@ -385,8 +385,10 @@ void notifyResponsePacket(toothpaste_ResponsePacket_ResponseType responseType, c
   uint8_t buffer[256];
   pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
   
-  // Initialize the response packet
+  // Initialize the response packet with the firmware version and response type, and copy the challenge data if provided
   toothpaste_ResponsePacket responsePacket = toothpaste_ResponsePacket_init_default;
+  strncpy(responsePacket.firmwareVersion, FIRMWARE_VERSION, sizeof(responsePacket.firmwareVersion) - 1);
+  responsePacket.firmwareVersion[sizeof(responsePacket.firmwareVersion) - 1] = '\0';
   
   // Set response type
   responsePacket.responseType = (toothpaste_ResponsePacket_ResponseType)responseType;
