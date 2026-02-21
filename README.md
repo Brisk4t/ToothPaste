@@ -54,7 +54,7 @@ The [USB Rubber Ducky by Hak5](https://hak5.org/products/usb-rubber-ducky?varian
 
 # Quick Start 📦
 
-The quickest way to get started is to go to [The ToothPaste Webapp](www.toothpasteapp.com) and click **Update**. This opens a WEB Serial selector and lets you select a connected ESP32-S3 device to flash the firmware. 
+The quickest way to get started is to go to [The ToothPaste Webapp](https://www.toothpasteapp.com) and click **Update**. This opens a WEB Serial selector and lets you select a connected ESP32-S3 device to flash the firmware. 
 
 #### Alternatively, download the latest .bin firmware file from the releases section and flash it using [esptool](https://github.com/espressif/esptool) / [espwebtool](https://esptool.spacehuhn.com/) or a similar flasher utility.
 
