@@ -26,11 +26,11 @@ It has the bare minimum needed to get USB-C working in device mode and is probab
 Other than the frustration of hand-soldering SMD components while shaking like an alcoholic in withdrawal, assembling a ToothPaste is relatively straightforward.
 
 ### My desk is not this clean, for illustration purposes only...
-![ToothPaste_Build](/images/ToothPaste_BOM.jpg)
+![ToothPaste_Build](/firmware/images/ToothPaste_BOM.jpg)
 
 
 ### Voila! - A Completed ToothPaste (My Personal ToothPaste Actually)
-![ToothPaste_Build](/images/ToothPaste_Finished.jpg)
+![ToothPaste_Build](/firmware/images/ToothPaste_Finished.jpg)
 
 
 
