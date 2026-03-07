@@ -28,11 +28,13 @@ jobs:
           node-version: 20
 
       - run: npm ci
+        working-directory: web
       - run: npm run build
+        working-directory: web
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: web/dist
 
       - id: deployment
         uses: actions/deploy-pages@v4
