@@ -18,18 +18,20 @@ export default function CTASection({ currentSlide, getSectionOpacity }) {
             </Typography>
 
             {/* Body */}
-            <Typography className="font-body text-xl md:text-2xl xl:text-3xl font-light text-white text-center max-w-6xl mb-8 md:mb-10">
-                ToothPaste is currently closed source while I finalize the hardware and software design.
-                However, if you're interested in collaborating, contributing, or just want to chat about the project feel free to reach out!
+            <Typography className="font-body text-xl md:text-2xl xl:text-3xl font-bold text-white text-center max-w-6xl mb-8 md:mb-10">
+                ToothPaste is available on GitHub for anyone to try for themselves.
+            </Typography>
+            <Typography className="font-body text-xl font-light md:text-2xl xl:text-3xl text-white text-center max-w-6xl mb-8 md:mb-10">
+                I'm still slowly rolling it out so issues and feature requests are welcome but might take time to address. If you're interested in collaborating, contributing, or just want to chat about the project feel free to reach out!
             </Typography>
 
             {/* Button */}
             <Button
                 size="lg"
                 className='h-10 bg-primary text-text items-center justify-center px-6' 
-                onClick={() => window.open('https://github.com/Brisk4t', '_blank')}>
+                onClick={() => window.open('https://github.com/Brisk4t/ToothPaste', '_blank')}>
                 <FaGithub className="mr-2 h-5 w-5" />
-                My GitHub
+                ToothPaste
             </Button>
         </section>
     );
