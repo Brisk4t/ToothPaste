@@ -120,6 +120,7 @@ void bleSetup(SecureSession* session)
   
   createPacketTask(session); // Create the persistent RTOS packet handler task
   startKeyboardTask();
+  setCDCRxCallback(notifyDebugString); // Forward USB serial RX to BLE debug channel
   // Get the device name and start advertising 
   String deviceName;
   session->getDeviceName(deviceName); // Get the device name from memory
