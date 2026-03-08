@@ -64,6 +64,8 @@ void enablePairingMode();
 void packetTask(void *sessionParams);
 void packetTask(void* params);
 void notifyResponsePacket(toothpaste_ResponsePacket_ResponseType responseType, const uint8_t* challengeData, size_t challengeDataLen);
+void notifyEncryptedData(const char* data, size_t dataLen, SecureSession* session);
+void notifyDebugString(const char* data, size_t dataLen); // DEBUG ONLY: sends unencrypted, do not use in production
 
 
 #endif // BLE_H
