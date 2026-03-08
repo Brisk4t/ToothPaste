@@ -28,9 +28,9 @@ export default function UpdateController({ onChangeOverlay }) {
 
 
   const boardUrls = {
-    "4M Flash (Supermini)": "https://github.com/Brisk4t/ToothPaste/releases/download/firmware/ToothPasteFirmware_4M.bin",
-    "8M Flash Devkit": "https://github.com/Brisk4t/ToothPaste/releases/download/firmware/ToothPasteFirmware_8M_Dev.bin",
-    "8M Flash ToothPaste PCBv1": "https://github.com/Brisk4t/ToothPaste/releases/download/firmware/ToothPasteFirmware_8M_PCBv1.bin",
+    "4M Flash (Supermini)": "/ToothPasteFirmware_4M.bin",
+    "8M Flash Devkit": "/ToothPasteFirmware_8M_Dev.bin",
+    "8M Flash ToothPaste PCBv1": "/ToothPasteFirmware_8M_PCBv1.bin",
   };
 
   const handleBoardSelect = (board) => {
