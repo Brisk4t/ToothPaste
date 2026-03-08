@@ -8,7 +8,12 @@
 #include "driver/gpio.h"
 
 
-#define TUSB_DESC_TOTAL_LEN      (TUD_CONFIG_DESC_LEN + CFG_TUD_HID * TUD_HID_DESC_LEN + TUD_CDC_DESC_LEN)
+// ESP32-S3 DWC2 has ep_in_count=5 (EP0-EP4 IN only). Full TUD_CDC_DESCRIPTOR needs EP4 IN
+// for notification + EP5 IN for data — EP5 IN does not exist on this hardware. The custom
+// CDC descriptor below omits the optional interrupt notification endpoint, using EP4 IN + EP4 OUT
+// for data only. 8+9+5+5+4+5+9+7+7 = 59 bytes.
+#define CDC_NO_NOTIF_DESC_LEN    59u
+#define TUSB_DESC_TOTAL_LEN      (TUD_CONFIG_DESC_LEN + CFG_TUD_HID * TUD_HID_DESC_LEN + CDC_NO_NOTIF_DESC_LEN)
 
 static const char *TAG = "hid_keyboard";
 
@@ -32,11 +37,11 @@ uint8_t const desc_consumerControl[] =
       TUD_HID_REPORT_DESC_CONSUMER(),
 };
 
-uint8_t const desc_serialDevice[] =
-{
-    //TUD_HID_REPORT_DESC_KEYBOARD( HID_REPORT_ID(1         )),
-      TUD_HID_REPORT_DESC_SYSTEM_CONTROL(),
-};
+// uint8_t const desc_serialDevice[] =
+// {
+//     //TUD_HID_REPORT_DESC_KEYBOARD( HID_REPORT_ID(1         )),
+//       TUD_CDC_DESCRIPTOR(),
+// };
 
 
 const char *hid_string_descriptor[8] = {
@@ -82,9 +87,38 @@ static const uint8_t hid_configuration_descriptor[] = {
     TUD_HID_DESCRIPTOR(1, 5, HID_ITF_PROTOCOL_MOUSE, sizeof(desc_boot_mouse), 0x82, 64, 1),
     TUD_HID_DESCRIPTOR(2, 6, HID_ITF_PROTOCOL_NONE, sizeof(desc_consumerControl), 0x83, 64, 1),
 
-    // CDC ACM: interfaces 3 (control) + 4 (data)
-    // itf, stridx, ep_notif, ep_notif_sz, epout, epin, epsize
-    TUD_CDC_DESCRIPTOR(3, 7, 0x84, 8, 0x05, 0x85, 64),
+    // CDC ACM: interfaces 3 (control, no notify EP) + 4 (data)
+    // Custom descriptor without interrupt notification endpoint — saves EP4 IN for bulk data;
+    // data in = 0x84 (EP4 IN), data out = 0x04 (EP4 OUT).
+
+    // IAD: 8 bytes
+    0x08, TUSB_DESC_INTERFACE_ASSOCIATION, 0x03, 0x02,
+        TUSB_CLASS_CDC, CDC_COMM_SUBCLASS_ABSTRACT_CONTROL_MODEL, CDC_COMM_PROTOCOL_NONE, 0x00,
+
+    // CDC Communication Interface: 9 bytes, bNumEndpoints=0 (no notify EP)
+    0x09, TUSB_DESC_INTERFACE, 0x03, 0x00, 0x00,
+        TUSB_CLASS_CDC, CDC_COMM_SUBCLASS_ABSTRACT_CONTROL_MODEL, CDC_COMM_PROTOCOL_NONE, 0x07,
+
+    // CDC Header Functional Descriptor: 5 bytes
+    0x05, TUSB_DESC_CS_INTERFACE, CDC_FUNC_DESC_HEADER, U16_TO_U8S_LE(0x0120),
+
+    // CDC Call Management Functional Descriptor: 5 bytes
+    0x05, TUSB_DESC_CS_INTERFACE, CDC_FUNC_DESC_CALL_MANAGEMENT, 0x00, 0x04,
+
+    // CDC ACM Functional Descriptor: 4 bytes
+    0x04, TUSB_DESC_CS_INTERFACE, CDC_FUNC_DESC_ABSTRACT_CONTROL_MANAGEMENT, 0x02,
+
+    // CDC Union Functional Descriptor: 5 bytes
+    0x05, TUSB_DESC_CS_INTERFACE, CDC_FUNC_DESC_UNION, 0x03, 0x04,
+
+    // CDC Data Interface: 9 bytes, bNumEndpoints=2
+    0x09, TUSB_DESC_INTERFACE, 0x04, 0x00, 0x02, TUSB_CLASS_CDC_DATA, 0x00, 0x00, 0x00,
+
+    // Bulk OUT EP4 (0x04): 7 bytes
+    0x07, TUSB_DESC_ENDPOINT, 0x04, TUSB_XFER_BULK, U16_TO_U8S_LE(64), 0x00,
+
+    // Bulk IN EP4 (0x84): 7 bytes
+    0x07, TUSB_DESC_ENDPOINT, 0x84, TUSB_XFER_BULK, U16_TO_U8S_LE(64), 0x00,
 };
 
 // Send a test keyboard string without the keyboard library

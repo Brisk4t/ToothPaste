@@ -203,7 +203,7 @@ export enum EncryptedData_PacketType {
 export declare const EncryptedData_PacketTypeSchema: GenEnum<EncryptedData_PacketType>;
 
 /**
- * Packet Sent by receiver to indicate state
+ * Packet Sent by receiver 
  *
  * @generated from message toothpaste.ResponsePacket
  */
@@ -259,6 +259,11 @@ export enum ResponsePacket_ResponseType {
    * @generated from enum value: CHALLENGE = 3;
    */
   CHALLENGE = 3,
+
+  /**
+   * @generated from enum value: SERIAL_DATA = 4;
+   */
+  SERIAL_DATA = 4,
 }
 
 /**

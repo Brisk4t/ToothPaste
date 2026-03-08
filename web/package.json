@@ -40,7 +40,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "protoc": "npx protoc --es_out=./src/services/packetService/toothpacket --proto_path=./shared ./shared/toothpacket.proto",
+    "protoc": "npx protoc --plugin=protoc-gen-es=./node_modules/.bin/protoc-gen-es.cmd --es_out=./src/services/packetService/toothpacket --proto_path=./shared ./shared/toothpacket.proto",
     "deploy": "gh-pages -d dist --repo https://github.com/Brisk4t/ToothPasteWeb.git"
   },
   "eslintConfig": {
