@@ -45,7 +45,7 @@ The JS frontend files can be generated with the standard protobufJS package.
 
 1. Install Protoc 
 2. Install nanopb 
-3. Run ```"protoc -I. --nanopb_out=${workspaceFolder}/components/toothPacket toothpacket.proto```  [from the shared ```./shared``` folder](#note-on-the-generate-command)
+3. Run ```protoc -I. --nanopb_out=${workspaceFolder}/components/toothPacket toothpacket.proto```  [from the shared ```./shared``` folder](#note-on-the-generate-command)
 
 
 
