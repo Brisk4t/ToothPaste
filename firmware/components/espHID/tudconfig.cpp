@@ -1,12 +1,19 @@
 #include "tinyusb.h"
 #include "class/hid/hid_device.h"
+#include "class/cdc/cdc.h"
+#include "class/cdc/cdc_device.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/gpio.h"
 
 
-#define TUSB_DESC_TOTAL_LEN      (TUD_CONFIG_DESC_LEN + CFG_TUD_HID * TUD_HID_DESC_LEN)
+// ESP32-S3 DWC2 has ep_in_count=5 (EP0-EP4 IN only). Full TUD_CDC_DESCRIPTOR needs EP4 IN
+// for notification + EP5 IN for data — EP5 IN does not exist on this hardware. The custom
+// CDC descriptor below omits the optional interrupt notification endpoint, using EP4 IN + EP4 OUT
+// for data only. 8+9+5+5+4+5+9+7+7 = 59 bytes.
+#define CDC_NO_NOTIF_DESC_LEN    59u
+#define TUSB_DESC_TOTAL_LEN      (TUD_CONFIG_DESC_LEN + CFG_TUD_HID * TUD_HID_DESC_LEN + CDC_NO_NOTIF_DESC_LEN)
 
 static const char *TAG = "hid_keyboard";
 
@@ -30,14 +37,14 @@ uint8_t const desc_consumerControl[] =
       TUD_HID_REPORT_DESC_CONSUMER(),
 };
 
-uint8_t const desc_systemControl[] =
-{
-    //TUD_HID_REPORT_DESC_KEYBOARD( HID_REPORT_ID(1         )),
-      TUD_HID_REPORT_DESC_SYSTEM_CONTROL(),
-};
+// uint8_t const desc_serialDevice[] =
+// {
+//     //TUD_HID_REPORT_DESC_KEYBOARD( HID_REPORT_ID(1         )),
+//       TUD_CDC_DESCRIPTOR(),
+// };
 
 
-const char *hid_string_descriptor[7] = {
+const char *hid_string_descriptor[8] = {
     // array of pointer to string descriptors
     (char[]){0x09, 0x04},     // 0: is supported language is English (0x0409)
     "Brisk4t",                // 1: Manufacturer
@@ -46,6 +53,7 @@ const char *hid_string_descriptor[7] = {
     "ToothPaste Boot Keyboard",   // 4: HID
     "ToothPaste Boot Mouse",      // 5: HID
     "ToothPaste Generic Input",   // 6: HID
+    "ToothPaste Serial",          // 7: CDC
 };
 
 tusb_desc_device_t const desc_device =
@@ -53,9 +61,9 @@ tusb_desc_device_t const desc_device =
     .bLength            = sizeof(tusb_desc_device_t),
     .bDescriptorType    = TUSB_DESC_DEVICE,
     .bcdUSB             = 0x0200,
-    .bDeviceClass       = 0x00,
-    .bDeviceSubClass    = 0x00,
-    .bDeviceProtocol    = 0x00,
+    .bDeviceClass       = 0xEF, // Miscellaneous Device Class (required for IAD composite)
+    .bDeviceSubClass    = 0x02, // Common Class
+    .bDeviceProtocol    = 0x01, // Interface Association Descriptor
     .bMaxPacketSize0    = CFG_TUD_ENDPOINT0_SIZE,
 
     .idVendor           = 0xCafe,
@@ -71,13 +79,46 @@ tusb_desc_device_t const desc_device =
 
 static const uint8_t hid_configuration_descriptor[] = {
     // Configuration number, interface count, string index, total length, attribute, power in mA
-    TUD_CONFIG_DESCRIPTOR(1, 3, 0, TUSB_DESC_TOTAL_LEN, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 500),
+    // Interface count: 3 HID + 2 CDC (control + data) = 5
+    TUD_CONFIG_DESCRIPTOR(1, 5, 0, TUSB_DESC_TOTAL_LEN, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 500),
 
     // Interface number, string index, boot protocol (none/boot keyboard/boot mouse), report descriptor len, EP In address, size & polling interval
     TUD_HID_DESCRIPTOR(0, 4, HID_ITF_PROTOCOL_KEYBOARD, sizeof(desc_boot_keyboard), 0x81, 64, 1),
     TUD_HID_DESCRIPTOR(1, 5, HID_ITF_PROTOCOL_MOUSE, sizeof(desc_boot_mouse), 0x82, 64, 1),
     TUD_HID_DESCRIPTOR(2, 6, HID_ITF_PROTOCOL_NONE, sizeof(desc_consumerControl), 0x83, 64, 1),
-    //TUD_HID_DESCRIPTOR(3, 6, HID_ITF_PROTOCOL_NONE, sizeof(desc_systemControl), 0x84, 64, 1),
+
+    // CDC ACM: interfaces 3 (control, no notify EP) + 4 (data)
+    // Custom descriptor without interrupt notification endpoint — saves EP4 IN for bulk data;
+    // data in = 0x84 (EP4 IN), data out = 0x04 (EP4 OUT).
+
+    // IAD: 8 bytes
+    0x08, TUSB_DESC_INTERFACE_ASSOCIATION, 0x03, 0x02,
+        TUSB_CLASS_CDC, CDC_COMM_SUBCLASS_ABSTRACT_CONTROL_MODEL, CDC_COMM_PROTOCOL_NONE, 0x00,
+
+    // CDC Communication Interface: 9 bytes, bNumEndpoints=0 (no notify EP)
+    0x09, TUSB_DESC_INTERFACE, 0x03, 0x00, 0x00,
+        TUSB_CLASS_CDC, CDC_COMM_SUBCLASS_ABSTRACT_CONTROL_MODEL, CDC_COMM_PROTOCOL_NONE, 0x07,
+
+    // CDC Header Functional Descriptor: 5 bytes
+    0x05, TUSB_DESC_CS_INTERFACE, CDC_FUNC_DESC_HEADER, U16_TO_U8S_LE(0x0120),
+
+    // CDC Call Management Functional Descriptor: 5 bytes
+    0x05, TUSB_DESC_CS_INTERFACE, CDC_FUNC_DESC_CALL_MANAGEMENT, 0x00, 0x04,
+
+    // CDC ACM Functional Descriptor: 4 bytes
+    0x04, TUSB_DESC_CS_INTERFACE, CDC_FUNC_DESC_ABSTRACT_CONTROL_MANAGEMENT, 0x02,
+
+    // CDC Union Functional Descriptor: 5 bytes
+    0x05, TUSB_DESC_CS_INTERFACE, CDC_FUNC_DESC_UNION, 0x03, 0x04,
+
+    // CDC Data Interface: 9 bytes, bNumEndpoints=2
+    0x09, TUSB_DESC_INTERFACE, 0x04, 0x00, 0x02, TUSB_CLASS_CDC_DATA, 0x00, 0x00, 0x00,
+
+    // Bulk OUT EP4 (0x04): 7 bytes
+    0x07, TUSB_DESC_ENDPOINT, 0x04, TUSB_XFER_BULK, U16_TO_U8S_LE(64), 0x00,
+
+    // Bulk IN EP4 (0x84): 7 bytes
+    0x07, TUSB_DESC_ENDPOINT, 0x84, TUSB_XFER_BULK, U16_TO_U8S_LE(64), 0x00,
 };
 
 // Send a test keyboard string without the keyboard library
@@ -194,4 +235,26 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_
 {
 }
 
+// ##################### CDC Serial Endpoint #################### //
 
+// Function pointer registered by ble.cpp to forward received serial data over BLE
+static void (*s_cdcRxCallback)(const char*, size_t) = nullptr;
+
+void setCDCRxCallback(void (*callback)(const char*, size_t)) {
+    s_cdcRxCallback = callback;
+}
+
+// Invoked by TinyUSB when the CDC OUT endpoint receives data from the host.
+// Reads all available data in a loop and forwards each chunk to the registered callback.
+void tud_cdc_rx_cb(uint8_t itf) {
+    // notifyDebugString caps at 149 bytes; use the same limit here
+    constexpr size_t BUF_SIZE = 149;
+    uint8_t buf[BUF_SIZE];
+    uint32_t count;
+
+    while ((count = tud_cdc_n_read(itf, buf, BUF_SIZE)) > 0) {
+        if (s_cdcRxCallback != nullptr) {
+            s_cdcRxCallback((const char*)buf, (size_t)count);
+        }
+    }
+}

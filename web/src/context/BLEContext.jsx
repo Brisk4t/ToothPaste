@@ -148,6 +148,15 @@ export function BLEProvider({ children }) {
                     setStatus(ConnectionStatus.connected);
                 }
 
+                else if (responsePacket.responseType === ToothPacketPB.ResponsePacket_ResponseType.SERIAL_DATA) {
+                    const data = responsePacket.challengeData;
+                    if (data && data.length > 0 && data[0] === 0x00) {
+                        // Plain-text debug string: strip the 0x00 marker and decode
+                        const text = new TextDecoder().decode(data.slice(1));
+                        console.log("[Toothpaste Debug]", text);
+                    }
+                }
+
                 console.log("Firmware version:", responsePacket.firmwareVersion);
                 if (!isVersionCompatible(responsePacket.firmwareVersion, supportedFirmwareVersions)) {
                     console.error("Incompatible firmware version:", responsePacket.firmwareVersion);

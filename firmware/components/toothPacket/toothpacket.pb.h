@@ -31,7 +31,8 @@ typedef enum _toothpaste_ResponsePacket_ResponseType {
     toothpaste_ResponsePacket_ResponseType_KEEPALIVE = 0,
     toothpaste_ResponsePacket_ResponseType_PEER_UNKNOWN = 1,
     toothpaste_ResponsePacket_ResponseType_PEER_KNOWN = 2,
-    toothpaste_ResponsePacket_ResponseType_CHALLENGE = 3
+    toothpaste_ResponsePacket_ResponseType_CHALLENGE = 3,
+    toothpaste_ResponsePacket_ResponseType_SERIAL_DATA = 4
 } toothpaste_ResponsePacket_ResponseType;
 
 /* Struct definitions */
@@ -52,7 +53,7 @@ typedef struct _toothpaste_DataPacket {
 } toothpaste_DataPacket;
 
 typedef PB_BYTES_ARRAY_T(150) toothpaste_ResponsePacket_challengeData_t;
-/* Packet Sent by receiver to indicate state */
+/* Packet Sent by receiver */
 typedef struct _toothpaste_ResponsePacket {
     toothpaste_ResponsePacket_ResponseType responseType;
     toothpaste_ResponsePacket_challengeData_t challengeData; /* 150 bytes max */
@@ -133,8 +134,8 @@ extern "C" {
 #define _toothpaste_EncryptedData_PacketType_ARRAYSIZE ((toothpaste_EncryptedData_PacketType)(toothpaste_EncryptedData_PacketType_COMPOSITE+1))
 
 #define _toothpaste_ResponsePacket_ResponseType_MIN toothpaste_ResponsePacket_ResponseType_KEEPALIVE
-#define _toothpaste_ResponsePacket_ResponseType_MAX toothpaste_ResponsePacket_ResponseType_CHALLENGE
-#define _toothpaste_ResponsePacket_ResponseType_ARRAYSIZE ((toothpaste_ResponsePacket_ResponseType)(toothpaste_ResponsePacket_ResponseType_CHALLENGE+1))
+#define _toothpaste_ResponsePacket_ResponseType_MAX toothpaste_ResponsePacket_ResponseType_SERIAL_DATA
+#define _toothpaste_ResponsePacket_ResponseType_ARRAYSIZE ((toothpaste_ResponsePacket_ResponseType)(toothpaste_ResponsePacket_ResponseType_SERIAL_DATA+1))
 
 #define toothpaste_DataPacket_packetID_ENUMTYPE toothpaste_DataPacket_PacketID
 

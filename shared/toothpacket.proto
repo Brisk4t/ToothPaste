@@ -48,7 +48,7 @@ message EncryptedData{
 
 }
 
-// Packet Sent by receiver to indicate state
+// Packet Sent by receiver 
 message ResponsePacket{
     
     // Indicate the notification type
@@ -57,6 +57,7 @@ message ResponsePacket{
         PEER_UNKNOWN = 1;
         PEER_KNOWN = 2;
         CHALLENGE = 3;
+        SERIAL_DATA = 4;
     }
 
     ResponseType responseType = 1;

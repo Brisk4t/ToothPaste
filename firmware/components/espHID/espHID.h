@@ -16,6 +16,9 @@
 
 void hidSetup();
 
+// Serial CDC endpoint - register a callback to receive data from the host
+void setCDCRxCallback(void (*callback)(const char*, size_t));
+
 // Keyboard String Functions
 void sendString(const char* str, bool slowMode = true);
 void sendString(const char *str, uint8_t stringLen, bool slowMode);

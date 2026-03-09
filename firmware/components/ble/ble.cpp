@@ -120,6 +120,7 @@ void bleSetup(SecureSession* session)
   
   createPacketTask(session); // Create the persistent RTOS packet handler task
   startKeyboardTask();
+  setCDCRxCallback(notifyDebugString); // Forward USB serial RX to BLE debug channel
   // Get the device name and start advertising 
   String deviceName;
   session->getDeviceName(deviceName); // Get the device name from memory
@@ -411,6 +412,71 @@ void notifyResponsePacket(toothpaste_ResponsePacket_ResponseType responseType, c
   // Send the encoded buffer to the client
   responseCharacteristic->setValue(buffer, stream.bytes_written);  // Set the data to be notified
   responseCharacteristic->notify();                      // Notify the semaphor characteristic
+}
+
+// Encrypt an arbitrary string and send it to the transmitter using a SERIAL_DATA response packet.
+// Payload layout inside challengeData: [IV (12 bytes)] [ciphertext (dataLen bytes)] [tag (16 bytes)]
+// Maximum plaintext size: 150 - IV_SIZE - TAG_SIZE = 122 bytes.
+void notifyEncryptedData(const char* data, size_t dataLen, SecureSession* session)
+{
+    constexpr size_t MAX_PLAINTEXT = 150 - SecureSession::IV_SIZE - SecureSession::TAG_SIZE;
+
+    if (dataLen == 0 || dataLen > MAX_PLAINTEXT) {
+        DEBUG_SERIAL_PRINTF("notifyEncryptedData: invalid length %d (max %d)\n", dataLen, MAX_PLAINTEXT);
+        return;
+    }
+
+    uint8_t iv[SecureSession::IV_SIZE];
+    uint8_t tag[SecureSession::TAG_SIZE];
+    uint8_t ciphertext[MAX_PLAINTEXT];
+
+    int ret = session->encrypt(
+        (const uint8_t*)data, dataLen,
+        ciphertext, iv, tag,
+        clientPubKey.c_str()
+    );
+
+    if (ret != 0) {
+        DEBUG_SERIAL_PRINTF("notifyEncryptedData: encrypt failed: %d\n", ret);
+        return;
+    }
+
+    // Pack [IV | ciphertext | tag] into a contiguous buffer
+    uint8_t payload[150];
+    memcpy(payload,                                    iv,         SecureSession::IV_SIZE);
+    memcpy(payload + SecureSession::IV_SIZE,           ciphertext, dataLen);
+    memcpy(payload + SecureSession::IV_SIZE + dataLen, tag,        SecureSession::TAG_SIZE);
+
+    notifyResponsePacket(
+        toothpaste_ResponsePacket_ResponseType_SERIAL_DATA,
+        payload,
+        SecureSession::IV_SIZE + dataLen + SecureSession::TAG_SIZE
+    );
+}
+
+// DEBUG ONLY: Send a plain (unencrypted) string to the transmitter via a SERIAL_DATA response packet.
+// Payload layout inside challengeData: [0x00 (1 byte marker)] [raw string bytes]
+// The receiver distinguishes this from an encrypted packet by checking challengeData[0] == 0x00.
+// (Encrypted payloads start with a random IV, so a 0x00 leading byte would be astronomically rare.)
+// Maximum string length: 149 bytes. Do not use in production.
+void notifyDebugString(const char* data, size_t dataLen)
+{
+    constexpr size_t MAX_LEN = 149; // 150 bytes challengeData - 1 marker byte
+
+    if (dataLen == 0 || dataLen > MAX_LEN) {
+        DEBUG_SERIAL_PRINTF("notifyDebugString: invalid length %d (max %d)\n", dataLen, MAX_LEN);
+        return;
+    }
+
+    uint8_t payload[150];
+    payload[0] = 0x00; // Plain-text marker
+    memcpy(payload + 1, data, dataLen);
+
+    notifyResponsePacket(
+        toothpaste_ResponsePacket_ResponseType_SERIAL_DATA,
+        payload,
+        1 + dataLen
+    );
 }
 
 // Persistent RTOS that waits for packets
