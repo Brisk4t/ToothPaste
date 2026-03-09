@@ -91,8 +91,8 @@ export function BLEProvider({ children }) {
         const manager = bleManagerRef.current;
 
         // Map core status to React state
-        manager.on('status', (statusInfo) => {
-            setStatus(statusInfo.status);
+        manager.on('status', (status) => {
+            setStatus(status);
         });
 
         // Map device info
@@ -156,6 +156,19 @@ export function BLEProvider({ children }) {
             if (!device || !device.gatt?.connected) {
                 setStatus(ConnectionStatus.disconnected);
             }
+        }
+    };
+
+    const pairDevice = async () => {
+        try {
+            if (!bleManagerRef.current) {
+                throw new Error('BLE Manager not initialized');
+            }
+            
+            await bleManagerRef.current.pair();
+        } catch (error) {
+            console.error("[BLEContext] Pairing failed:", error);
+            throw error;
         }
     };
 
@@ -300,6 +313,7 @@ export function BLEProvider({ children }) {
         setShowDevicePicker,
         firmwareVersion: device?.firmwareVersion || null,
         connectToDevice,
+        pairDevice,
         readyToReceive,
         sendEncrypted,
         sendUnencrypted,
@@ -309,7 +323,7 @@ export function BLEProvider({ children }) {
         sendMouse,
         sendMediaControl,
         getStatusLabel,
-    }), [device, server, pktCharacteristic, status, connectToDevice, readyToReceive, sendEncrypted, sendUnencrypted, sendString, sendKeyCode, sendMouse, sendMediaControl, getStatusLabel]);
+    }), [device, server, pktCharacteristic, status, connectToDevice, pairDevice, readyToReceive, sendEncrypted, sendUnencrypted, sendString, sendKeyCode, sendMouse, sendMediaControl, getStatusLabel]);
 
     return (
         <BLEContext.Provider value={contextValue}>

@@ -22,7 +22,9 @@ export class WebBLEAdapter extends BLEAdapter {
     }
 
     const device = await navigator.bluetooth.requestDevice({
-      filters: [{ name: 'Toothpaste' }],
+      filters: [
+        { services: ['19b10000-e8f2-537e-4f6c-d104768a1214'] }
+      ],
       optionalServices: ['19b10000-e8f2-537e-4f6c-d104768a1214'],
     });
 

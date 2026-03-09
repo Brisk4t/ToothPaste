@@ -35,6 +35,8 @@ export class BLEManager extends EventEmitter {
     this.status = Status.DISCONNECTED;
     this.device = null;
     this.connected = false;
+    this.authenticated = false;
+    this.deviceMAC = null;
     this.packetsWaitingForSemaphore = [];
     this.responseTimeout = 30000; // 30 seconds
     this.firmwareVersion = null;
@@ -96,33 +98,58 @@ export class BLEManager extends EventEmitter {
       const macBytes = new Uint8Array(macBuffer);
       const macAddr = Array.from(macBytes).map((b) => b.toString(16).padStart(2, '0')).join(':');
 
-      // Set status to READY (awaiting firmware version check)
-      await this._setStatus(Status.READY);
+      // Store MAC for later pairing
+      this.deviceMAC = macAddr;
 
-      // Perform authentication handshake
-      await this._authenticateWithDevice(macAddr);
-
-      // Check firmware version
-      await this._checkFirmwareVersion();
-
-      // Set final status to CONNECTED
+      // Mark as connected to device (but not authenticated yet)
       this.connected = true;
-      await this._setStatus(Status.CONNECTED);
+
+      // Set status to READY (awaiting pairing)
+      await this._setStatus(Status.READY);
 
       // Subscribe to disconnect event
       if (options.onDisconnect) {
-        this.bleAdapter.onDisconnect(device, () => {
+        this.bleAdapter.onDisconnect(this.device, () => {
           this.connected = false;
+          this.authenticated = false;
           this.emit('disconnect');
           options.onDisconnect();
         });
       }
 
-      console.log('Connected to ToothPaste device');
+      console.log('Connected to ToothPaste device (ready for pairing)');
     } catch (err) {
       console.error('Connection failed:', err);
       this.emit('error', err);
       await this._setStatus(Status.DISCONNECTED);
+      throw err;
+    }
+  }
+
+  /**
+   * Pair with the device (perform ECDH authentication).
+   * @returns {Promise<void>}
+   */
+  async pair() {
+    if (!this.deviceMAC) {
+      throw new Error('Device not connected');
+    }
+
+    try {
+      // Perform authentication handshake
+      await this._authenticateWithDevice(this.deviceMAC);
+
+      // Check firmware version
+      await this._checkFirmwareVersion();
+
+      // Set final status to CONNECTED (authenticated)
+      this.authenticated = true;
+      await this._setStatus(Status.CONNECTED);
+
+      console.log('Device paired successfully');
+    } catch (err) {
+      console.error('Pairing failed:', err);
+      this.emit('error', err);
       throw err;
     }
   }
@@ -218,7 +245,10 @@ export class BLEManager extends EventEmitter {
    */
   async sendEncryptedPackets(packets, slowMode = 0) {
     if (!this.connected) {
-      throw new Error('Not connected');
+      throw new Error('Not connected to device');
+    }
+    if (!this.authenticated) {
+      throw new Error('Device not authenticated. Pair first.');
     }
     await this._sendEncryptedPackets(packets, slowMode);
   }
@@ -239,7 +269,7 @@ export class BLEManager extends EventEmitter {
         const selfCompressed = await this.sessionManager.compressPublicKey(this.sessionManager.keyPair.publicKey);
 
         // Send unencrypted handshake
-        const handshakeData = Buffer.concat([Buffer.from([0x00]), Buffer.from(selfCompressed)]);
+        const handshakeData = new Uint8Array([0x00, ...selfCompressed]);
         await this.bleAdapter.writeCharacteristicWithoutResponse(this.packetChar, handshakeData);
 
         // Wait for peer public key
