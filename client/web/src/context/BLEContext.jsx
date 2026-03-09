@@ -70,14 +70,8 @@ export function BLEProvider({ children }) {
         const sessionManager = new SessionManager(storageAdapter);
         const packetHandler = new PacketHandler(ToothPacketPB, { create, toBinary, fromBinary });
 
-        // Create BLEManager
-        const manager = new BLEManager(adapter, sessionManager, packetHandler, {
-            serviceUUID: "19b10000-e8f2-537e-4f6c-d104768a1214",
-            packetCharacteristicUUID: "6856e119-2c7b-455a-bf42-cf7ddd2c5907",
-            hidSemaphoreCharacteristicUUID: "6856e119-2c7b-455a-bf42-cf7ddd2c5908",
-            macAddressCharacteristicUUID: "19b10002-e8f2-537e-4f6c-d104768a1214",
-            supportedFirmwareVersions: supportedFirmwareVersions,
-        });
+        // Create BLEManager (sessionManager, packetHandler, bleAdapter)
+        const manager = new BLEManager(sessionManager, packetHandler, adapter);
 
         bleManagerRef.current = manager;
     }, []);
