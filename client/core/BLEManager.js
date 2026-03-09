@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events';
+import { EventEmitter } from './EventEmitter.js';
 
 /**
  * BLEManager orchestrates the entire BLE lifecycle:

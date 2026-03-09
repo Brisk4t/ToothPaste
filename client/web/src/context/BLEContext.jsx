@@ -17,7 +17,7 @@ import {
     SessionManager, 
     PacketHandler, 
     WebBLEAdapter 
-} from "../../core/index.js";
+} from "../../../core/index.js";
 import * as ToothPacketPB from '../services/packetService/toothpacket/toothpacket_pb.js';
 
 // Storage adapter bridge for SessionManager
