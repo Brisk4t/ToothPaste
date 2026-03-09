@@ -1,0 +1,6 @@
+{
+  "name": "toothpaste-mcp",
+  "version": "1.0.0",
+  "description": "Electron main/preload source — build from web/ using npm run electron:dev",
+  "type": "module"
+}

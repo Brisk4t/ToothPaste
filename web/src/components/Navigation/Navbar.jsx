@@ -12,6 +12,7 @@ import {
     CpuChipIcon,
     SignalSlashIcon,
     SignalIcon,
+    ServerIcon,
 } from "@heroicons/react/24/outline";
 
 import { useBLEContext, ConnectionStatus } from "../../context/BLEContext";
@@ -246,7 +247,15 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
     const [isOpen, setIsOpen] = useState(false);
     const [showAuthOverlay, setShowAuthOverlay] = useState(false);
     const [authState, setAuthState] = useState(null);
+    const [mcpEnabled, setMcpEnabled] = useState(false);
     const { status, device, connectToDevice } = useBLEContext();
+    const isElectron = !!window.toothpasteMCP;
+
+    const toggleMCP = () => {
+        const next = !mcpEnabled;
+        setMcpEnabled(next);
+        window.toothpasteMCP?.setMCPEnabled(next);
+    };
 
     // Subscribe to auth state
     useEffect(() => {
@@ -374,6 +383,23 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                                 </Typography>
                             </button>
                         )}
+
+                        {isElectron && (
+                            <button
+                                className={`flex items-center space-x-1 p-2 gap-2 rounded ${
+                                    mcpEnabled
+                                        ? 'bg-primary/20 border border-primary text-primary'
+                                        : 'hover:bg-ash'
+                                }`}
+                                onClick={toggleMCP}
+                                title={mcpEnabled ? 'MCP Mode enabled — click to disable' : 'Enable MCP Mode'}
+                            >
+                                <ServerIcon className="h-5 w-5" />
+                                <Typography className="font-header">
+                                    MCP {mcpEnabled ? 'On' : 'Off'}
+                                </Typography>
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -492,6 +518,23 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                             >
                                 <LinkIcon className="h-5 w-5" />
                                 <span>Pair Device</span>
+                            </button>
+                        )}
+
+                        {isElectron && (
+                            <button
+                                className={`flex font-header items-center space-x-1 px-3 py-2 rounded ${
+                                    mcpEnabled
+                                        ? 'bg-primary/20 border border-primary text-primary'
+                                        : 'hover:bg-ash'
+                                }`}
+                                onClick={() => {
+                                    toggleMCP();
+                                    setIsOpen(false);
+                                }}
+                            >
+                                <ServerIcon className="h-5 w-5" />
+                                <span>MCP {mcpEnabled ? 'On' : 'Off'}</span>
                             </button>
                         )}
                     </div>

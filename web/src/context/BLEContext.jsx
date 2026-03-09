@@ -7,9 +7,11 @@ import React, {
 } from "react";
 import { keyExists, loadBase64 } from "../services/localSecurity/EncryptedStorage.js";
 import { ECDHContext } from "./ECDHContext.jsx";
-import { createUnencryptedPacket, unpackResponsePacket } from "../services/packetService/packetFunctions.js";
+import { createUnencryptedPacket, unpackResponsePacket, createConsumerControlPacket } from "../services/packetService/packetFunctions.js";
 import { PacketQueue } from "../services/packetService/PacketQueue.js";
 import { create, toBinary, fromBinary } from "@bufbuild/protobuf";
+import { keyboardHandler } from "../services/inputHandlers/keyboardHandler.js";
+import { mouseHandler } from "../services/inputHandlers/mouseHandler.js";
 
 import * as ToothPacketPB from '../services/packetService/toothpacket/toothpacket_pb.js';
 
@@ -22,7 +24,8 @@ export const ConnectionStatus = {
         disconnected: 0,
         ready: 1,
         connected: 2,
-        unsupported: 3
+        unsupported: 3,
+        scanning: 4
 };
 
 export function BLEProvider({ children }) {
@@ -35,11 +38,23 @@ export function BLEProvider({ children }) {
     const macAddressCharacteristicUUID = "19b10002-e8f2-537e-4f6c-d104768a1214"
 
     // BLE Connection Variables
-    const [status, setStatus] = React.useState(ConnectionStatus.disconnected); // 0 = disconnected, 1 = connected & paired, 2 = connected & not paired
+    const [status, setStatus] = React.useState(ConnectionStatus.disconnected);
     const [device, setDevice] = useState(null);
     const [server, setServer] = useState(null);
     const [pktCharacteristic, setpktCharacteristic] = useState(null);
     const pktCharRef = useRef(null);
+    const [showDevicePicker, setShowDevicePicker] = useState(false);
+
+    // In Electron, listen for BLE scan status updates from the main process
+    React.useEffect(() => {
+        if (window.toothpasteBLE?.onScanStatus) {
+            window.toothpasteBLE.onScanStatus((scanStatus) => {
+                if (scanStatus === 'scanning') setStatus(ConnectionStatus.scanning);
+                else if (scanStatus === 'timeout') { setStatus(ConnectionStatus.disconnected); setShowDevicePicker(false); }
+                else if (scanStatus === 'cancelled') { setStatus(ConnectionStatus.disconnected); setShowDevicePicker(false); }
+            });
+        }
+    }, []);
 
     
     const { loadKeys, createEncryptedPackets } = useContext(ECDHContext);
@@ -155,6 +170,14 @@ export function BLEProvider({ children }) {
                         const text = new TextDecoder().decode(data.slice(1));
                         console.log("[Toothpaste Debug]", text);
                     }
+                    // Forward serial data to Electron main process via IPC (no-op in browser)
+                    if (window.toothpasteMCP?.onSerialData) {
+                        // Let the IPC handler forward this to the main process
+                      // Actually, in the renderer, we should emit this to the main process
+                      if (window.ipcRenderer) {
+                        window.ipcRenderer.send('device:serialData', data);
+                      }
+                    }
                 }
 
                 console.log("Firmware version:", responsePacket.firmwareVersion);
@@ -182,6 +205,11 @@ export function BLEProvider({ children }) {
     // Connecting to a clipboard device using WEB BLE
     const connectToDevice = async () => {
         try {
+            setStatus(ConnectionStatus.scanning);
+            // In Electron, show our custom picker before calling requestDevice()
+            if (window.toothpasteBLE) {
+                setShowDevicePicker(true);
+            }
             // Look for devices advertising the toothpaste service uuid
             const device = await navigator.bluetooth.requestDevice({
                 //acceptAllDevices: true,
@@ -238,7 +266,7 @@ export function BLEProvider({ children }) {
             
         } catch (error) {
             console.error("Connection failed", error);
-
+            setShowDevicePicker(false);
             // Only set status to disconnected if the device is not connected,
             // a ble scan cancel might fail but the device could still be connected
             if (!device || !device.gatt.connected) {
@@ -271,16 +299,131 @@ export function BLEProvider({ children }) {
     const getCharacteristicWithRetry = async (service, characteristicUUID, attempts = 3) =>
         retryAsyncCall((characteristicUUID) => service.getCharacteristic(characteristicUUID), characteristicUUID, attempts, "Retrying characteristic discovery...");
 
+    // ============================================================================
+    // MCP BRIDGE CONVENIENCE METHODS
+    // ============================================================================
+    // These methods wrap the input handlers for easy access by the MCP bridge
+
+    const sendString = (text, slowMode = 0) => {
+        keyboardHandler.sendKeyboardString(text, sendEncrypted);
+    };
+
+    const sendKeyCode = (key, slowMode = 0, modifiers = []) => {
+        // Parse key string which can be "ctrl+a", "shift+alt+Delete", etc.
+        const parts = key.toLowerCase().split('+');
+        let keyName = parts[parts.length - 1]; // Last part is the key
+        const mods = parts.slice(0, -1); // Everything else are modifiers
+
+        // Map common modifier names to HID names
+        const modifierMap = {
+            'ctrl': 'Control',
+            'control': 'Control',
+            'alt': 'Alt',
+            'shift': 'Shift',
+            'meta': 'Meta',
+            'win': 'Meta',
+            'windows': 'Meta',
+            'cmd': 'Meta',
+            'command': 'Meta'
+        };
+
+        const resolvedMods = mods.map(m => modifierMap[m] || m);
+
+        // Map common key names
+        const keyMap = {
+            'enter': 'Enter',
+            'return': 'Enter',
+            'tab': 'Tab',
+            'escape': 'Escape',
+            'esc': 'Escape',
+            'backspace': 'Backspace',
+            'delete': 'Delete',
+            'del': 'Delete',
+            'space': ' ',
+            'arrowup': 'ArrowUp',
+            'arrowdown': 'ArrowDown',
+            'arrowleft': 'ArrowLeft',
+            'arrowright': 'ArrowRight',
+        };
+
+        const resolvedKey = keyMap[keyName] || keyName;
+        keyboardHandler.sendKeyCode(resolvedKey, resolvedMods, sendEncrypted);
+    };
+
+    const sendMouse = (params) => {
+        const { action, x = 0, y = 0, button = 'left', delta = 0 } = params;
+
+        switch (action) {
+            case 'move':
+                mouseHandler.sendMouseReport([{ x, y }], 0, 0, 0, sendEncrypted);
+                break;
+            case 'click':
+                const leftClick = button === 'left' ? 1 : 0;
+                const rightClick = button === 'right' ? 1 : 0;
+                mouseHandler.sendMouseClick(leftClick, rightClick, sendEncrypted);
+                break;
+            case 'scroll':
+                mouseHandler.sendMouseScroll(delta, sendEncrypted);
+                break;
+            default:
+                console.warn(`Unknown mouse action: ${action}`);
+        }
+    };
+
+    const sendMediaControl = (action) => {
+        // Map action names to consumer control codes
+        // These are standard HID consumer control codes
+        const consumerControlMap = {
+            'play_pause': 0xCD,      // Play/Pause
+            'next_track': 0xB5,      // Scan Next Track
+            'prev_track': 0xB6,      // Scan Previous Track
+            'volume_up': 0xE9,       // Volume Increment
+            'volume_down': 0xEA,     // Volume Decrement
+            'mute_toggle': 0xE2,     // Mute
+            'brightness_up': 0xF8,   // Brightness Increment
+            'brightness_down': 0xF7, // Brightness Decrement
+        };
+
+        const code = consumerControlMap[action];
+        if (!code) {
+            console.warn(`Unknown media control action: ${action}`);
+            return;
+        }
+
+        const packet = createConsumerControlPacket(code);
+        sendEncrypted(packet);
+    };
+
+    const getStatusLabel = () => {
+        const labels = {
+            0: 'disconnected',
+            1: 'ready',
+            2: 'connected',
+            3: 'unsupported',
+            4: 'scanning'
+        };
+        return labels[status] || 'unknown';
+    };
+
     const contextValue = useMemo(() => ({
         device,
         server,
         pktCharacteristic,
         status,
+        showDevicePicker,
+        setShowDevicePicker,
+        firmwareVersion: device?.firmwareVersion || null,
         connectToDevice,
         readyToReceive,
         sendEncrypted,
         sendUnencrypted,
-    }), [device, server, pktCharacteristic, status, connectToDevice, readyToReceive, sendEncrypted, sendUnencrypted]);
+        // MCP Bridge convenience methods
+        sendString,
+        sendKeyCode,
+        sendMouse,
+        sendMediaControl,
+        getStatusLabel,
+    }), [device, server, pktCharacteristic, status, connectToDevice, readyToReceive, sendEncrypted, sendUnencrypted, sendString, sendKeyCode, sendMouse, sendMediaControl, getStatusLabel]);
 
     return (
         <BLEContext.Provider value={contextValue}>
