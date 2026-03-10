@@ -1,9 +1,10 @@
 import { EventEmitter } from './EventEmitter.js';
+import { HIDMap, parseKeyCombo } from './HIDKeyMap.js';
 
 /**
  * BLEManager orchestrates the entire BLE lifecycle:
  * - Device discovery and connection
- * - ECDH authentication handshake
+ * - ECDH authentication and key agreement
  * - Encrypted packet transmission and reception
  * - Status management and event emission
  *
@@ -11,10 +12,10 @@ import { EventEmitter } from './EventEmitter.js';
  * Emits events: 'status', 'device', 'disconnect', 'error', 'response', 'serialData'
  */
 
-const ServiceUUID = '19b10000-e8f2-537e-4f6c-d104768a1214';
-const PacketCharacteristicUUID = '6856e119-2c7b-455a-bf42-cf7ddd2c5907';
-const SemaphoreCharacteristicUUID = '6856e119-2c7b-455a-bf42-cf7ddd2c5908';
-const MACCharacteristicUUID = '19b10002-e8f2-537e-4f6c-d104768a1214';
+const DEFAULT_SERVICE_UUID = '19b10000-e8f2-537e-4f6c-d104768a1214';
+const DEFAULT_PACKET_CHAR_UUID = '6856e119-2c7b-455a-bf42-cf7ddd2c5907';
+const DEFAULT_SEMAPHORE_CHAR_UUID = '6856e119-2c7b-455a-bf42-cf7ddd2c5908';
+const DEFAULT_MAC_CHAR_UUID = '19b10002-e8f2-537e-4f6c-d104768a1214';
 
 // Status enum
 export const Status = {
@@ -26,19 +27,32 @@ export const Status = {
 };
 
 export class BLEManager extends EventEmitter {
-  constructor(sessionManager, packetHandler, bleAdapter) {
+  /**
+   * @param {BLEAdapter} bleAdapter - Platform-specific BLE adapter
+   * @param {SessionManager} sessionManager - Handles ECDH crypto + key storage
+   * @param {PacketHandler} packetHandler - Constructs protobuf packets
+   * @param {Object} [options] - Optional UUID overrides
+   */
+  constructor(bleAdapter, sessionManager, packetHandler, options = {}) {
     super();
+    this.bleAdapter = bleAdapter;
     this.sessionManager = sessionManager;
     this.packetHandler = packetHandler;
-    this.bleAdapter = bleAdapter;
+
+    // Allow UUID overrides for different firmware builds
+    this.serviceUUID = options.serviceUUID || DEFAULT_SERVICE_UUID;
+    this.packetCharUUID = options.packetCharacteristicUUID || DEFAULT_PACKET_CHAR_UUID;
+    this.semaphoreCharUUID = options.hidSemaphoreCharacteristicUUID || DEFAULT_SEMAPHORE_CHAR_UUID;
+    this.macCharUUID = options.macAddressCharacteristicUUID || DEFAULT_MAC_CHAR_UUID;
 
     this.status = Status.DISCONNECTED;
     this.device = null;
     this.connected = false;
     this.authenticated = false;
     this.deviceMAC = null;
+    this._pairingInProgress = false;
     this.packetsWaitingForSemaphore = [];
-    this.responseTimeout = 30000; // 30 seconds
+    this.responseTimeout = 30000;
     this.firmwareVersion = null;
   }
 
@@ -74,15 +88,15 @@ export class BLEManager extends EventEmitter {
       const gatt = await this.bleAdapter.connectGATT(device);
 
       // Get service
-      const service = await this._getServiceWithRetry(gatt, ServiceUUID, 3);
+      const service = await this._getServiceWithRetry(gatt, this.serviceUUID, 3);
       if (!service) {
-        throw new Error(`Service ${ServiceUUID} not found`);
+        throw new Error(`Service ${this.serviceUUID} not found`);
       }
 
       // Get characteristics
-      this.packetChar = await this.bleAdapter.getCharacteristic(service, PacketCharacteristicUUID);
-      this.semaphoreChar = await this.bleAdapter.getCharacteristic(service, SemaphoreCharacteristicUUID);
-      this.macChar = await this.bleAdapter.getCharacteristic(service, MACCharacteristicUUID);
+      this.packetChar = await this.bleAdapter.getCharacteristic(service, this.packetCharUUID);
+      this.semaphoreChar = await this.bleAdapter.getCharacteristic(service, this.semaphoreCharUUID);
+      this.macChar = await this.bleAdapter.getCharacteristic(service, this.macCharUUID);
 
       if (!this.packetChar || !this.semaphoreChar) {
         throw new Error('Required characteristics not found');
@@ -114,10 +128,16 @@ export class BLEManager extends EventEmitter {
         this.bleAdapter.onDisconnect(this.device, () => {
           this.connected = false;
           this.authenticated = false;
+          this._pairingInProgress = false;
           this.emit('disconnect');
           options.onDisconnect();
         });
       }
+
+      // Attempt non-blocking auto-authentication for known (returning) devices.
+      // If keys are not found or firmware rejects us, status stays CONNECTED
+      // and the UI will show the manual Pair button.
+      this._tryAutoAuth();
 
       console.log('Connected to ToothPaste device (ready for pairing)');
     } catch (err) {
@@ -129,31 +149,152 @@ export class BLEManager extends EventEmitter {
   }
 
   /**
-   * Pair with the device (perform ECDH authentication).
+   * Attempt non-blocking auto-authentication for known devices.
+   * Swallows errors — status stays at CONNECTED on failure so the UI
+   * can show the manual paired button.
+   * @private
+   */
+  _tryAutoAuth() {
+    this.pair().catch((err) => {
+      if (err.message !== 'NO_KEYS') {
+        console.warn('[BLEManager] Auto-auth failed:', err.message);
+      }
+    });
+  }
+
+  /**
+   * Authenticate with a returning (already-paired) device.
+   * Loads the stored public key, sends it as an AUTH_PACKET, waits for the
+   * firmware's CHALLENGE, then derives the session AES key.
    * @returns {Promise<void>}
+   * @throws {Error} 'NO_KEYS' if no stored keys found for this device
    */
   async pair() {
-    if (!this.deviceMAC) {
-      throw new Error('Device not connected');
-    }
+    if (!this.deviceMAC) throw new Error('Device not connected');
+    if (this._pairingInProgress) return;
+    this._pairingInProgress = true;
 
     try {
-      // Perform authentication handshake
-      await this._authenticateWithDevice(this.deviceMAC);
+      const savedKeys = await this.sessionManager.loadKeys(this.deviceMAC);
+      if (!savedKeys) {
+        throw new Error('NO_KEYS');
+      }
 
-      // Check firmware version
-      await this._checkFirmwareVersion();
+      // Send our stored public key so the firmware can look up the shared secret
+      await this._sendAuthPacket(savedKeys.publicKey);
 
-      // Set final status to READY (authenticated, ready to send commands)
+      // Wait for the firmware's CHALLENGE notification (contains sessionSalt)
+      const sessionSalt = await this._waitForChallenge(30000);
+
+      // Re-derive the session AES key from the stored shared secret + session salt
+      const sharedSecret = this._base64ToArrayBuffer(savedKeys.secret);
+      await this.sessionManager.deriveAESKey(sharedSecret, new Uint8Array(sessionSalt));
+
       this.authenticated = true;
       await this._setStatus(Status.READY);
-
-      console.log('Device paired successfully');
+      console.log('[BLEManager] Re-authenticated with known device');
     } catch (err) {
-      console.error('Pairing failed:', err);
-      this.emit('error', err);
+      if (err.message === 'PEER_UNKNOWN') {
+        // Firmware has forgotten this device; wipe local keys so next connect
+        // re-does the full pairing flow.
+        console.warn('[BLEManager] PEER_UNKNOWN — clearing stored keys.');
+        if (this.sessionManager.storageAdapter) {
+          await this.sessionManager.storageAdapter.save(this.deviceMAC, 'SelfPublicKey', null).catch(() => {});
+          await this.sessionManager.storageAdapter.save(this.deviceMAC, 'SharedSecret', null).catch(() => {});
+        }
+      }
       throw err;
+    } finally {
+      this._pairingInProgress = false;
     }
+  }
+
+  /**
+   * Pair with a brand-new device.
+   * Takes the firmware's compressed public key (base64, shown on the device),
+   * performs the full ECDH exchange, saves keys, and completes authentication.
+   * @param {string} peerKeyB64 - Base64-encoded compressed (33-byte) public key from firmware
+   * @returns {Promise<void>}
+   */
+  async pairNewDevice(peerKeyB64) {
+    if (!this.deviceMAC) throw new Error('Device not connected');
+    if (this._pairingInProgress) throw new Error('Pairing already in progress');
+    this._pairingInProgress = true;
+
+    try {
+      // Decompress the firmware's public key and import it for ECDH
+      const compressedBytes = new Uint8Array(this._base64ToArrayBuffer(peerKeyB64));
+      const peerUncompressed = this.sessionManager.decompressPublicKey(compressedBytes);
+      await this.sessionManager.importPeerPublicKey(peerUncompressed);
+
+      // Generate our own ephemeral key pair
+      await this.sessionManager.generateKeyPair();
+
+      // Derive shared secret via ECDH
+      const sharedSecret = await this.sessionManager.deriveSharedSecret();
+
+      // Persist keys so we can re-authenticate on reconnect
+      await this.sessionManager.saveKeys(this.deviceMAC, sharedSecret);
+
+      // Send our uncompressed public key (base64) to the firmware as AUTH_PACKET
+      const pubKeyRaw = await this.sessionManager.getSelfPublicKeyRaw();
+      const pubKeyB64 = this.sessionManager._arrayBufferToBase64(pubKeyRaw.buffer);
+      await this._sendAuthPacket(pubKeyB64);
+
+      // Wait for the firmware's CHALLENGE
+      const sessionSalt = await this._waitForChallenge(30000);
+
+      // Derive session AES key
+      await this.sessionManager.deriveAESKey(sharedSecret, new Uint8Array(sessionSalt));
+
+      this.authenticated = true;
+      await this._setStatus(Status.READY);
+      console.log('[BLEManager] New device paired successfully');
+    } finally {
+      this._pairingInProgress = false;
+    }
+  }
+
+  /**
+   * Send the client's public key to the firmware as an AUTH_PACKET.
+   * @param {string} b64PublicKey - Base64-encoded uncompressed (65-byte) public key
+   * @private
+   */
+  async _sendAuthPacket(b64PublicKey) {
+    const packet = this.packetHandler.createUnencryptedPacket(b64PublicKey);
+    await this.bleAdapter.writeCharacteristicWithoutResponse(this.packetChar, packet);
+  }
+
+  /**
+   * Wait for the firmware to send a CHALLENGE (or PEER_UNKNOWN) notification.
+   * Resolves with the sessionSalt Uint8Array, or rejects on timeout / PEER_UNKNOWN.
+   * @param {number} timeoutMs
+   * @returns {Promise<Uint8Array>}
+   * @private
+   */
+  _waitForChallenge(timeoutMs = 30000) {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        this.removeListener('challenge', onChallenge);
+        this.removeListener('peerUnknown', onPeerUnknown);
+        reject(new Error('Challenge timeout'));
+      }, timeoutMs);
+
+      const onChallenge = (salt) => {
+        clearTimeout(timeout);
+        this.removeListener('peerUnknown', onPeerUnknown);
+        resolve(salt);
+      };
+
+      const onPeerUnknown = () => {
+        clearTimeout(timeout);
+        this.removeListener('challenge', onChallenge);
+        reject(new Error('PEER_UNKNOWN'));
+      };
+
+      this.once('challenge', onChallenge);
+      this.once('peerUnknown', onPeerUnknown);
+    });
   }
 
   /**
@@ -201,13 +342,35 @@ export class BLEManager extends EventEmitter {
   }
 
   /**
-   * Send a keycode (Alt, Shift, F1, etc).
-   * @param {string} keycode
+   * Send a key combo such as "ctrl+c", "Meta+r", "Enter", "F5".
+   * Builds the correct 8-byte HID report from HIDMap.
+   * @param {string} combo - Key combo string
+   * @param {number} slowMode - Delay in ms between BLE packets
    * @returns {Promise<void>}
    */
-  async sendKeyCode(keycode) {
-    const packet = this.packetHandler.createKeyboardKeycode(keycode);
-    await this.sendEncryptedPackets([packet], 0);
+  async sendKeyCode(combo, slowMode = 0) {
+    const { key, modifiers } = parseKeyCombo(combo);
+    const keycodeBytes = this._buildKeycodeBytes(key, modifiers);
+    const packet = this.packetHandler.createKeyboardKeycode(keycodeBytes);
+    await this.sendEncryptedPackets([packet], slowMode);
+  }
+
+  /**
+   * Build an 8-byte HID keycode report from a key name and modifier list.
+   * Bytes 0-4: modifier HID codes; byte 5: main key HID code.
+   * @param {string} key - Canonical key name (e.g. "Enter", "a")
+   * @param {string[]} modifiers - Array of canonical modifier names
+   * @returns {Uint8Array} 8-byte HID report
+   * @private
+   */
+  _buildKeycodeBytes(key, modifiers) {
+    const report = new Uint8Array(8);
+    const modCodes = modifiers
+      .map((m) => HIDMap[m] ?? 0)
+      .filter((c) => c > 0);
+    modCodes.slice(0, 5).forEach((code, i) => { report[i] = code; });
+    report[5] = HIDMap[key] ?? key.charCodeAt(0);
+    return report;
   }
 
   /**
@@ -246,18 +409,6 @@ export class BLEManager extends EventEmitter {
     return this.connected && this.authenticated;
   }
 
-  /**
-   * Complete authentication after receiving the CHALLENGE sessionSalt from firmware.
-   * Sets the pre-derived AES key on SessionManager, marks as authenticated, and
-   * transitions status to READY.
-   * @param {CryptoKey} aesKey - The derived AES-GCM CryptoKey
-   */
-  completeAuthentication(aesKey) {
-    this.sessionManager.aesKey = aesKey;
-    this.authenticated = true;
-    this._setStatus(Status.READY);
-  }
-
   /**   * Send raw encrypted packets.
    * @param {Object[]} packets - Array of protobuf packet objects
    * @param {number} slowMode - Delay in ms between transmissions
@@ -273,47 +424,7 @@ export class BLEManager extends EventEmitter {
     await this._sendEncryptedPackets(packets, slowMode);
   }
 
-  /**
-   * Internal: Perform ECDH authentication with the device.
-   * @private
-   */
-  async _authenticateWithDevice(macAddr) {
-    try {
-      // Check if we already have keys for this device
-      const savedKeys = await this.sessionManager.loadKeys(macAddr);
 
-      if (!savedKeys) {
-        // New device: generate key pair and perform handshake
-        await this.sessionManager.generateKeyPair();
-        const selfPublicKey = await this.sessionManager.getSelfPublicKeyRaw();
-        const selfCompressed = await this.sessionManager.compressPublicKey(this.sessionManager.keyPair.publicKey);
-
-        // Send unencrypted handshake
-        const handshakeData = new Uint8Array([0x00, ...selfCompressed]);
-        await this.bleAdapter.writeCharacteristicWithoutResponse(this.packetChar, handshakeData);
-
-        // Wait for peer public key
-        const peerCompressed = await this._receiveHandshakeKey(30000);
-        const peerUncompressed = this.sessionManager.decompressPublicKey(peerCompressed);
-        await this.sessionManager.importPeerPublicKey(peerUncompressed);
-
-        // Derive shared secret and AES key
-        const sharedSecret = await this.sessionManager.deriveSharedSecret();
-        await this.sessionManager.deriveAESKey(sharedSecret);
-
-        // Save keys
-        await this.sessionManager.saveKeys(macAddr, sharedSecret);
-      } else {
-        // Returning device: restore AES key
-        const sharedSecretB64 = savedKeys.secret;
-        const sharedSecret = this._base64ToArrayBuffer(sharedSecretB64);
-        await this.sessionManager.deriveAESKey(sharedSecret);
-      }
-    } catch (err) {
-      console.error('Authentication failed:', err);
-      throw err;
-    }
-  }
 
   /**
    * Internal: Check firmware version for compatibility.
@@ -394,33 +505,6 @@ export class BLEManager extends EventEmitter {
         }
       }
     }
-  }
-
-  /**
-   * Internal: Receive handshake key (peer public key).
-   * @private
-   */
-  async _receiveHandshakeKey(timeoutMs = 30000) {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(
-        () => reject(new Error('Handshake timeout')),
-        timeoutMs
-      );
-
-      const onNotification = (data) => {
-        clearTimeout(timeout);
-        // Parse the peer public key from the notification
-        const bytes = new Uint8Array(data);
-        if (bytes[0] === 0x01) {
-          // Response type 1 = peer public key
-          resolve(bytes.slice(1)); // Return 33-byte compressed key
-        } else {
-          reject(new Error('Unexpected handshake response'));
-        }
-      };
-
-      this.bleAdapter.startNotifications(this.packetChar, onNotification);
-    });
   }
 
   /**

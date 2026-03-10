@@ -1,35 +1,24 @@
 import React, { useState, useContext, useRef, useEffect } from 'react';
-import { ECDHContext } from '../../context/ECDHContext';
 import { Button, Typography, Spinner } from "@material-tailwind/react";
 import { KeyIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
-import { BLEContext } from '../../context/BLEContext';
+import { BLEContext, ConnectionStatus } from '../../context/BLEContext';
 
 const ECDHOverlay = ({ onChangeOverlay }) => {
-    const { processPeerKeyAndGenerateSharedSecret, loadKeys } = useContext(ECDHContext);
     const [keyInput, setkeyInput] = useState("");
     const [error, setError] = useState(null);
     const [capsLockEnabled, setCapsLockEnabled] = useState(false);
-    const { device, pktCharacteristic, status, sendUnencrypted, challengeSalt, completeAuth } = useContext(BLEContext);
+    const { device, pktCharacteristic, status, pairNewDevice } = useContext(BLEContext);
     const keyRef = useRef(null);
 
     const [isLoading, setisLoading] = useState(false);
 
-    // When firmware responds to our AUTH packet with a CHALLENGE notification,
-    // the sessionSalt is exposed via BLEContext. Derive the final AES key and
-    // complete authentication so BLEManager transitions to READY.
+    // Close overlay once authentication completes (status transitions to READY)
     useEffect(() => {
-        if (!challengeSalt || !device?.macAddress) return;
-        (async () => {
-            try {
-                const derivedKey = await loadKeys(device.macAddress, challengeSalt);
-                completeAuth(derivedKey);
-            } catch (e) {
-                console.error('[ECDHOverlay] Failed to complete auth from challenge:', e);
-                setError('Pairing failed: ' + e.message);
-                setisLoading(false);
-            }
-        })();
-    }, [challengeSalt, device?.macAddress]);
+        if (status === ConnectionStatus.ready) {
+            setisLoading(false);
+            onChangeOverlay(null);
+        }
+    }, [status]);
 
     // Handle capslock detection
     const handleKeyDown = (event) => {
@@ -61,25 +50,15 @@ const ECDHOverlay = ({ onChangeOverlay }) => {
         }   
     }
 
-    // Use the context function to handle entire key exchange
-    // This function will generate the shared secret and send the public key to the device
+    // Use pairNewDevice from BLEManager via BLEContext.
+    // It handles the full ECDH key exchange, key persistence, AUTH_PACKET,
+    // CHALLENGE wait and AES key derivation. Status transitions to READY when done.
     const computeSecret = async () => {
         try {
             setError(null);
             setisLoading(true);
-
-            // Process peer key, generate our key pair + shared secret, save to storage
-            const b64SelfPublic = await processPeerKeyAndGenerateSharedSecret(
-                keyInput.trim(),
-                device.macAddress
-            );
-
-            // Send our public key to the device as an AUTH packet.
-            // The firmware will respond with a CHALLENGE notification containing sessionSalt.
-            // The useEffect above listens for challengeSalt and finalises auth.
-            await sendUnencrypted(b64SelfPublic);
-            // isLoading stays true until completeAuth fires (or an error is set)
-
+            await pairNewDevice(keyInput.trim());
+            // isLoading clears via the status===READY useEffect above
         } catch (e) {
             setError('Error: ' + e.message);
             setisLoading(false);

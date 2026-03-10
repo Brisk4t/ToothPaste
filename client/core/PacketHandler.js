@@ -94,14 +94,14 @@ export class PacketHandler {
   }
 
   /**
-   * Create a keyboard keycode packet (Alt, Shift, F1, etc).
-   * @param {string} keycode - Keycode string (e.g. "Return", "Escape")
+   * Create a keyboard keycode packet from a raw HID byte report.
+   * @param {Uint8Array} keycodeBytes - 8-byte HID report (modifiers at [0-4], key at [5])
    * @returns {Object} EncryptedData packet
    */
-  createKeyboardKeycode(keycode) {
+  createKeyboardKeycode(keycodeBytes) {
     const keycodePacket = this.pbFunctions.create(this.pb.KeycodePacketSchema, {});
-    keycodePacket.code = keycode;
-    keycodePacket.length = keycode.length;
+    keycodePacket.code = keycodeBytes;
+    keycodePacket.length = keycodeBytes.length;
 
     return this.pbFunctions.create(this.pb.EncryptedDataSchema, {
       packetType: this.pb.EncryptedData_PacketType.KEYBOARD_KEYCODE,

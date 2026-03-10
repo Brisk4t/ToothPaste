@@ -9,7 +9,7 @@ import {
   BLEManager, 
   SessionManager, 
   PacketHandler, 
-  WebBLEAdapter 
+  WebBLEAdapter,
 } from '../core/index.js';
 import { create, toBinary, fromBinary } from '@bufbuild/protobuf';
 import * as ToothPacketPB from '../web/src/services/packetService/toothpacket/toothpacket_pb.js';
@@ -236,27 +236,21 @@ async function coreBLEDispatch(tool, params) {
       return await manager.sendKeyboardString(params.text);
     
     case 'pressKey':
-      const keyName = params.key;
-      const modifiers = (params.key || '').includes('+') 
-        ? params.key.split('+').slice(0, -1) 
-        : [];
-      return await manager.sendKeyCode(keyName, modifiers);
+      return await manager.sendKeyCode(params.key, params.slowMode || 0);
     
     case 'mouseMove':
-      return await manager.sendMouseCommand({ 
-        x: params.x, 
-        y: params.y 
-      });
+      return await manager.sendMouseCommand(params.x, params.y);
     
-    case 'mouseClick':
+    case 'mouseClick': {
       const button = params.button || 'left';
-      return await manager.sendMouseCommand({ 
+      return await manager.sendMouseCommand(0, 0, { 
         leftClick: button === 'left',
         rightClick: button === 'right'
       });
+    }
     
     case 'mouseScroll':
-      return await manager.sendMouseCommand({ 
+      return await manager.sendMouseCommand(0, 0, { 
         scrollDelta: params.delta 
       });
     

@@ -16,3 +16,6 @@ export { DeviceState } from './DeviceState.js';
 // Adapters
 export { BLEAdapter } from './adapters/BLEAdapter.js';
 export { WebBLEAdapter } from './adapters/webble.js';
+
+// HID key mappings (shared between web and Electron)
+export { HIDMap, modifierAliases, keyAliases, parseKeyCombo } from './HIDKeyMap.js';

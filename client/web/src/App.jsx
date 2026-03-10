@@ -11,7 +11,6 @@ import UpdateController from "./components/overlays/UpdateOverlay";
 import QuickStartOverlay from "./components/overlays/QuickStartOverlay";
 import BLEDevicePickerOverlay from "./components/overlays/BLEDevicePickerOverlay";
 import GridBackground from './components/shared/GridBackground';
-import { ECDHContext, ECDHProvider } from "./context/ECDHContext";
 import { DuckyscriptProvider } from "./context/DuckyscriptContext";
 import About from "./views/about/About";
 import { useMCPBridge } from "./services/mcpBridge/useMCPBridge";
@@ -117,7 +116,6 @@ function App() {
 
     return (
     <DuckyscriptProvider>
-      <ECDHProvider>
         <BLEProvider setShowOverlay={setShowOverlay} showOverlay={showOverlay}>
           <AppContent
             showNavbar={showNavbar}
@@ -130,7 +128,6 @@ function App() {
             renderView={renderView}
           />
         </BLEProvider>
-      </ECDHProvider>
     </DuckyscriptProvider>
     );
 }

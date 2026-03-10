@@ -1,5 +1,5 @@
 import { createKeyboardStream, createKeyCodePacket } from '../packetService/packetFunctions';
-import { HIDMap } from './HIDMap';
+import { HIDMap } from '../../../../core/HIDKeyMap.js';
 import { createConsumerControlPacket } from '../packetService/packetFunctions';
 
 /**

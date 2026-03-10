@@ -137,7 +137,7 @@ export class SessionManager {
   async deriveAESKey(sharedSecret, salt = null, info = null) {
     // Default salt and info if not provided
     const defaultSalt = new Uint8Array(32);
-    const defaultInfo = new Uint8Array(0);
+    const defaultInfo = new TextEncoder().encode('aes-gcm-256'); // Must match firmware
 
     // Import shared secret as raw key for HKDF
     const keyMaterial = await crypto.subtle.importKey('raw', sharedSecret, { name: 'HKDF' }, false, ['deriveBits']);

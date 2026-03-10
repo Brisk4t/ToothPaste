@@ -6,9 +6,7 @@ import React, {
     useMemo,
     useEffect,
 } from "react";
-import { keyExists, loadBase64 } from "../services/localSecurity/EncryptedStorage.js";
-import { keyboardHandler } from "../services/inputHandlers/keyboardHandler.js";
-import { mouseHandler } from "../services/inputHandlers/mouseHandler.js";
+import { saveBase64, loadBase64 } from "../services/localSecurity/EncryptedStorage.js";
 import { create, toBinary, fromBinary } from "@bufbuild/protobuf";
 
 // Core library imports
@@ -16,31 +14,37 @@ import {
     BLEManager, 
     SessionManager, 
     PacketHandler, 
-    WebBLEAdapter 
+    WebBLEAdapter,
 } from "../../../core/index.js";
 import * as ToothPacketPB from '../services/packetService/toothpacket/toothpacket_pb.js';
 
-// Storage adapter bridge for SessionManager
+// Storage adapter that persists keys in the encrypted IndexedDB layer.
+// Requires EncryptedStorage to be unlocked (via AuthenticationOverlay) before use.
 class EncryptedStorageAdapter {
     async save(deviceId, key, value) {
-        return new Promise((resolve, reject) => {
-            try {
-                // Use the existing EncryptedStorage service
-                // This is a simplified wrapper; adjust as needed for your storage interface
-                localStorage.setItem(`${deviceId}:${key}`, value);
-                resolve();
-            } catch (err) {
-                reject(err);
-            }
-        });
+        if (value === null) {
+            try { await saveBase64(deviceId, key, ''); } catch (_) {}
+            return;
+        }
+        return saveBase64(deviceId, key, value);
     }
 
     async load(deviceId, key) {
-        return localStorage.getItem(`${deviceId}:${key}`);
+        try {
+            const v = await loadBase64(deviceId, key);
+            return v || null;
+        } catch (_) {
+            return null;
+        }
     }
 
     async exists(deviceId, key) {
-        return localStorage.getItem(`${deviceId}:${key}`) !== null;
+        try {
+            const v = await loadBase64(deviceId, key);
+            return !!v;
+        } catch (_) {
+            return false;
+        }
     }
 }
 
@@ -70,8 +74,8 @@ export function BLEProvider({ children }) {
         const sessionManager = new SessionManager(storageAdapter);
         const packetHandler = new PacketHandler(ToothPacketPB, { create, toBinary, fromBinary });
 
-        // Create BLEManager (sessionManager, packetHandler, bleAdapter)
-        const manager = new BLEManager(sessionManager, packetHandler, adapter);
+        // Constructor order: (bleAdapter, sessionManager, packetHandler)
+        const manager = new BLEManager(adapter, sessionManager, packetHandler);
 
         bleManagerRef.current = manager;
     }, []);
@@ -82,7 +86,6 @@ export function BLEProvider({ children }) {
     const [server, setServer] = useState(null);
     const [pktCharacteristic, setpktCharacteristic] = useState(null);
     const [showDevicePicker, setShowDevicePicker] = useState(false);
-    const [challengeSalt, setChallengeSalt] = useState(null);
     const readyToReceive = useRef({ promise: null, resolve: null });
 
     // ========== Core Manager Event Listeners ==========
@@ -121,15 +124,6 @@ export function BLEProvider({ children }) {
             }
         });
 
-        // CHALLENGE: firmware derived AES key with sessionSalt — expose so ECDHOverlay can finalize auth
-        manager.on('challenge', (sessionSalt) => {
-            setChallengeSalt(sessionSalt);
-        });
-
-        // PEER_UNKNOWN: firmware doesn’t recognise the stored public key — clear challenge state
-        manager.on('peerUnknown', () => {
-            setChallengeSalt(null);
-        });
 
         // In Electron, listen for scan status updates
         if (window.toothpasteBLE?.onScanStatus) {
@@ -172,10 +166,7 @@ export function BLEProvider({ children }) {
 
     const pairDevice = async () => {
         try {
-            if (!bleManagerRef.current) {
-                throw new Error('BLE Manager not initialized');
-            }
-            
+            if (!bleManagerRef.current) throw new Error('BLE Manager not initialized');
             await bleManagerRef.current.pair();
         } catch (error) {
             console.error("[BLEContext] Pairing failed:", error);
@@ -183,12 +174,9 @@ export function BLEProvider({ children }) {
         }
     };
 
-    // Called by ECDHOverlay after it has derived the session AES key from the CHALLENGE salt.
-    // Passes the key into BLEManager so sendEncryptedPackets can encrypt correctly.
-    const completeAuth = (aesKey) => {
-        if (!bleManagerRef.current) return;
-        bleManagerRef.current.completeAuthentication(aesKey);
-        setChallengeSalt(null); // consumed
+    const pairNewDevice = async (peerKeyB64) => {
+        if (!bleManagerRef.current) throw new Error('BLE Manager not initialized');
+        await bleManagerRef.current.pairNewDevice(peerKeyB64);
     };
 
     // ========== Send Methods (wrapper around core library) ==========
@@ -234,64 +222,34 @@ export function BLEProvider({ children }) {
     };
 
     // ========== MCP Bridge Convenience Methods ==========
+    // All MCP-driven sends go via BLEManager directly — no web-specific handler chain.
     const sendString = (text, slowMode = 0) => {
-        keyboardHandler.sendKeyboardString(text, sendEncrypted);
+        if (bleManagerRef.current?.isConnected()) {
+            bleManagerRef.current.sendKeyboardString(text, slowMode);
+        }
     };
 
-    const sendKeyCode = (key, slowMode = 0, modifiers = []) => {
-        // Parse key string which can be "ctrl+a", "shift+alt+Delete", etc.
-        const parts = key.toLowerCase().split('+');
-        let keyName = parts[parts.length - 1];
-        const mods = parts.slice(0, -1);
-
-        const modifierMap = {
-            'ctrl': 'Control',
-            'control': 'Control',
-            'alt': 'Alt',
-            'shift': 'Shift',
-            'meta': 'Meta',
-            'win': 'Meta',
-            'windows': 'Meta',
-            'cmd': 'Meta',
-            'command': 'Meta'
-        };
-
-        const resolvedMods = mods.map(m => modifierMap[m] || m);
-
-        const keyMap = {
-            'enter': 'Enter',
-            'return': 'Enter',
-            'tab': 'Tab',
-            'escape': 'Escape',
-            'esc': 'Escape',
-            'backspace': 'Backspace',
-            'delete': 'Delete',
-            'del': 'Delete',
-            'space': ' ',
-            'arrowup': 'ArrowUp',
-            'arrowdown': 'ArrowDown',
-            'arrowleft': 'ArrowLeft',
-            'arrowright': 'ArrowRight',
-        };
-
-        const resolvedKey = keyMap[keyName] || keyName;
-        keyboardHandler.sendKeyCode(resolvedKey, resolvedMods, sendEncrypted);
+    const sendKeyCode = (key, slowMode = 0) => {
+        if (bleManagerRef.current?.isConnected()) {
+            bleManagerRef.current.sendKeyCode(key, slowMode);
+        }
     };
 
     const sendMouse = (params) => {
+        if (!bleManagerRef.current?.isConnected()) return;
         const { action, x = 0, y = 0, button = 'left', delta = 0 } = params;
-
         switch (action) {
             case 'move':
-                mouseHandler.sendMouseReport([{ x, y }], 0, 0, 0, sendEncrypted);
+                bleManagerRef.current.sendMouseCommand(x, y);
                 break;
-            case 'click':
-                const leftClick = button === 'left' ? 1 : 0;
-                const rightClick = button === 'right' ? 1 : 0;
-                mouseHandler.sendMouseClick(leftClick, rightClick, sendEncrypted);
+            case 'click': {
+                const leftClick = button === 'left';
+                const rightClick = button === 'right';
+                bleManagerRef.current.sendMouseCommand(0, 0, { leftClick, rightClick });
                 break;
+            }
             case 'scroll':
-                mouseHandler.sendMouseScroll(delta, sendEncrypted);
+                bleManagerRef.current.sendMouseCommand(0, 0, { scrollDelta: delta });
                 break;
             default:
                 console.warn(`Unknown mouse action: ${action}`);
@@ -309,16 +267,13 @@ export function BLEProvider({ children }) {
             'brightness_up': 0xF8,
             'brightness_down': 0xF7,
         };
-
         const code = consumerControlMap[action];
         if (!code) {
             console.warn(`Unknown media control action: ${action}`);
             return;
         }
-
-        if (bleManagerRef.current) {
-            const packet = bleManagerRef.current.packetHandler.createConsumerControl(code);
-            sendEncrypted(packet);
+        if (bleManagerRef.current?.isConnected()) {
+            bleManagerRef.current.sendMediaControl(code);
         }
     };
 
@@ -330,11 +285,10 @@ export function BLEProvider({ children }) {
         status,
         showDevicePicker,
         setShowDevicePicker,
-        challengeSalt,
-        completeAuth,
         firmwareVersion: device?.firmwareVersion || null,
         connectToDevice,
         pairDevice,
+        pairNewDevice,
         readyToReceive,
         sendEncrypted,
         sendUnencrypted,
@@ -344,7 +298,7 @@ export function BLEProvider({ children }) {
         sendMouse,
         sendMediaControl,
         getStatusLabel,
-    }), [device, server, pktCharacteristic, status, challengeSalt, connectToDevice, pairDevice, readyToReceive, sendEncrypted, sendUnencrypted, sendString, sendKeyCode, sendMouse, sendMediaControl, getStatusLabel]);
+    }), [device, server, pktCharacteristic, status, connectToDevice, pairDevice, pairNewDevice, readyToReceive, sendEncrypted, sendUnencrypted, sendString, sendKeyCode, sendMouse, sendMediaControl, getStatusLabel]);
 
     return (
         <BLEContext.Provider value={contextValue}>
