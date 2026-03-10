@@ -5,18 +5,31 @@ import { KeyIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { BLEContext } from '../../context/BLEContext';
 
 const ECDHOverlay = ({ onChangeOverlay }) => {
-    const { processPeerKeyAndGenerateSharedSecret } = useContext(ECDHContext);
+    const { processPeerKeyAndGenerateSharedSecret, loadKeys } = useContext(ECDHContext);
     const [keyInput, setkeyInput] = useState("");
     const [error, setError] = useState(null);
     const [capsLockEnabled, setCapsLockEnabled] = useState(false);
-    const { device, pktCharacteristic, status, sendUnencrypted } = useContext(BLEContext);
+    const { device, pktCharacteristic, status, sendUnencrypted, challengeSalt, completeAuth } = useContext(BLEContext);
     const keyRef = useRef(null);
 
     const [isLoading, setisLoading] = useState(false);
 
-    function sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
+    // When firmware responds to our AUTH packet with a CHALLENGE notification,
+    // the sessionSalt is exposed via BLEContext. Derive the final AES key and
+    // complete authentication so BLEManager transitions to READY.
+    useEffect(() => {
+        if (!challengeSalt || !device?.macAddress) return;
+        (async () => {
+            try {
+                const derivedKey = await loadKeys(device.macAddress, challengeSalt);
+                completeAuth(derivedKey);
+            } catch (e) {
+                console.error('[ECDHOverlay] Failed to complete auth from challenge:', e);
+                setError('Pairing failed: ' + e.message);
+                setisLoading(false);
+            }
+        })();
+    }, [challengeSalt, device?.macAddress]);
 
     // Handle capslock detection
     const handleKeyDown = (event) => {
@@ -55,15 +68,17 @@ const ECDHOverlay = ({ onChangeOverlay }) => {
             setError(null);
             setisLoading(true);
 
-            // Use the comprehensive context function
+            // Process peer key, generate our key pair + shared secret, save to storage
             const b64SelfPublic = await processPeerKeyAndGenerateSharedSecret(
                 keyInput.trim(),
                 device.macAddress
             );
 
-            await sleep(2000); // Wait for 2 seconds after generating the shared secret
+            // Send our public key to the device as an AUTH packet.
+            // The firmware will respond with a CHALLENGE notification containing sessionSalt.
+            // The useEffect above listens for challengeSalt and finalises auth.
             await sendUnencrypted(b64SelfPublic);
-            setisLoading(false);
+            // isLoading stays true until completeAuth fires (or an error is set)
 
         } catch (e) {
             setError('Error: ' + e.message);

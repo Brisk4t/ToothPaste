@@ -353,9 +353,8 @@ export const ECDHProvider = ({ children }) => {
     const loadKeys = async (clientID, salt = new Uint8Array([])) => {
         var sharedSecretB64 = await loadBase64(clientID, "sharedSecret");
         var sharedSecretBuffer = base64ToArrayBuffer(sharedSecretB64);
-        
-        // Derive the AES key from the stored shared secret using the provided salt
         await deriveAESKey(sharedSecretBuffer, salt);
+        return aesKey.current; // Return the derived key so callers can pass it to BLEManager
     };
 
     /**

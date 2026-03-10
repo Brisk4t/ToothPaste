@@ -263,4 +263,26 @@ export class PacketHandler {
   getEncryptedDataSchema() {
     return this.pb.EncryptedDataSchema;
   }
+
+  /**
+   * Create and serialize a DataPacket from encrypted components.
+   * @param {Uint8Array} iv - 12-byte IV
+   * @param {Uint8Array} encryptedData - Ciphertext
+   * @param {Uint8Array} tag - 16-byte auth tag
+   * @param {boolean} slowMode - Whether slow mode is enabled
+   * @param {number} [packetNumber=1]
+   * @param {number} [totalPackets=1]
+   * @returns {Uint8Array} Binary DataPacket
+   */
+  createDataPacket(iv, encryptedData, tag, slowMode, packetNumber = 1, totalPackets = 1) {
+    const packet = this.pbFunctions.create(this.pb.DataPacketSchema, {});
+    packet.iv = iv;
+    packet.encryptedData = encryptedData;
+    packet.tag = tag;
+    packet.slowMode = slowMode;
+    packet.packetNumber = packetNumber;
+    packet.totalPackets = totalPackets;
+    packet.dataLen = encryptedData.length;
+    return this.pbFunctions.toBinary(this.pb.DataPacketSchema, packet);
+  }
 }

@@ -82,6 +82,7 @@ export function BLEProvider({ children }) {
     const [server, setServer] = useState(null);
     const [pktCharacteristic, setpktCharacteristic] = useState(null);
     const [showDevicePicker, setShowDevicePicker] = useState(false);
+    const [challengeSalt, setChallengeSalt] = useState(null);
     const readyToReceive = useRef({ promise: null, resolve: null });
 
     // ========== Core Manager Event Listeners ==========
@@ -118,6 +119,16 @@ export function BLEProvider({ children }) {
             if (window.ipcRenderer) {
                 window.ipcRenderer.send('device:serialData', data);
             }
+        });
+
+        // CHALLENGE: firmware derived AES key with sessionSalt — expose so ECDHOverlay can finalize auth
+        manager.on('challenge', (sessionSalt) => {
+            setChallengeSalt(sessionSalt);
+        });
+
+        // PEER_UNKNOWN: firmware doesn’t recognise the stored public key — clear challenge state
+        manager.on('peerUnknown', () => {
+            setChallengeSalt(null);
         });
 
         // In Electron, listen for scan status updates
@@ -172,6 +183,14 @@ export function BLEProvider({ children }) {
         }
     };
 
+    // Called by ECDHOverlay after it has derived the session AES key from the CHALLENGE salt.
+    // Passes the key into BLEManager so sendEncryptedPackets can encrypt correctly.
+    const completeAuth = (aesKey) => {
+        if (!bleManagerRef.current) return;
+        bleManagerRef.current.completeAuthentication(aesKey);
+        setChallengeSalt(null); // consumed
+    };
+
     // ========== Send Methods (wrapper around core library) ==========
     const sendEncrypted = async (inputPayload, prefix = 0) => {
         if (!bleManagerRef.current || !bleManagerRef.current.isConnected()) {
@@ -194,7 +213,7 @@ export function BLEProvider({ children }) {
             // Create unencrypted packet via core
             const packet = bleManagerRef.current.packetHandler.createUnencryptedPacket(inputString);
             await bleManagerRef.current.bleAdapter.writeCharacteristicWithoutResponse(
-                bleManagerRef.current.packetCharacteristic,
+                bleManagerRef.current.packetChar,
                 packet
             );
         } catch (error) {
@@ -311,6 +330,8 @@ export function BLEProvider({ children }) {
         status,
         showDevicePicker,
         setShowDevicePicker,
+        challengeSalt,
+        completeAuth,
         firmwareVersion: device?.firmwareVersion || null,
         connectToDevice,
         pairDevice,
@@ -323,7 +344,7 @@ export function BLEProvider({ children }) {
         sendMouse,
         sendMediaControl,
         getStatusLabel,
-    }), [device, server, pktCharacteristic, status, connectToDevice, pairDevice, readyToReceive, sendEncrypted, sendUnencrypted, sendString, sendKeyCode, sendMouse, sendMediaControl, getStatusLabel]);
+    }), [device, server, pktCharacteristic, status, challengeSalt, connectToDevice, pairDevice, readyToReceive, sendEncrypted, sendUnencrypted, sendString, sendKeyCode, sendMouse, sendMediaControl, getStatusLabel]);
 
     return (
         <BLEContext.Provider value={contextValue}>

@@ -69,7 +69,6 @@ export class BLEManager extends EventEmitter {
       // Request device
       const device = await this.bleAdapter.requestDevice();
       this.device = device;
-      this.emit('device', device);
 
       // Connect to GATT
       const gatt = await this.bleAdapter.connectGATT(device);
@@ -101,11 +100,14 @@ export class BLEManager extends EventEmitter {
       // Store MAC for later pairing
       this.deviceMAC = macAddr;
 
+      // Emit device info now that we have the MAC address
+      this.emit('device', { name: device.name, mac: macAddr });
+
       // Mark as connected to device (but not authenticated yet)
       this.connected = true;
 
-      // Set status to READY (awaiting pairing)
-      await this._setStatus(Status.READY);
+      // Set status to CONNECTED (BLE linked, awaiting pairing/authentication)
+      await this._setStatus(Status.CONNECTED);
 
       // Subscribe to disconnect event
       if (options.onDisconnect) {
@@ -142,9 +144,9 @@ export class BLEManager extends EventEmitter {
       // Check firmware version
       await this._checkFirmwareVersion();
 
-      // Set final status to CONNECTED (authenticated)
+      // Set final status to READY (authenticated, ready to send commands)
       this.authenticated = true;
-      await this._setStatus(Status.CONNECTED);
+      await this._setStatus(Status.READY);
 
       console.log('Device paired successfully');
     } catch (err) {
@@ -238,7 +240,25 @@ export class BLEManager extends EventEmitter {
   }
 
   /**
-   * Send raw encrypted packets.
+   * Returns true if the device is BLE-connected AND authenticated (ready to send).
+   */
+  isConnected() {
+    return this.connected && this.authenticated;
+  }
+
+  /**
+   * Complete authentication after receiving the CHALLENGE sessionSalt from firmware.
+   * Sets the pre-derived AES key on SessionManager, marks as authenticated, and
+   * transitions status to READY.
+   * @param {CryptoKey} aesKey - The derived AES-GCM CryptoKey
+   */
+  completeAuthentication(aesKey) {
+    this.sessionManager.aesKey = aesKey;
+    this.authenticated = true;
+    this._setStatus(Status.READY);
+  }
+
+  /**   * Send raw encrypted packets.
    * @param {Object[]} packets - Array of protobuf packet objects
    * @param {number} slowMode - Delay in ms between transmissions
    * @returns {Promise<void>}
@@ -327,17 +347,13 @@ export class BLEManager extends EventEmitter {
       const ciphertext = encrypted.slice(12);
       const tag = ciphertext.slice(-16);
 
-      // Create DataPacket
-      const dataPacket = {
-        iv: iv,
-        encryptedData: ciphertext.slice(0, -16),
-        tag: tag,
-        slowMode: slowMode > 0,
-      };
-
-      // Serialize DataPacket (you'll need to add this to PacketHandler)
-      // For now, manually construct it or use protobuf
-      const dataPacketBinary = this._serializeDataPacket(dataPacket);
+      // Create and serialize DataPacket via PacketHandler (uses DataPacketSchema)
+      const dataPacketBinary = this.packetHandler.createDataPacket(
+        iv,
+        ciphertext.slice(0, -16),
+        tag,
+        slowMode > 0,
+      );
 
       // Send to device
       await this.bleAdapter.writeCharacteristicWithoutResponse(this.packetChar, dataPacketBinary);
@@ -432,46 +448,28 @@ export class BLEManager extends EventEmitter {
   }
 
   /**
-   * Internal: Handle semaphore notifications.
+   * Internal: Handle semaphore/response characteristic notifications.
+   * The firmware sends protobuf ResponsePacket messages on this characteristic.
    * @private
    */
   _onSemaphoreNotification(data) {
-    const bytes = new Uint8Array(data);
-    const count = bytes[0];
+    try {
+      const bytes = new Uint8Array(data);
+      const response = this.packetHandler.parseResponsePacket(bytes);
 
-    // Semaphore indicates how many packets are buffered on device
-    for (let i = 0; i < count; i++) {
-      if (this.packetsWaitingForSemaphore.length > 0) {
-        this.packetsWaitingForSemaphore.shift();
+      // ResponseType values from proto: KEEPALIVE=0, PEER_UNKNOWN=1, PEER_KNOWN=2, CHALLENGE=3, SERIAL_DATA=4
+      if (response.responseType === 3) {
+        // CHALLENGE: firmware derived AES key with sessionSalt — client must do the same
+        const sessionSalt = response.challengeData; // Uint8Array (16 bytes)
+        this.emit('challenge', sessionSalt);
+      } else if (response.responseType === 1) {
+        // PEER_UNKNOWN: firmware doesn't recognise our public key — need to re-pair
+        console.warn('[BLEManager] PEER_UNKNOWN from firmware — re-pairing required');
+        this.emit('peerUnknown');
       }
+    } catch (err) {
+      console.error('[BLEManager] Failed to parse response notification:', err);
     }
-  }
-
-  /**
-   * Internal: Serialize a DataPacket structure.
-   * @private
-   */
-  _serializeDataPacket(dataPacket) {
-    // This is a simplified binary serialization
-    // In production, use the protobuf DataPacket schema
-
-    const { iv, encryptedData, tag, slowMode } = dataPacket;
-    const slowModeBytes = slowMode ? 1 : 0;
-
-    const size = 1 + 12 + encryptedData.length + 16 + 1; // type + iv + data + tag + slowmode
-    const buffer = new Uint8Array(size);
-
-    let offset = 0;
-    buffer[offset++] = 0x00; // DataPacket type
-    buffer.set(iv, offset);
-    offset += 12;
-    buffer.set(encryptedData, offset);
-    offset += encryptedData.length;
-    buffer.set(tag, offset);
-    offset += 16;
-    buffer[offset] = slowModeBytes;
-
-    return buffer;
   }
 
   /**

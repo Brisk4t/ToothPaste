@@ -372,7 +372,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                             <Typography className="font-header">Quick Start</Typography>
                         </button>
 
-                        {status === ConnectionStatus.ready && (
+                        {status === ConnectionStatus.connected && (
                             <button
                                 className="flex items-center space-x-1 p-2 gap-2 rounded hover:bg-ash"
                                 onClick={() => onChangeOverlay("pair")}

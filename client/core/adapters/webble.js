@@ -51,8 +51,8 @@ export class WebBLEAdapter extends BLEAdapter {
   }
 
   async readCharacteristic(characteristic) {
-    const value = await characteristic.readValue();
-    return value;
+    const value = await characteristic.readValue(); // DataView
+    return value.buffer; // Return ArrayBuffer so callers can use new Uint8Array(buffer)
   }
 
   async writeCharacteristicWithoutResponse(characteristic, value) {
@@ -64,8 +64,8 @@ export class WebBLEAdapter extends BLEAdapter {
     await characteristic.startNotifications();
 
     const listener = (event) => {
-      const { value } = event.target;
-      callback(value);
+      const { value } = event.target; // DataView
+      callback(value.buffer); // Pass ArrayBuffer — new Uint8Array(DataView) creates empty array
     };
 
     characteristic.addEventListener('characteristicvaluechanged', listener);
