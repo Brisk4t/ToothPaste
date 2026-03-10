@@ -17,7 +17,15 @@ contextBridge.exposeInMainWorld('toothpasteBLE', {
   },
   onDeviceList: (callback) => {
     ipcRenderer.on('ble:deviceList', (_, devices) => callback(devices));
-  }
+  },
+  // Key bridge: main process requests paired keys from the renderer's
+  // encrypted storage so they can be used in daemon/MCP mode.
+  onRequestKeys: (callback) => {
+    ipcRenderer.on('ble:requestKeys', (_, data) => callback(data));
+  },
+  sendKeys: (data) => {
+    ipcRenderer.send('ble:keys', data);
+  },
 });
 
 contextBridge.exposeInMainWorld('toothpasteMCP', {

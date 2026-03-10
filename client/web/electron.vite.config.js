@@ -24,13 +24,18 @@ export default defineConfig({
     root: __dirname,
     build: {
       rollupOptions: {
-        input: path.resolve(__dirname, 'index.html')
+        input: path.resolve(__dirname, 'index.html'),
+        external: ['@stoprocent/noble'],
       }
     },
     plugins: [react()],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, 'src')
+        '@': path.resolve(__dirname, 'src'),
+        // SessionManager (client/core) imports 'elliptic', but node_modules
+        // only exists in client/web. Provide an explicit alias so Rollup can
+        // resolve it during the renderer production build.
+        'elliptic': path.resolve(__dirname, 'node_modules', 'elliptic'),
       }
     },
     server: {
@@ -42,6 +47,7 @@ export default defineConfig({
     },
     optimizeDeps: {
       include: ['elliptic'],
+      exclude: ['@stoprocent/noble'],
     },
   }
 });

@@ -550,6 +550,26 @@ export class BLEManager extends EventEmitter {
         // PEER_UNKNOWN: firmware doesn't recognise our public key — need to re-pair
         console.warn('[BLEManager] PEER_UNKNOWN from firmware — re-pairing required');
         this.emit('peerUnknown');
+      } else if (response.responseType === 4) {
+        // SERIAL_DATA: USB CDC serial input echoed back over BLE.
+        // Debug path: challengeData[0] === 0x00, rest is raw UTF-8 string.
+        // Encrypted path: challengeData = [IV(12)][ciphertext][tag(16)] — decrypt before emitting.
+        const payload = response.challengeData;
+        if (payload && payload.length > 0) {
+          if (payload[0] === 0x00) {
+            // Debug / plain-text echo
+            const text = new TextDecoder().decode(payload.slice(1));
+            this.emit('serialData', text);
+          } else if (this.authenticated && this.sessionManager) {
+            // Encrypted echo — decrypt with session AES key
+            this.sessionManager.decrypt(payload).then((plaintext) => {
+              const text = new TextDecoder().decode(plaintext);
+              this.emit('serialData', text);
+            }).catch((err) => {
+              console.warn('[BLEManager] Failed to decrypt SERIAL_DATA:', err.message);
+            });
+          }
+        }
       }
     } catch (err) {
       console.error('[BLEManager] Failed to parse response notification:', err);

@@ -5,12 +5,16 @@ import { initMCPServer } from './mcp/index.js';
 import { connectionStatusMap } from './types.js';
 
 // Core library imports (runs in main process without React/Web-BLE)
+// NativeBLEAdapter uses @stoprocent/noble (WinRT on Windows 10+, CoreBluetooth
+// on macOS, BlueZ on Linux) — no Web Bluetooth / renderer dependency.
 import { 
   BLEManager, 
   SessionManager, 
   PacketHandler, 
-  WebBLEAdapter,
 } from '../core/index.js';
+// NativeBLEAdapter is imported directly (not via core/index.js) to prevent
+// the renderer bundle from pulling in Node-only code (createRequire, noble).
+import { NativeBLEAdapter } from '../core/adapters/noble.js';
 import { create, toBinary, fromBinary } from '@bufbuild/protobuf';
 import * as ToothPacketPB from '../web/src/services/packetService/toothpacket/toothpacket_pb.js';
 
@@ -35,8 +39,13 @@ class MainProcessStorageAdapter {
     }
   }
 
+  // Sanitize device ID for use as a filename component (colons invalid on Windows).
+  _safeId(deviceId) {
+    return deviceId.replace(/[:\\/]/g, '-');
+  }
+
   async save(deviceId, key, value) {
-    const filePath = path.join(this.storageDir, `${deviceId}_${key}.txt`);
+    const filePath = path.join(this.storageDir, `${this._safeId(deviceId)}_${key}.txt`);
     return new Promise((resolve, reject) => {
       fs.writeFile(filePath, value, (err) => {
         if (err) reject(err);
@@ -46,7 +55,7 @@ class MainProcessStorageAdapter {
   }
 
   async load(deviceId, key) {
-    const filePath = path.join(this.storageDir, `${deviceId}_${key}.txt`);
+    const filePath = path.join(this.storageDir, `${this._safeId(deviceId)}_${key}.txt`);
     return new Promise((resolve) => {
       fs.readFile(filePath, 'utf8', (err, data) => {
         if (err) resolve(null);
@@ -56,7 +65,7 @@ class MainProcessStorageAdapter {
   }
 
   async exists(deviceId, key) {
-    const filePath = path.join(this.storageDir, `${deviceId}_${key}.txt`);
+    const filePath = path.join(this.storageDir, `${this._safeId(deviceId)}_${key}.txt`);
     return new Promise((resolve) => {
       fs.access(filePath, fs.constants.F_OK, (err) => {
         resolve(!err);
@@ -71,7 +80,7 @@ let bleManager = null;
 function initializeCoreBLELibrary() {
   if (bleManager) return bleManager;
 
-  const adapter = new WebBLEAdapter();
+  const adapter = new NativeBLEAdapter();
   const storageAdapter = new MainProcessStorageAdapter();
   const sessionManager = new SessionManager(storageAdapter);
   const packetHandler = new PacketHandler(ToothPacketPB, { create, toBinary, fromBinary });
@@ -107,6 +116,8 @@ function initializeCoreBLELibrary() {
     if (mainWindow && mainWindow.webContents) {
       mainWindow.webContents.send('device:serialData', data);
     }
+    // Buffer for MCP read_serial tool
+    _serialBuffer.push(data);
   });
 
   console.log('[Main] Core BLE library initialized');
@@ -116,6 +127,9 @@ function initializeCoreBLELibrary() {
 // Track MCP HTTP server state
 let mcpHttpServer = null;
 let mcpEnabled = false;
+
+// Serial data buffer for MCP read_serial tool
+const _serialBuffer = [];
 
 // Track the last command ID for response mapping
 const pendingCommands = new Map();
@@ -269,24 +283,80 @@ async function coreBLEDispatch(tool, params) {
       if (!code) throw new Error(`Unknown media control: ${params.action}`);
       return await manager.sendMediaControl(code);
     
-    case 'getStatus':
+    case 'connect': {
+      // Clean up any stale peripheral — covers both silent drops and "Already connected" state
+      if (manager.bleAdapter._currentPeripheral) {
+        try { await manager.bleAdapter.disconnectDevice({ _peripheral: manager.bleAdapter._currentPeripheral }); } catch (_) {}
+        manager.bleAdapter._currentPeripheral = null;
+        manager.bleAdapter._connected = false;
+      }
+      // Reset manager state in case a previous connection wasn't cleaned up
+      manager.connected = false;
+      manager.authenticated = false;
+      manager._pairingInProgress = false;
+
+      await manager.connect({
+        onDisconnect: () => {
+          console.log('[Main] BLE device disconnected');
+          // State is already cleared by BLEManager's disconnect handler;
+          // nothing extra needed — next connect() call will re-scan cleanly.
+        }
+      });
+      // If BLE link is up but not yet authenticated, try to migrate keys
+      // from the renderer's encrypted storage (populated by a previous UI pairing).
+      if (manager.status === 2 /* CONNECTED */ && manager.deviceMAC && mainWindow) {
+        const keys = await _requestKeysFromRenderer(manager.deviceMAC);
+        if (keys?.publicKey && keys?.secret) {
+          const storage = manager.sessionManager.storageAdapter;
+          await storage.save(manager.deviceMAC, 'SelfPublicKey', keys.publicKey);
+          await storage.save(manager.deviceMAC, 'SharedSecret', keys.secret);
+          console.log('[Main] Keys migrated from renderer — attempting pairing');
+          try {
+            await manager.pair();
+          } catch (err) {
+            if (err.message !== 'NO_KEYS') {
+              console.warn('[Main] Pairing after key migration failed:', err.message);
+            }
+          }
+        }
+      }
       return {
-        status: manager.status === 1 ? 'ready' : manager.status === 2 ? 'connected' : 'disconnected',
+        status: 'connecting',
+        message: 'Scanning for ToothPaste device…',
+      };
+    }
+
+    case 'disconnect':
+      if (manager.device) {
+        await manager.bleAdapter.disconnectDevice(manager.device);
+      }
+      return { status: 'disconnected' };
+
+    case 'getStatus': {
+      const statusLabel =
+        manager.status === 1 ? 'ready' :
+        manager.status === 2 ? 'connected' :
+        manager.status === 4 ? 'scanning' : 'disconnected';
+      return {
+        status: statusLabel,
         statusCode: manager.status,
         ready: manager.status === 1,
         connected: manager.connected,
-        deviceName: manager.device?.name || 'Unknown',
+        deviceName: manager.device?.name || null,
+        firmwareVersion: manager.firmwareVersion || null,
       };
-    
+    }
+
     case 'screenshot':
       // Note: screenshot requires either renderer or a native layer
       // For now, return a placeholder
       throw new Error('screenshot not supported in daemon mode');
     
-    case 'readSerial':
-      // Serial reading requires tracking from ResponseListener
-      // For now, return empty
-      return { lines: [], count: 0 };
+    case 'getSerialData': {
+      const lines = [..._serialBuffer];
+      if (params?.clear !== false) _serialBuffer.length = 0;
+      return { lines, count: lines.length };
+    }
     
     default:
       throw new Error(`Unknown tool: ${tool}`);
@@ -301,6 +371,27 @@ async function coreBLEDispatch(tool, params) {
 async function ipcDispatch(tool, params) {
   // Always use core library now
   return await coreBLEDispatch(tool, params);
+}
+
+/**
+ * Request paired keys from the renderer process (if the window is open and unlocked).
+ * Sends 'ble:requestKeys' to renderer, waits up to 5 s for 'ble:keys' reply.
+ * Returns { publicKey, secret } in base64, or null if unavailable.
+ */
+function _requestKeysFromRenderer(mac) {
+  return new Promise((resolve) => {
+    if (!mainWindow) { resolve(null); return; }
+    const timer = setTimeout(() => {
+      ipcMain.removeAllListeners('ble:keys');
+      console.warn('[Main] Renderer did not respond with BLE keys within 5 s');
+      resolve(null);
+    }, 5000);
+    ipcMain.once('ble:keys', (_, data) => {
+      clearTimeout(timer);
+      resolve(data);
+    });
+    mainWindow.webContents.send('ble:requestKeys', { mac });
+  });
 }
 
 /**

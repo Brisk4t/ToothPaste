@@ -63,7 +63,23 @@ export const ConnectionStatus = {
 export function BLEProvider({ children }) {
     // ========== Core Library Initialization ==========
     const bleManagerRef = useRef(null);
-    
+
+    // Key bridge: respond to main process key requests so MCP/daemon mode can
+    // authenticate using keys already stored in the renderer's EncryptedStorage.
+    useEffect(() => {
+        const api = window.toothpasteBLE;
+        if (!api?.onRequestKeys) return;
+        api.onRequestKeys(async ({ mac }) => {
+            try {
+                const publicKey = await loadBase64(mac, 'SelfPublicKey');
+                const secret = await loadBase64(mac, 'SharedSecret');
+                api.sendKeys({ mac, publicKey: publicKey || null, secret: secret || null });
+            } catch (_) {
+                api.sendKeys({ mac, publicKey: null, secret: null });
+            }
+        });
+    }, []);
+
     // Initialize core library on mount
     useEffect(() => {
         if (bleManagerRef.current) return;

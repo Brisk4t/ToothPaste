@@ -8,7 +8,7 @@ import { pressKeyTool } from './tools/pressKey.js';
 import { mouseMoveTool, mouseClickTool, mouseScrollTool } from './tools/mouse.js';
 import { mediaControlTool } from './tools/mediaControl.js';
 import { getStatusTool } from './tools/getStatus.js';
-import { screenshotTool } from './tools/screenshot.js';
+import { connectTool, disconnectTool } from './tools/connect.js';
 
 import { readSerialTool } from './tools/readSerial.js';
 
@@ -32,7 +32,8 @@ function createMCPServer(ipcDispatch) {
     mouseScrollTool,
     mediaControlTool,
     getStatusTool,
-    screenshotTool,
+    connectTool,
+    disconnectTool,
     readSerialTool
   ];
 

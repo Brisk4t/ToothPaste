@@ -81,5 +81,13 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['elliptic'],
+    exclude: ['@stoprocent/noble'],
+  },
+  build: {
+    rollupOptions: {
+      // noble is a Node.js-only package; exclude it from the browser bundle.
+      // NativeBLEAdapter is never used in the browser — only in Electron main.
+      external: ['@stoprocent/noble'],
+    },
   },
 });
