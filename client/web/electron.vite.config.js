@@ -32,6 +32,16 @@ export default defineConfig({
       alias: {
         '@': path.resolve(__dirname, 'src')
       }
-    }
+    },
+    server: {
+      fs: {
+        allow: [
+          path.resolve(__dirname, '..'), // allow all of client/
+        ]
+      }
+    },
+    optimizeDeps: {
+      include: ['elliptic'],
+    },
   }
 });

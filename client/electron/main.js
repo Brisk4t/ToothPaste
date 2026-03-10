@@ -271,11 +271,11 @@ async function coreBLEDispatch(tool, params) {
     
     case 'getStatus':
       return {
-        status: 'ready',
-        statusCode: manager.getStatus(),
-        ready: manager.isConnected(),
-        connected: manager.isConnected(),
-        deviceName: manager.getDevice()?.name || 'Unknown',
+        status: manager.status === 1 ? 'ready' : manager.status === 2 ? 'connected' : 'disconnected',
+        statusCode: manager.status,
+        ready: manager.status === 1,
+        connected: manager.connected,
+        deviceName: manager.device?.name || 'Unknown',
       };
     
     case 'screenshot':

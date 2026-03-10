@@ -1,6 +1,10 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [
@@ -67,7 +71,15 @@ export default defineConfig({
     })
   ],
   server: {
-    host: '0.0.0.0', // Listen on all network interfaces
-    port: 3000, // optional
+    host: '0.0.0.0',
+    port: 3000,
+    fs: {
+      allow: [
+        path.resolve(__dirname, '..'), // allow all of client/
+      ]
+    }
+  },
+  optimizeDeps: {
+    include: ['elliptic'],
   },
 });
