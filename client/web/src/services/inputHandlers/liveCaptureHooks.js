@@ -1,15 +1,12 @@
 import { useRef, useState, useEffect, useCallback, useContext } from 'react';
 import { BLEContext } from "../../context/BLEContext.jsx";
-import { ECDHContext } from "../../context/ECDHContext.jsx";
 
 import { createKeyboardStream } from '../packetService/packetFunctions.js';
 import { keyboardHandler } from './keyboardHandler';
 
 
 export function useInputController() {
-    // BLE and ECDH contexts
     const { pktCharacteristic, status, readyToReceive, sendEncrypted } = useContext(BLEContext);
-    const { createEncryptedPackets } = useContext(ECDHContext);
     
     // Text input handler variables
     const DEBOUNCE_INTERVAL_MS = 20; // Interval to wait before sending input data
@@ -100,7 +97,7 @@ export function useInputController() {
         var packetStream = createKeyboardStream(payload);
         sendEncrypted(packetStream); // Send the final payload
 
-    }, [createEncryptedPackets, pktCharacteristic, readyToReceive]);
+    }, [sendEncrypted, pktCharacteristic, readyToReceive]);
 
     // Schedule the sendDiff function to be called after a delay of DEBOUNCE_INTERVAL_MS, calling scheduleSend() again within the delay resets the timer
     const scheduleSend = useCallback(() => {
