@@ -101,7 +101,7 @@ The other part of the ToothPaste solution is the hardware itself. Since the ESP3
 
 Bluetooth by itself isn't a secure protocol, newer implementations have changed this and if we didn't want the extremely flexible cross-platform transmitter we could've delved into using the many security protocols that BLE supports. 
 
-However, as of now Web BLE only support the "just works" authentication method, which means its practically an open line. Considering that a ToothPaste shows up as a keyboard, and that my primary use-case for it is to paste passwords to devices, [**Man-In-The-Middle** attacks](https://en.wikipedia.org/wiki/Man-in-the-middle_attack) are a very real problem. 
+However, as of now Web BLE only supports the "just works" authentication method, which means its practically an open line. Considering that a ToothPaste shows up as a keyboard, and that my primary use-case for it is to paste passwords to devices, [**Man-In-The-Middle** attacks](https://en.wikipedia.org/wiki/Man-in-the-middle_attack) are a very real problem. 
 
 **So we need to ensure that only authenticated devices are allowed to send data that is then typed out.**
 
