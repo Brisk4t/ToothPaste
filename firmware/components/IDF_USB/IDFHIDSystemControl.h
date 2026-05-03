@@ -22,18 +22,13 @@
 #define SYSTEM_CONTROL_STANDBY   2
 #define SYSTEM_CONTROL_WAKE_HOST 3
 
-class IDFHIDSystemControl : public IDFHIDDevice {
+class IDFHIDSystemControl : public IDFHID {
 private:
-  IDFHID hid;
   bool send(uint8_t value);
 
 public:
   IDFHIDSystemControl(uint8_t itf);
-  void begin(void);
   void end(void);
   size_t press(uint8_t k);
   size_t release();
-
-  bool lock();
-  bool unlock();
 };

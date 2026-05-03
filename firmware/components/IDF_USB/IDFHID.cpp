@@ -15,16 +15,8 @@
 
 
 #include "IDFHID.h"
-#define USB_HID_DEVICES_MAX 10
-
-typedef struct {
-  IDFHIDDevice *device;
-  uint8_t reports_num;
-  uint8_t *report_ids;
-} tinyusb_hid_device_t;
 
 SemaphoreHandle_t IDFHID::tinyusb_hid_device_input_sem = nullptr;
-bool tinyusb_hid_is_initialized = false;
 static hid_interface_protocol_enum_t tinyusb_interface_protocol = HID_ITF_PROTOCOL_NONE;
 #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_DEBUG
 static const char *tinyusb_hid_device_report_types[4] = {"INVALID", "INPUT", "OUTPUT", "FEATURE"};
@@ -71,10 +63,11 @@ bool IDFHID::ready() {
 bool IDFHID::SendReport(uint8_t id, const void *data, size_t len, uint32_t timeout_ms) {  
   // If we're configured to support boot protocol, and the host has requested boot protocol, prevent
   // sending of report ID, by passing report ID of 0 to tud_hid_n_report().
-  lock(); // Lock the semaphore until notified of report completion
+  lock();
+  // TODO: effective_id is computed but never forwarded — tud_hid_n_report always
+  // receives 0 here. Boot-protocol ID suppression is currently a no-op.
   uint8_t effective_id = ((tinyusb_interface_protocol != HID_ITF_PROTOCOL_NONE) && (tud_hid_n_get_protocol(itf) == HID_PROTOCOL_BOOT)) ? 0 : id;
-  //printf("Effective ID: %d %d\n\r", effective_id, itf);
-  // DEBUG_SERIAL_PRINTF("Time sending queued keyboard character: %lld us\n", esp_timer_get_time());
+  (void)effective_id;
 
   return tud_hid_n_report(itf, 0, data, len);
 

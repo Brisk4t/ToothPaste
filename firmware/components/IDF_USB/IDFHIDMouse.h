@@ -44,30 +44,24 @@ struct HIDMouseType_t {
 extern HIDMouseType_t HIDMouseRel;
 extern HIDMouseType_t HIDMouseAbs;
 
-class IDFHIDMouseBase : public IDFHIDDevice {
+class IDFHIDMouseBase : public IDFHID {
 
 protected:
-  IDFHID hid;
   uint8_t _buttons;
   HIDMouseType_t *_type;
 public:
   IDFHIDMouseBase(HIDMouseType_t *type, uint8_t itf);
-  void begin(void);
   void end(void);
-  bool lock();
-  bool unlock();
   void press(uint8_t b = MOUSE_LEFT);      // press LEFT by default
   void release(uint8_t b = MOUSE_LEFT);    // release LEFT by default
   bool isPressed(uint8_t b = MOUSE_LEFT);  // check LEFT by default
   template<typename T> bool sendReport(T report) {
-    return hid.SendReport(HID_REPORT_ID_MOUSE, &report, _type->report_size);
+    return SendReport(HID_REPORT_ID_MOUSE, &report, _type->report_size);
   };
   // internal use
-  uint16_t _onGetDescriptor(uint8_t *buffer);
+  uint16_t _onGetDescriptor(uint8_t *buffer) override;
   virtual void click(uint8_t b) = 0;
   virtual void buttons(uint8_t b) = 0;
-
-
 };
 
 class USBHIDRelativeMouse : public IDFHIDMouseBase {

@@ -134,9 +134,8 @@ export typedef struct {
   uint8_t keys[6];
 } KeyReport;
 
-class IDFHIDKeyboard : public IDFHIDDevice, public Print {
+class IDFHIDKeyboard : public IDFHID, public Print {
 private:
-  IDFHID hid;
   KeyReport _keyReport;
   KeyReport customReport;
   const uint8_t *_asciimap;
@@ -154,13 +153,8 @@ public:
   void releaseAll(void);
   void sendReport(KeyReport *keys);
   void setShiftKeyReports(bool set);
-  bool lock();
-  bool unlock();
 
   //raw functions work with TinyUSB's HID_KEY_* macros
   size_t pressRaw(uint8_t k);
   size_t releaseRaw(uint8_t k);
-
-  // internal use
-  //void _onOutput(uint8_t report_id, const uint8_t *buffer, uint16_t len);
 };

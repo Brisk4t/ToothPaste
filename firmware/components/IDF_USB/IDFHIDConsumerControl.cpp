@@ -16,27 +16,12 @@
 
 static const uint8_t report_descriptor[] = {TUD_HID_REPORT_DESC_CONSUMER(HID_REPORT_ID(HID_REPORT_ID_CONSUMER_CONTROL))};
 
-IDFHIDConsumerControl::IDFHIDConsumerControl(uint8_t itf) : hid(itf) {
-  static bool initialized = false;
-  if (!initialized) {
-    // initialized = true;
-    // hid.addDevice(this, sizeof(report_descriptor));
-  }
-}
-
-// uint16_t IDFHIDConsumerControl::_onGetDescriptor(uint8_t *dst) {
-//   memcpy(dst, report_descriptor, sizeof(report_descriptor));
-//   return sizeof(report_descriptor);
-// }
-
-void IDFHIDConsumerControl::begin() {
-  hid.begin();
-}
+IDFHIDConsumerControl::IDFHIDConsumerControl(uint8_t itf) : IDFHID(itf) {}
 
 void IDFHIDConsumerControl::end() {}
 
 bool IDFHIDConsumerControl::send(uint16_t value) {
-  return hid.SendReport(HID_REPORT_ID_CONSUMER_CONTROL, &value, 2);
+  return SendReport(HID_REPORT_ID_CONSUMER_CONTROL, &value, 2);
 }
 
 size_t IDFHIDConsumerControl::press(uint16_t k) {
@@ -45,12 +30,4 @@ size_t IDFHIDConsumerControl::press(uint16_t k) {
 
 size_t IDFHIDConsumerControl::release() {
   return send(0);
-}
-
-bool IDFHIDConsumerControl::lock(){
-  return hid.lock();
-}
-
-bool IDFHIDConsumerControl::unlock(){
-  return hid.unlock();
 }

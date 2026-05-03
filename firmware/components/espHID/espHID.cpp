@@ -9,7 +9,10 @@
 #include "IDFHIDSystemControl.h"
 #include "SerialDebug.h"
 
-// TODO: ESP_LOGI("HID", "Interface 1 report complete"); this string gets stuck reports only on interface 0
+// TODO: tud_hid_report_complete_cb is commented out below. Without it, SendReport
+// holds the semaphore indefinitely if the host never ACKs — the lock() loop in
+// IDFHID compensates by spinning on tud_task(), but wiring up the callback and
+// calling unlock() there would be cleaner.
 
 
 // Needed to enable CDC if defined
@@ -42,10 +45,13 @@ IDFHIDMouse mouse(1); // Boot Mouse
 IDFHIDConsumerControl control(2); // Consumer Control
 
 void hidSetup()
-{ 
-  tudsetup(); // Configure TinyUSB
-  keyboard0.begin(); // This creates the keyboard ascii layout instance, probably not the best way to handle it???
-  startKeyboardTask(); // Start the RTOS keyboard task
+{
+  tudsetup();
+  // begin() creates the shared FreeRTOS semaphore used by all HID interfaces.
+  // mouse and control share the same semaphore and don't need their own begin() calls,
+  // but if they are ever moved to independent semaphores, call begin() on each here.
+  keyboard0.begin();
+  startKeyboardTask();
 }
 
 // Send a string with a delay between each character (crude implementation of alternative polling rates since ESPHID doesn't expose this)
@@ -108,14 +114,12 @@ void stringTest(){
 // }
 
 void sendKeycode(uint8_t* encodedKeys, bool slowMode, bool autoRelease) {
-    keyboard0.sendKeycode(encodedKeys, 6);
-    //keyboard1.sendKeycode(encodedKeys, 6);
-    if(slowMode){
-      vTaskDelay(pdMS_TO_TICKS(SLOWMODE_DELAY_MS));
-    }
-
-    keyboard0.releaseAll();
-
+  // autoRelease parameter is currently unused; releaseAll() always fires.
+  keyboard0.sendKeycode(encodedKeys, 6);
+  if (slowMode) {
+    vTaskDelay(pdMS_TO_TICKS(SLOWMODE_DELAY_MS));
+  }
+  keyboard0.releaseAll();
 }
 
 // Move the mouse by dx and dy, with optional left/right click states

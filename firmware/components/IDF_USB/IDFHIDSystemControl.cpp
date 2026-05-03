@@ -16,18 +16,12 @@
 
 static const uint8_t report_descriptor[] = {TUD_HID_REPORT_DESC_SYSTEM_CONTROL(HID_REPORT_ID(HID_REPORT_ID_SYSTEM_CONTROL))};
 
-IDFHIDSystemControl::IDFHIDSystemControl(uint8_t itf) : hid(itf) {
-  static bool initialized = false;
-}
-
-void IDFHIDSystemControl::begin() {
-  hid.begin();
-}
+IDFHIDSystemControl::IDFHIDSystemControl(uint8_t itf) : IDFHID(itf) {}
 
 void IDFHIDSystemControl::end() {}
 
 bool IDFHIDSystemControl::send(uint8_t value) {
-  return hid.SendReport(HID_REPORT_ID_SYSTEM_CONTROL, &value, 1);
+  return SendReport(HID_REPORT_ID_SYSTEM_CONTROL, &value, 1);
 }
 
 size_t IDFHIDSystemControl::press(uint8_t k) {
@@ -39,12 +33,4 @@ size_t IDFHIDSystemControl::press(uint8_t k) {
 
 size_t IDFHIDSystemControl::release() {
   return send(0);
-}
-
-bool IDFHIDSystemControl::lock(){
-  return hid.lock();
-}
-
-bool IDFHIDSystemControl::unlock(){
-  return hid.unlock();
 }

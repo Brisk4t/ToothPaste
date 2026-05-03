@@ -21,13 +21,7 @@
 #include "IDFHID.h"
 #include "IDFHIDMouse.h"
 
-IDFHIDMouseBase::IDFHIDMouseBase(HIDMouseType_t *type, uint8_t itf) : hid(itf), _buttons(0), _type(type) {
-  static bool initialized = false;
-  if (!initialized) {
-    // initialized = true;
-    // hid.addDevice(this, _type->descriptor_size);
-  }
-};
+IDFHIDMouseBase::IDFHIDMouseBase(HIDMouseType_t *type, uint8_t itf) : IDFHID(itf), _buttons(0), _type(type) {};
 
 uint16_t IDFHIDMouseBase::_onGetDescriptor(uint8_t *dst) {
   memcpy(dst, _type->report_descriptor, _type->descriptor_size);
@@ -38,18 +32,6 @@ void IDFHIDMouseBase::buttons(uint8_t b) {
   if (b != _buttons) {
     _buttons = b;
   }
-}
-
-void IDFHIDMouseBase::begin() {
-  hid.begin();
-}
-
-bool IDFHIDMouseBase::lock(){
-  return hid.lock();
-}
-
-bool IDFHIDMouseBase::unlock(){
-  return hid.unlock();
 }
 
 void IDFHIDMouseBase::end() {}

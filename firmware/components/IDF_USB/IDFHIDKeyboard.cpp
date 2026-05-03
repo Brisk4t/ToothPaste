@@ -25,18 +25,11 @@
 
 const uint8_t report_descriptor[] = {TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(HID_REPORT_ID_KEYBOARD))};
 
-IDFHIDKeyboard::IDFHIDKeyboard(uint8_t itf) : hid(itf), _asciimap(KeyboardLayout_en_US), shiftKeyReports(false) {
-  static bool initialized = false;
-  if (!initialized) {
-    //initialized = true;
-    //memset(&_keyReport, 0, sizeof(KeyReport));
-    //hid.addDevice(this, sizeof(report_descriptor));
-  }
-}
+IDFHIDKeyboard::IDFHIDKeyboard(uint8_t itf) : IDFHID(itf), _asciimap(KeyboardLayout_en_US), shiftKeyReports(false) {}
 
 void IDFHIDKeyboard::begin(const uint8_t *layout) {
   _asciimap = layout;
-  hid.begin();
+  IDFHID::begin();
 }
 
 
@@ -48,7 +41,7 @@ void IDFHIDKeyboard::sendReport(KeyReport *keys) {
   report.reserved = 0;
   report.modifier = keys->modifiers;
   memcpy(report.keycode, keys->keys, 6);
-  hid.SendReport(HID_REPORT_ID_KEYBOARD, &report, sizeof(report));
+  SendReport(HID_REPORT_ID_KEYBOARD, &report, sizeof(report));
 }
 
 void IDFHIDKeyboard::setShiftKeyReports(bool set) {
@@ -239,17 +232,7 @@ size_t IDFHIDKeyboard::sendKeycode(uint8_t* encodedKeys, uint8_t numKeys) {
     }
   }
   
-  // Send the customReport
-  IDFHIDKeyboard keyboard; // Use your actual instance
-  keyboard.sendReport(&customReport);
-
+  sendReport(&customReport);
   return 0;
 }
 
-// bool IDFHIDKeyboard::lock() {
-//   return hid.lock();
-// }
-
-// bool IDFHIDKeyboard::unlock() {
-//   return hid.unlock();
-// }

@@ -71,19 +71,13 @@
 // Mouse Horizontal scroll
 #define CONSUMER_CONTROL_PAN 0x0238
 
-class IDFHIDConsumerControl : public IDFHIDDevice {
+class IDFHIDConsumerControl : public IDFHID {
 private:
-  IDFHID hid;
   bool send(uint16_t value);
 
 public:
   IDFHIDConsumerControl(uint8_t itf);
-  void begin(void);
   void end(void);
   size_t press(uint16_t k);
   size_t release();
-  bool lock();
-  bool unlock();
-  // internal use
-  // uint16_t _onGetDescriptor(uint8_t *buffer);
 };
