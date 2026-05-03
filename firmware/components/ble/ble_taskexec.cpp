@@ -6,6 +6,8 @@
 #include "pb_encode.h"
 #include "pb_common.h"
 
+static const char* TAG = "BLE_TASK";
+
 // Decrypt a data packet and dispatch its payload to the appropriate HID function
 void decryptSendString(toothpaste_DataPacket* packet, SecureSession* session)
 {
@@ -20,14 +22,14 @@ void decryptSendString(toothpaste_DataPacket* packet, SecureSession* session)
   int64_t decryptUs = esp_timer_get_time() - t0;
 
   if (ret != 0) {
-    DEBUG_SERIAL_PRINTF("[BLE] Decryption failed (err %d)\n", ret);
+    ESP_LOGE(TAG, "Decryption failed (err %d)", ret);
     stateManager->setState(DROP);
     return;
   }
 
   pb_istream_t stream = pb_istream_from_buffer(decrypted_bytes, packet->dataLen);
   if (!pb_decode(&stream, toothpaste_EncryptedData_fields, &decrypted)) {
-    DEBUG_SERIAL_PRINTF("[BLE] Protobuf decode failed: %s\n", PB_GET_ERROR(&stream));
+    ESP_LOGE(TAG, "Protobuf decode failed: %s", PB_GET_ERROR(&stream));
     return;
   }
 
@@ -37,7 +39,7 @@ void decryptSendString(toothpaste_DataPacket* packet, SecureSession* session)
     case toothpaste_EncryptedData_keyboardPacket_tag:
     {
       auto& kp = decrypted.packetData.keyboardPacket;
-      DEBUG_SERIAL_PRINTF("[BLE] KEYBOARD  decrypt=%lldus  len=%lu  slow=%d  msg=\"%.*s\"\n",
+      ESP_LOGD(TAG, "KEYBOARD  decrypt=%lldus  len=%lu  slow=%d  msg=\"%.*s\"",
         decryptUs, packet->dataLen, packet->slowMode,
         (int)kp.length, kp.message);
       sendString(kp.message, kp.length, packet->slowMode);
@@ -47,12 +49,9 @@ void decryptSendString(toothpaste_DataPacket* packet, SecureSession* session)
     case toothpaste_EncryptedData_keycodePacket_tag:
     {
       auto& kc = decrypted.packetData.keycodePacket;
-      DEBUG_SERIAL_PRINTF("[BLE] KEYCODE   decrypt=%lldus  slow=%d  codes=",
-        decryptUs, packet->slowMode);
-      for (int i = 0; i < 6; i++) {
-        DEBUG_SERIAL_PRINTF("%02X ", kc.code.bytes[i]);
-      }
-      DEBUG_SERIAL_PRINTLN("");
+      char hexbuf[19];
+      for (int i = 0; i < 6; i++) snprintf(hexbuf + i*3, 4, "%02X ", kc.code.bytes[i]);
+      ESP_LOGD(TAG, "KEYCODE   decrypt=%lldus  slow=%d  codes=%s", decryptUs, packet->slowMode, hexbuf);
       sendKeycode(kc.code.bytes, packet->slowMode, true);
       break;
     }
@@ -60,7 +59,7 @@ void decryptSendString(toothpaste_DataPacket* packet, SecureSession* session)
     case toothpaste_EncryptedData_mousePacket_tag:
     {
       auto& mp = decrypted.packetData.mousePacket;
-      DEBUG_SERIAL_PRINTF("[BLE] MOUSE     decrypt=%lldus  frames=%lu  L=%ld R=%ld wheel=%ld\n",
+      ESP_LOGD(TAG, "MOUSE     decrypt=%lldus  frames=%lu  L=%ld R=%ld wheel=%ld",
         decryptUs, mp.num_frames, mp.l_click, mp.r_click, mp.wheel);
       moveMouse(mp);
       break;
@@ -69,12 +68,11 @@ void decryptSendString(toothpaste_DataPacket* packet, SecureSession* session)
     case toothpaste_EncryptedData_consumerControlPacket_tag:
     {
       auto& cp = decrypted.packetData.consumerControlPacket;
-      DEBUG_SERIAL_PRINTF("[BLE] CONSUMER  decrypt=%lldus  count=%lu  codes=",
-        decryptUs, cp.length);
-      for (size_t i = 0; i < cp.length; i++) {
-        DEBUG_SERIAL_PRINTF("0x%04X ", cp.code[i]);
-      }
-      DEBUG_SERIAL_PRINTLN("");
+      char codebuf[64] = {};
+      int cpos = 0;
+      for (size_t i = 0; i < cp.length && cpos < (int)sizeof(codebuf) - 7; i++)
+        cpos += snprintf(codebuf + cpos, sizeof(codebuf) - cpos, "0x%04lX ", (unsigned long)cp.code[i]);
+      ESP_LOGD(TAG, "CONSUMER  decrypt=%lldus  count=%lu  codes=%s", decryptUs, cp.length, codebuf);
       consumerControlPress(cp);
       break;
     }
@@ -82,8 +80,7 @@ void decryptSendString(toothpaste_DataPacket* packet, SecureSession* session)
     case toothpaste_EncryptedData_mouseJigglePacket_tag:
     {
       bool enable = decrypted.packetData.mouseJigglePacket.enable;
-      DEBUG_SERIAL_PRINTF("[BLE] JIGGLE    decrypt=%lldus  state=%s\n",
-        decryptUs, enable ? "ON" : "OFF");
+      ESP_LOGD(TAG, "JIGGLE    decrypt=%lldus  state=%s", decryptUs, enable ? "ON" : "OFF");
       enable ? startJiggle() : stopJiggle();
       break;
     }
@@ -91,17 +88,15 @@ void decryptSendString(toothpaste_DataPacket* packet, SecureSession* session)
     case toothpaste_EncryptedData_renamePacket_tag:
     {
       auto& rp = decrypted.packetData.renamePacket;
-      DEBUG_SERIAL_PRINTF("[BLE] RENAME    decrypt=%lldus  name=\"%s\"\n",
-        decryptUs, rp.message);
+      ESP_LOGD(TAG, "RENAME    decrypt=%lldus  name=\"%s\"", decryptUs, rp.message);
       int renameRet = session->setDeviceName(rp.message);
-      DEBUG_SERIAL_PRINTF("[BLE] Rename status=%d  rebooting...\n", renameRet);
+      ESP_LOGI(TAG, "Rename status=%d, rebooting", renameRet);
       esp_restart();
       break;
     }
 
     default:
-      DEBUG_SERIAL_PRINTF("[BLE] UNKNOWN   decrypt=%lldus  tag=%d\n",
-        decryptUs, decrypted.which_packetData);
+      ESP_LOGW(TAG, "UNKNOWN   decrypt=%lldus  tag=%d", decryptUs, decrypted.which_packetData);
       break;
   }
 }
@@ -125,7 +120,7 @@ void notifyResponsePacket(toothpaste_ResponsePacket_ResponseType responseType, c
   }
 
   if (!pb_encode(&stream, toothpaste_ResponsePacket_fields, &responsePacket)) {
-    DEBUG_SERIAL_PRINTF("Encoding response packet failed: %s\n", PB_GET_ERROR(&stream));
+    ESP_LOGE(TAG, "Encoding response packet failed: %s", PB_GET_ERROR(&stream));
     return;
   }
 
@@ -146,19 +141,18 @@ void packetTask(void* params)
       toothpaste_DataPacket toothPacket = toothpaste_DataPacket_init_default;
       pb_istream_t istream = pb_istream_from_buffer(pkt.data, pkt.len);
       if (!pb_decode(&istream, toothpaste_DataPacket_fields, &toothPacket)) {
-        DEBUG_SERIAL_PRINTF("[BLE] Outer decode failed: %s\n", PB_GET_ERROR(&istream));
+        ESP_LOGE(TAG, "Outer decode failed: %s", PB_GET_ERROR(&istream));
       }
 
       if (toothPacket.packetID == toothpaste_DataPacket_PacketID_DATA_PACKET) {
-        DEBUG_SERIAL_PRINTF("[BLE] DATA  raw=%uB  payload=%luB  slow=%d  pkt=%ld/%ld\n",
+        ESP_LOGD(TAG, "DATA  raw=%uB  payload=%luB  slow=%d  pkt=%ld/%ld",
           pkt.len, toothPacket.dataLen, toothPacket.slowMode,
           toothPacket.packetNumber, toothPacket.totalPackets);
         decryptSendString(&toothPacket, session);
       }
       else if (toothPacket.packetID == toothpaste_DataPacket_PacketID_AUTH_PACKET) {
         bool pairing = (stateManager->getState() == PAIRING);
-        DEBUG_SERIAL_PRINTF("[BLE] AUTH  raw=%uB  mode=%s\n",
-          pkt.len, pairing ? "PAIRING" : "RECONNECT");
+        ESP_LOGD(TAG, "AUTH  raw=%uB  mode=%s", pkt.len, pairing ? "PAIRING" : "RECONNECT");
         if (pairing) {
           generateSharedSecret(&toothPacket, session);
         }
@@ -167,7 +161,7 @@ void packetTask(void* params)
         }
       }
 
-      DEBUG_SERIAL_PRINTF("[BLE] Task cycle: %lld us\n", esp_timer_get_time() - t0);
+      ESP_LOGD(TAG, "Task cycle: %lld us", esp_timer_get_time() - t0);
     }
   }
 }

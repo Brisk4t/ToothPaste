@@ -15,6 +15,8 @@ bool          manualDisconnect = false;
 char   clientPubKey[70];
 size_t clientPubKeyLen = 0;
 
+static const char* TAG = "BLE";
+
 static void createPacketTask(SecureSession* sec) {
   xTaskCreatePinnedToCore(
     packetTask,
@@ -71,22 +73,21 @@ void InputCharacteristicCallbacks::onWrite(BLECharacteristic* inputCharacteristi
   if (bleLen == 0 || session == nullptr) return;
 
   if (bleLen < SecureSession::IV_SIZE + SecureSession::TAG_SIZE + SecureSession::HEADER_SIZE) {
-    DEBUG_SERIAL_PRINTLN("Characteristic too short!");
-    DEBUG_SERIAL_PRINTF("Received length: %d\n\r", bleLen);
+    ESP_LOGW(TAG, "Characteristic too short! Received length: %d", bleLen);
     stateManager->setState(DROP);
     return;
   }
 
-  DEBUG_SERIAL_PRINTF("Received data on Input Characteristic: %d bytes\n\r", bleLen);
+  ESP_LOGD(TAG, "Received %d bytes on input characteristic", bleLen);
 
   RawPacket pkt;
   pkt.len = (bleLen < BLE_MAX_RAW_PACKET) ? (uint16_t)bleLen : (uint16_t)BLE_MAX_RAW_PACKET;
   memcpy(pkt.data, bleData, pkt.len);
 
-  DEBUG_SERIAL_PRINTF("Packet Queuing took %lld us\n", esp_timer_get_time() - t0);
+  ESP_LOGD(TAG, "Packet queuing took %lld us", esp_timer_get_time() - t0);
 
   if (xQueueSend(packetQueue, &pkt, 0) != pdTRUE) {
-    DEBUG_SERIAL_PRINTLN("Packet queue full! Dropping packet.");
+    ESP_LOGW(TAG, "Packet queue full, dropping packet");
     stateManager->setState(DROP);
   }
 }
@@ -99,7 +100,7 @@ void bleSetup(SecureSession* session)
 
   String deviceName;
   session->getDeviceName(deviceName);
-  DEBUG_SERIAL_PRINTF("Device Name is: %s", deviceName.c_str());
+  ESP_LOGI(TAG, "Device name: %s", deviceName.c_str());
 
   BLEDevice::init(deviceName.length() > 0 ? deviceName.c_str() : BLE_DEVICE_DEFAULT_NAME);
 

@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <SerialDebug.h>
 #include "toothpacket.pb.h"
 
 // #define CFG_TUD_CDC        

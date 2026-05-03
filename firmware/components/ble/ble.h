@@ -5,7 +5,7 @@
 #include <BLEUtils.h>
 #include <BLE2902.h>
 
-#include "SerialDebug.h"
+#include "esp_log.h"
 #include "espHID.h"
 #include "secureSession.h"
 #include "toothpacket.pb.h"

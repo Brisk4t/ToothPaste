@@ -1,6 +1,8 @@
 #include "ble.h"
 #include "StateManager.h"
 
+static const char* TAG = "BLE_AUTH";
+
 // Derive a new ECDH shared secret and session AES key from a pairing AUTH packet
 void generateSharedSecret(toothpaste_DataPacket* packet, SecureSession* session)
 {
@@ -22,31 +24,31 @@ void generateSharedSecret(toothpaste_DataPacket* packet, SecureSession* session)
     base64InputLen);
 
   if (ret != 0) {
-    DEBUG_SERIAL_PRINTF("Base64 decode failed, Error code: %d\n", ret);
+    ESP_LOGE(TAG, "Base64 decode failed, err %d", ret);
     stateManager->setState(ERROR);
     return;
   }
 
   if (!session->computeSharedSecret(peerKeyArray, peerKeyLen, base64Input)) {
-    DEBUG_SERIAL_PRINTLN("Shared secret computed and AES key derived successfully");
+    ESP_LOGI(TAG, "Shared secret computed, AES key derived");
     memcpy(clientPubKey, base64Input, copyLen + 1);
     clientPubKeyLen = copyLen;
     stateManager->setState(READY);
     notifyResponsePacket(toothpaste_ResponsePacket_ResponseType_CHALLENGE, session->sessionSalt, sizeof(session->sessionSalt));
   }
   else {
-    DEBUG_SERIAL_PRINTF("Shared secret computation or key derivation failed!\n");
+    ESP_LOGE(TAG, "Shared secret computation failed");
     stateManager->setState(ERROR);
   }
 
   stateManager->setState(READY);
-  DEBUG_SERIAL_PRINTLN("Pairing mode disabled.");
+  ESP_LOGI(TAG, "Pairing mode disabled");
 }
 
 // Check whether a reconnecting client is enrolled; derive the session key if so
 void authenticateClient(toothpaste_DataPacket* packet, SecureSession* session)
 {
-  DEBUG_SERIAL_PRINTLN("Entered authenticateClient");
+  ESP_LOGD(TAG, "Entered authenticateClient");
 
   // AUTH packets carry the unencrypted public key in the encryptedData field
   clientPubKeyLen = (packet->encryptedData.size < sizeof(clientPubKey) - 1)
@@ -55,18 +57,18 @@ void authenticateClient(toothpaste_DataPacket* packet, SecureSession* session)
   clientPubKey[clientPubKeyLen] = '\0';
 
   if (!session->loadIfEnrolled(clientPubKey)) {
-    DEBUG_SERIAL_PRINTLN("Client is not enrolled");
+    ESP_LOGW(TAG, "Client not enrolled");
     notifyResponsePacket(toothpaste_ResponsePacket_ResponseType_PEER_UNKNOWN, nullptr, 0);
     stateManager->setState(UNPAIRED);
     return;
   }
 
-  DEBUG_SERIAL_PRINTLN("Client is enrolled");
+  ESP_LOGI(TAG, "Client enrolled");
 
   // Todo: challenge-response verification before READY to prevent MITM enrollment attacks
   int ret = session->deriveAESKeyFromSecret(clientPubKey);
   if (ret != 0) {
-    DEBUG_SERIAL_PRINTF("Failed to derive session AES key: %d\n", ret);
+    ESP_LOGE(TAG, "Failed to derive session AES key: %d", ret);
     notifyResponsePacket(toothpaste_ResponsePacket_ResponseType_PEER_UNKNOWN, nullptr, 0);
     stateManager->setState(ERROR);
     return;

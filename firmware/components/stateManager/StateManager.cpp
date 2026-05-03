@@ -1,5 +1,8 @@
 #include "StateManager.h"
 #include "NeoPixelRMT.h"
+#include "esp_log.h"
+
+static const char* TAG = "STATE";
 
 // ToothPaste's led + button state manager
 
@@ -26,7 +29,7 @@ void StateManager::setState(DeviceState newState) {
 // Add a callback function to the list of callbacks
 void StateManager::onChange(StateCallback cb) {
     callback = cb;
-    DEBUG_SERIAL_PRINTF("Device State: %d\n\r", currentState);
+    ESP_LOGD(TAG, "Device state: %d", currentState);
 }
 
 // Get the current device state

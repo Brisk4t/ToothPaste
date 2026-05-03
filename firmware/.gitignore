@@ -1,4 +1,5 @@
 .vscode/
+.*
 settings.json
 tasks.json
 build

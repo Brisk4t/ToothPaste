@@ -1,6 +1,9 @@
 #ifndef HWUI_H
 #define HWUI_H
 #include "hwUI.h"
+#include "esp_log.h"
+
+static const char* TAG = "HWUI";
 
 
 // Button handling code for one-button interface
@@ -86,12 +89,12 @@ int checkButton() {
 
 void buttonPressHandler(){
     // Handle button press event
-    DEBUG_SERIAL_PRINTLN("Button pressed!");
+    ESP_LOGI(TAG, "Button pressed");
 }
 
 void buttonHoldHandler(){
     // Handle button hold event
-    DEBUG_SERIAL_PRINTLN("Button held!");
+    ESP_LOGI(TAG, "Button held");
 
     //enterPairingMode(); // Enter pairing mode when button is held
 }

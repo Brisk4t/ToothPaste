@@ -1,4 +1,5 @@
 #include <espHID.h>
+#include "esp_log.h"
 
 #include "tinyusb.h"
 #include "tudconfig.cpp"
@@ -7,7 +8,6 @@
 #include "IDFHIDMouse.h"
 #include "IDFHIDConsumerControl.h"
 #include "IDFHIDSystemControl.h"
-#include "SerialDebug.h"
 
 // TODO: tud_hid_report_complete_cb is commented out below. Without it, SendReport
 // holds the semaphore indefinitely if the host never ACKs — the lock() loop in
@@ -190,8 +190,7 @@ void moveMouse(uint8_t* mousePacket) {
     int32_t RClick = clicks[1];
 
     // Handle Click
-    //DEBUG_SERIAL_PRINTF("LClick: %d, RClick: %d\n", LClick, RClick);
-    moveMouse(0, 0, LClick, RClick, 0); 
+    moveMouse(0, 0, LClick, RClick, 0);
 }
 
 // Unpack a toothpacket_MousePacket and move the mouse accordingly
@@ -208,7 +207,6 @@ void moveMouse(toothpaste_MousePacket& mousePacket) {
     int32_t RClick = mousePacket.r_click;
 
     // Handle Click
-    //DEBUG_SERIAL_PRINTF("LClick: %d, RClick: %d\n", LClick, RClick);
     moveMouse(0, 0, LClick, RClick, mousePacket.wheel); 
 }
 
@@ -326,7 +324,7 @@ void sendStringDelay(void *arg, int delayms){
 
 
 // void tud_hid_report_complete_cb(uint8_t instance, uint8_t const *report, uint16_t len) {
-//   DEBUG_SERIAL_PRINTLN("Report complete callback entered");
+//   ESP_LOGD(TAG, "Report complete callback entered");
 //   switch(instance){
 //     case 0:
 //       // keyboard0.unlock();

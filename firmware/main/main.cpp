@@ -7,11 +7,14 @@
 #include <nvs_flash.h>
 
 // ClipBoard libraries
-#include <SerialDebug.h>
+#include "esp_log.h"
+#include "log_config.h"
 #include "espHID.h"
 #include "main.h"
 #include "ble.h"
 
+
+static const char* TAG = "MAIN";
 
 SecureSession sec; // Global Secure Session
 static char base64pubKey[45]; // Buffer to hold the Base64 encoded public key (44 base64 chars + 1 null)
@@ -19,8 +22,7 @@ static char base64pubKey[45]; // Buffer to hold the Base64 encoded public key (4
 // Send the public key over hid and wait for ble peer public key
 void sendPublicKey(void* arg) {
   const char* pubKey = static_cast<const char*>(arg);
-  DEBUG_SERIAL_PRINTLN("Sending public key: ");
-  DEBUG_SERIAL_PRINTLN(pubKey); // Print the public key to Serial for debugging
+  ESP_LOGI(TAG, "Sending public key: %s", pubKey);
   sendString(pubKey); // Send the public key to the client over HID
   sendString("\n");
   led.blinkEnd(); // Stop blinking
@@ -33,7 +35,7 @@ void sendPublicKey(void* arg) {
 
 // Enter pairing mode, generate a keypair, and send the public key to the transmitter
 void enterPairingMode() { 
-  DEBUG_SERIAL_PRINTLN("Entering pairing mode...");
+  ESP_LOGI(TAG, "Entering pairing mode");
   stateManager->setState(PAIRING);
 
   uint8_t pubKey[SecureSession::PUBKEY_SIZE]; 
@@ -49,9 +51,7 @@ void enterPairingMode() {
     base64pubKey[olen] = '\0';  // Null-terminate the public key string
     
     // Print Public Key to Serial
-    DEBUG_SERIAL_PRINTLN("Public Key Generated: ");
-    DEBUG_SERIAL_PRINTLN(base64pubKey);
-    DEBUG_SERIAL_PRINTLN("\n");
+    ESP_LOGI(TAG, "Public key generated: %s", base64pubKey);
 
     // Create a one-shot timer to send the public key after 5 seconds
     esp_timer_create_args_t timer_args = {
@@ -69,20 +69,19 @@ void enterPairingMode() {
     char retchar[12];
     snprintf(retchar, 12, "%d", ret);  
 
-    DEBUG_SERIAL_PRINTLN("Keygen failed with error: ");
-    DEBUG_SERIAL_PRINTLN(retchar); // Print the error code to Serial for debugging
+    ESP_LOGE(TAG, "Keygen failed with error: %s", retchar);
     stateManager->setState(ERROR);
   }
 }
 
 extern "C" void app_main() {
-    // Initialize Arduino core
-    printf("NVS Activation Status %x", nvs_flash_init());
-    initArduino();
-    
-    // Initialize Serial for debugging
-    DEBUG_SERIAL_BEGIN(115200);
+    ESP_LOGI(TAG, "NVS Activation Status %x\n", nvs_flash_init());
 
+    // initArduino() resets log levels back to CONFIG_LOG_DEFAULT_LEVEL internally,
+    // so configure_log_levels() must run after it to take effect for all components.
+    initArduino();
+    configure_log_levels();
+    ESP_LOGI(TAG, "Arduino initialized");
     // Initialize the LED driver
     led.begin();
 
