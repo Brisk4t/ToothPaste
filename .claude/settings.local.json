@@ -1,4 +1,5 @@
 {
+  "includeCoAuthoredBy": false,
   "permissions": {
     "allow": [
       "Bash(Get-ChildItem -Path \"f:\\\\VSCode\\\\ClipBoard\\\\ToothPaste\\\\firmware\\\\components\\\\IDF_USB\\\\\" -File -Recurse | Select-Object -ExpandProperty FullName)",
