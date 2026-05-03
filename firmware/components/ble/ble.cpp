@@ -13,10 +13,12 @@ BLECharacteristic* inputCharacteristic = NULL;    // Characteristic for sensor d
 BLECharacteristic* responseCharacteristic = NULL; // Characteristic for LED control
 BLECharacteristic* macCharacteristic = NULL;
 
-QueueHandle_t packetQueue = xQueueCreate(50, sizeof(SharedSecretTaskParams*)); // Queue to manage RTOS task parameters
+QueueHandle_t packetQueue = xQueueCreate(20, sizeof(RawPacket));
 
-bool manualDisconnect = false; // Flag to indicate if the user manually disconnected
-std::string clientPubKey;  // safer than char*
+bool manualDisconnect = false;
+// base64-encoded secp256r1 compressed key: 44 chars + null, 70 gives margin
+static char   clientPubKey[70];
+static size_t clientPubKeyLen = 0;
 
 // Create the persistent RTOS packet handler task
 void createPacketTask(SecureSession* sec) {
@@ -82,35 +84,28 @@ void InputCharacteristicCallbacks::onWrite(BLECharacteristic* inputCharacteristi
   int64_t t0 = esp_timer_get_time();
   const uint8_t* bleData = inputCharacteristic->getData();
   size_t bleLen = inputCharacteristic->getLength();
-  //std::string rawValue = std::string(inputCharacteristic->getValue().c_str(), inputCharacteristic->getLength()); // Convert to std::string for easier handling
-  // Receive base64 encoded value
-  if (bleLen != 0 && session != nullptr)
-  {
-    std::vector<uint8_t> rawCopy(bleData, bleData + bleLen); // allocate a heap copy of the received packet
-    auto* taskParams = new SharedSecretTaskParams{ session, std::move(rawCopy) }; // Create the parameters passed to the RTOS task
 
+  if (bleLen == 0 || session == nullptr) return;
 
-    DEBUG_SERIAL_PRINTF("Received data on Input Characteristic: %d bytes\n\r", bleLen);
+  if (bleLen < SecureSession::IV_SIZE + SecureSession::TAG_SIZE + SecureSession::HEADER_SIZE) {
+    DEBUG_SERIAL_PRINTLN("Characteristic too short!");
+    DEBUG_SERIAL_PRINTF("Received length: %d\n\r", bleLen);
+    stateManager->setState(DROP);
+    return;
+  }
 
-    // Handle bad packets
-    if (bleLen < SecureSession::IV_SIZE + SecureSession::TAG_SIZE + SecureSession::HEADER_SIZE) {
-      DEBUG_SERIAL_PRINTLN("Characteristic too short!");
-      DEBUG_SERIAL_PRINTF("Received length: %d\n\r", bleLen);
-      stateManager->setState(DROP);
-      return;
-    }
+  DEBUG_SERIAL_PRINTF("Received data on Input Characteristic: %d bytes\n\r", bleLen);
 
-    // Queue the received packet params in the task queue (should never failed due to BLE notification semaphore blocking, failure indicates sender is forcing data)
-    int64_t elapsed = esp_timer_get_time() - t0;
-    DEBUG_SERIAL_PRINTF("Packet Queuing took %lld us\n", elapsed);
-    
-    if (xQueueSend(packetQueue, &taskParams, 0) != pdTRUE) {
-      // Queue full, drop packet or handle error
-      DEBUG_SERIAL_PRINTLN("Packet queue full! Dropping packet.");
-      stateManager->setState(DROP);
-      //delete taskParams->rawValue;
-      delete taskParams;
-    }
+  RawPacket pkt;
+  pkt.len = (bleLen < BLE_MAX_RAW_PACKET) ? (uint16_t)bleLen : (uint16_t)BLE_MAX_RAW_PACKET;
+  memcpy(pkt.data, bleData, pkt.len);
+
+  int64_t elapsed = esp_timer_get_time() - t0;
+  DEBUG_SERIAL_PRINTF("Packet Queuing took %lld us\n", elapsed);
+
+  if (xQueueSend(packetQueue, &pkt, 0) != pdTRUE) {
+    DEBUG_SERIAL_PRINTLN("Packet queue full! Dropping packet.");
+    stateManager->setState(DROP);
   }
 }
 
@@ -190,23 +185,23 @@ void bleSetup(SecureSession* session)
 // Use the AUTH packet and peer public key to derive a new ecdh shared secret and AES key
 void generateSharedSecret(toothpaste_DataPacket* packet, SecureSession* session)
 {
-  // Store the base64 key as a byte array
   uint8_t peerKeyArray[66];
   size_t peerKeyLen = 0;
 
-  // The packet data for an AUTH packet is a base64 string
-  std::string base64Input = std::string((const char*)packet->encryptedData.bytes, (uint8_t)packet->encryptedData.size);
+  // Copy the base64 key bytes into a null-terminated char array
   size_t base64InputLen = packet->dataLen;
+  char base64Input[70];
+  size_t copyLen = (base64InputLen < sizeof(base64Input) - 1) ? base64InputLen : sizeof(base64Input) - 1;
+  memcpy(base64Input, packet->encryptedData.bytes, copyLen);
+  base64Input[copyLen] = '\0';
 
-  // Convert the received Base64 peer public key to a byte array
   int ret = mbedtls_base64_decode(
     peerKeyArray,
-    66,
+    sizeof(peerKeyArray),
     &peerKeyLen,
     packet->encryptedData.bytes,
     base64InputLen);
 
-  // If the decode fails, output failure reason to serial
   if (ret != 0)
   {
     DEBUG_SERIAL_PRINTF("Base64 decode failed, Error code: %d\n", ret);
@@ -214,27 +209,22 @@ void generateSharedSecret(toothpaste_DataPacket* packet, SecureSession* session)
     return;
   }
 
-  // Compute shared secret from peer public key array (also stores it and derives session AES key)
-  if (!session->computeSharedSecret(peerKeyArray, peerKeyLen, base64Input.c_str()))
+  if (!session->computeSharedSecret(peerKeyArray, peerKeyLen, base64Input))
   {
     DEBUG_SERIAL_PRINTLN("Shared secret computed and AES key derived successfully");
-    clientPubKey = std::string((const char*)base64Input.c_str(), base64Input.length());
+    memcpy(clientPubKey, base64Input, copyLen + 1);
+    clientPubKeyLen = copyLen;
     stateManager->setState(READY);
-
     notifyResponsePacket(toothpaste_ResponsePacket_ResponseType_CHALLENGE, session->sessionSalt, sizeof(session->sessionSalt));
   }
-  // If the shared secret computation or key derivation fails
   else
   {
     DEBUG_SERIAL_PRINTF("Shared secret computation or key derivation failed!\n");
     stateManager->setState(ERROR);
   }
 
-  // Disable pairing mode after processing
   stateManager->setState(READY);
   DEBUG_SERIAL_PRINTLN("Pairing mode disabled.");
-
-  return;
 }
 
 // Decrypt a data packet and type the text content as a string
@@ -244,29 +234,28 @@ void decryptSendString(toothpaste_DataPacket* packet, SecureSession* session) {
   // Average decryption time: ~ 13000us (13ms)
   // Average decryption time: ~ 377us (0.377ms) with new SecureSession optimizations (key caching, HKDF caching, etc..)
 
-  std::vector<uint8_t> decrypted_bytes((packet->dataLen) + 2);
+  // Max encryptedData field is 228 bytes; +2 matches the original vector over-allocation
+  uint8_t decrypted_bytes[230];
   toothpaste_EncryptedData decrypted = toothpaste_EncryptedData_init_default;
- 
 
-  int ret = session->decrypt(packet, decrypted_bytes.data(), clientPubKey.c_str()); // Get the serialized form of the decrypted data
+  int ret = session->decrypt(packet, decrypted_bytes, clientPubKey);
 
   int64_t elapsed = esp_timer_get_time() - t0;
 
   DEBUG_SERIAL_PRINTF("Packet Decryption took %lld us\n", elapsed);
-  DEBUG_SERIAL_PRINTF("Decrypted data length: %d\n", decrypted_bytes.size());
+  DEBUG_SERIAL_PRINTF("Decrypted data length: %lu\n", packet->dataLen);
 
   DEBUG_SERIAL_PRINT("Raw Data (chars): ");
-  for (size_t i = 0; i < decrypted_bytes.size(); ++i) {
+  for (size_t i = 0; i < (size_t)packet->dataLen; ++i) {
     DEBUG_SERIAL_PRINTF("%c", decrypted_bytes[i]);
   }
 
   DEBUG_SERIAL_PRINTLN("");
 
   // Average protobuf deserialization time: ~ 150us (0.15ms)
-  // Deserialize the decrypted data into a protobuf packet
-  pb_istream_t stream = pb_istream_from_buffer(decrypted_bytes.data(), decrypted_bytes.size() - 2);
+  pb_istream_t stream = pb_istream_from_buffer(decrypted_bytes, packet->dataLen);
   if (!pb_decode(&stream, toothpaste_EncryptedData_fields, &decrypted)) {
-    printf("Decoding encrypted data failed: %s\n", PB_GET_ERROR(&stream));
+    DEBUG_SERIAL_PRINTF("Decoding encrypted data failed: %s\n", PB_GET_ERROR(&stream));
     return;
   }
   
@@ -299,8 +288,7 @@ void decryptSendString(toothpaste_DataPacket* packet, SecureSession* session) {
 
       case toothpaste_EncryptedData_renamePacket_tag:
       {
-        std::string textString(decrypted.packetData.renamePacket.message, decrypted.packetData.renamePacket.length);
-        int ret = session->setDeviceName(textString.c_str()); // Set the device name in preferences
+        int ret = session->setDeviceName(decrypted.packetData.renamePacket.message);
         DEBUG_SERIAL_PRINTF("Device rename status code: %d\n", ret);
         DEBUG_SERIAL_PRINTLN("Rebooting Toothpaste...");
         esp_restart();
@@ -346,12 +334,14 @@ void authenticateClient(toothpaste_DataPacket* packet, SecureSession* session) {
   DEBUG_SERIAL_PRINTLN("Entered authenticateClient");
 
   // The packet's "encryptedData" field contains the unencrypted public key in an AUTH packet
-  clientPubKey = std::string((const char*)packet->encryptedData.bytes, packet->encryptedData.size);
-  //ESP_LOGD("clientPubKey: %s\n\r", clientPubKey.c_str());
+  clientPubKeyLen = (packet->encryptedData.size < sizeof(clientPubKey) - 1)
+                    ? packet->encryptedData.size : sizeof(clientPubKey) - 1;
+  memcpy(clientPubKey, packet->encryptedData.bytes, clientPubKeyLen);
+  clientPubKey[clientPubKeyLen] = '\0';
 
 
   // If we don't know the shared secret for the given public key, set Device Status to UNPAIRED
-  if (!session->loadIfEnrolled(clientPubKey.c_str())) {
+  if (!session->loadIfEnrolled(clientPubKey)) {
     DEBUG_SERIAL_PRINTLN("Client is not enrolled");
 
     notifyResponsePacket(toothpaste_ResponsePacket_ResponseType_PEER_UNKNOWN, nullptr, 0);
@@ -365,7 +355,7 @@ void authenticateClient(toothpaste_DataPacket* packet, SecureSession* session) {
     DEBUG_SERIAL_PRINTLN("Client is enrolled");
 
     // Derive the session AES key from the stored shared secret
-    int ret = session->deriveAESKeyFromSecret(clientPubKey.c_str());
+    int ret = session->deriveAESKeyFromSecret(clientPubKey);
     if (ret != 0) {
       DEBUG_SERIAL_PRINTF("Failed to derive session AES key: %d\n", ret);
       notifyResponsePacket(toothpaste_ResponsePacket_ResponseType_PEER_UNKNOWN, nullptr, 0);
@@ -404,7 +394,7 @@ void notifyResponsePacket(toothpaste_ResponsePacket_ResponseType responseType, c
   }
   
   if (!pb_encode(&stream, toothpaste_ResponsePacket_fields, &responsePacket)) {
-    printf("Encoding response packet failed: %s\n", PB_GET_ERROR(&stream));
+    DEBUG_SERIAL_PRINTF("Encoding response packet failed: %s\n", PB_GET_ERROR(&stream));
     return;
   }
   
@@ -417,61 +407,48 @@ void notifyResponsePacket(toothpaste_ResponsePacket_ResponseType responseType, c
 void packetTask(void* params)
 {
 
-  // Share the same securesession for the whole task
   SecureSession* session = static_cast<SecureSession*>(params);
+  RawPacket pkt;
+
   while (true) {
-    SharedSecretTaskParams* taskParams = nullptr; // The queue fills in this pointer as packets become available
+    if (xQueueReceive(packetQueue, &pkt, portMAX_DELAY) == pdTRUE) {
+      DEBUG_SERIAL_PRINTF("Time entering packet decode: %lld us\n", esp_timer_get_time());
 
-    // Wait indefinitely for next packet pointer
-    if (xQueueReceive(packetQueue, &taskParams, portMAX_DELAY) == pdTRUE) {
-      if (taskParams) {
-        DEBUG_SERIAL_PRINTF("Time entering packet decode: %lld us\n", esp_timer_get_time());
-        // Decode protobuf
-        toothpaste_DataPacket toothPacket = toothpaste_DataPacket_init_default;
-        pb_istream_t istream = pb_istream_from_buffer(taskParams->rawValue.data(), taskParams->rawValue.size());
-        if (!pb_decode(&istream, toothpaste_DataPacket_fields, &toothPacket)) {
-          printf("Decoding toothPacket failed: %s\n", PB_GET_ERROR(&istream));
-        }
-
-        //delete rawValue; // Free string memory
-
-        // Debug prints...
-        DEBUG_SERIAL_PRINTLN("BLE Data Received.");
-        DEBUG_SERIAL_PRINTF("Data length: %ld\r\n", toothPacket.dataLen);
-        DEBUG_SERIAL_PRINTF("ID: %d\r\nSlowMode: %d\r\nPacket Number: %ld\r\nTotal Packets: %ld\r\n",
-          toothPacket.packetID,
-          toothPacket.slowMode,
-          toothPacket.packetNumber,
-          toothPacket.totalPackets
-        );
-        DEBUG_SERIAL_PRINTLN();
-
-        // Print raw data as characters (not useful for encrypted data but good for debugging using unencrypted packets)
-        DEBUG_SERIAL_PRINT("Raw Data (chars): ");
-        for (size_t i = 0; i < toothPacket.dataLen; ++i) {
-          DEBUG_SERIAL_PRINTF("%c", toothPacket.encryptedData.bytes[i]);
-        }
-        DEBUG_SERIAL_PRINTLN("");
-
-
-        // Handle different types of packets
-        if (toothPacket.packetID == toothpaste_DataPacket_PacketID_DATA_PACKET) {
-          decryptSendString(&toothPacket, session);
-        }
-        else if (toothPacket.packetID == toothpaste_DataPacket_PacketID_AUTH_PACKET) {
-          if (stateManager->getState() == PAIRING) {
-            generateSharedSecret(&toothPacket, session);
-          }
-          else {
-            authenticateClient(&toothPacket, session);
-          }
-        }
-
-        DEBUG_SERIAL_PRINTF("Time exiting packet decode: %lld us\n", esp_timer_get_time());
-
-
-        delete taskParams; // Free the parameter struct
+      toothpaste_DataPacket toothPacket = toothpaste_DataPacket_init_default;
+      pb_istream_t istream = pb_istream_from_buffer(pkt.data, pkt.len);
+      if (!pb_decode(&istream, toothpaste_DataPacket_fields, &toothPacket)) {
+        DEBUG_SERIAL_PRINTF("Decoding toothPacket failed: %s\n", PB_GET_ERROR(&istream));
       }
+
+      DEBUG_SERIAL_PRINTLN("BLE Data Received.");
+      DEBUG_SERIAL_PRINTF("Data length: %ld\r\n", toothPacket.dataLen);
+      DEBUG_SERIAL_PRINTF("ID: %d\r\nSlowMode: %d\r\nPacket Number: %ld\r\nTotal Packets: %ld\r\n",
+        toothPacket.packetID,
+        toothPacket.slowMode,
+        toothPacket.packetNumber,
+        toothPacket.totalPackets
+      );
+      DEBUG_SERIAL_PRINTLN();
+
+      DEBUG_SERIAL_PRINT("Raw Data (chars): ");
+      for (size_t i = 0; i < toothPacket.dataLen; ++i) {
+        DEBUG_SERIAL_PRINTF("%c", toothPacket.encryptedData.bytes[i]);
+      }
+      DEBUG_SERIAL_PRINTLN("");
+
+      if (toothPacket.packetID == toothpaste_DataPacket_PacketID_DATA_PACKET) {
+        decryptSendString(&toothPacket, session);
+      }
+      else if (toothPacket.packetID == toothpaste_DataPacket_PacketID_AUTH_PACKET) {
+        if (stateManager->getState() == PAIRING) {
+          generateSharedSecret(&toothPacket, session);
+        }
+        else {
+          authenticateClient(&toothPacket, session);
+        }
+      }
+
+      DEBUG_SERIAL_PRINTF("Time exiting packet decode: %lld us\n", esp_timer_get_time());
     }
   }
 }

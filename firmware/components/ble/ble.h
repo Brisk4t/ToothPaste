@@ -35,10 +35,12 @@ struct NotificationPacket {
     AuthStatus authStatus; // [0] = Failed, [1] = Succeeded
 };
 
-struct SharedSecretTaskParams {
-      SecureSession* session;
-      std::vector<uint8_t> rawValue;
-      const char* base64pubKey;
+// Max serialized DataPacket: IV(14) + encryptedData(231) + authTag(22) + scalars(~11) ≈ 278 bytes
+#define BLE_MAX_RAW_PACKET 320
+
+struct RawPacket {
+    uint8_t  data[BLE_MAX_RAW_PACKET];
+    uint16_t len;
 };
 
 
