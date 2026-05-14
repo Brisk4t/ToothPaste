@@ -4,3 +4,6 @@ settings.json
 tasks.json
 build
 managed_components
+
+# Temporary ignores, until i fiure out its legal (:|)
+Slotconfig.MD

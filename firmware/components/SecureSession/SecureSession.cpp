@@ -48,7 +48,7 @@ int SecureSession::init()
     return 0;
 }
 
-// Generate private and public key using PSA
+// Generate private and public key using PSA [TODO: Moved to cryptoauthlib]
 int SecureSession::generateKeypair(uint8_t outPublicKey[PUBKEY_SIZE], size_t& outPubLen)
 {
     // Destroy any existing key
@@ -97,8 +97,8 @@ int SecureSession::generateKeypair(uint8_t outPublicKey[PUBKEY_SIZE], size_t& ou
     return 0;
 }
 
-// Compute shared secret given the peer's public key using PSA
-// Also stores the shared secret and derives the session AES key
+// Compute shared secret given the peer's public key using PSA [TODO: Moved to cryptoauthlib]
+// Also stores the shared secret and derives the session AES key [This might not be possible in the ATECC608B since it can only do AES-128]
 int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE * 2], size_t peerPubLen, const char* base64pubKey)
 {
     ESP_LOGD(TAG, "Computing shared secret, peer key len=%u", (unsigned)peerPubLen);
@@ -341,7 +341,7 @@ void SecureSession::printBase64(const uint8_t* data, size_t dataLen)
     }
 }
 
-// Helper: HKDF-Extract and Expand using SHA-256
+// Helper: HKDF-Extract and Expand using SHA-256 [TODO: Move to cryptoauthlib]
 int SecureSession::hkdf_sha256(const uint8_t* salt, size_t salt_len,
     const uint8_t* ikm, size_t ikm_len,
     const uint8_t* info, size_t info_len,
