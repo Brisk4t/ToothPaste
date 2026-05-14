@@ -122,11 +122,19 @@ int SecureSession::init()
 
 int SecureSession::generateKeypair(uint8_t outPublicKey[PUBKEY_SIZE], size_t& outPubLen)
 {
- 
+    // Reserve an ATECC slot now; label is unknown until peer public key arrives.
+    // If key exchange fails, call slotManager_.release() to free it.
+    uint8_t slot = slotManager_.reserve();
+    if (slot == SlotManager::INVALID_SLOT) {
+        ESP_LOGE(TAG, "No ATECC slot available for keypair");
+        return -1;
+    }
+    ESP_LOGD(TAG, "Reserved ATECC slot %u for keypair generation", slot);
+
     // Set up key attributes for ECDH with secp256r1 curve
     psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
     psa_set_key_type(&attributes, PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1));
-    psa_set_key_bits(&attributes, 256);  // secp256r1 is 256-bit
+    psa_set_key_bits(&attributes, 256);
     psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_DERIVE);
     psa_set_key_algorithm(&attributes, PSA_ALG_ECDH);
 
@@ -135,22 +143,22 @@ int SecureSession::generateKeypair(uint8_t outPublicKey[PUBKEY_SIZE], size_t& ou
     if (status != PSA_SUCCESS) {
         ESP_LOGE(TAG, "PSA key generation failed: %ld", (long)status);
         private_key_id = 0;
+        slotManager_.release();
         return -1;
     }
 
-    // Export the public key in uncompressed format (65 bytes: 0x04 + 32 + 32)
     uint8_t public_key_uncompressed[65];
     size_t public_key_len = 0;
     status = psa_export_public_key(private_key_id, public_key_uncompressed, 65, &public_key_len);
     if (status != PSA_SUCCESS) {
         ESP_LOGE(TAG, "PSA public key export failed: %ld", (long)status);
+        slotManager_.release();
         return -1;
     }
 
-    // PSA exports in uncompressed format (65 bytes), but we need compressed (33 bytes)
-    // Compressed format: 0x02 or 0x03 (depending on Y parity) + X coordinate (32 bytes)
     if (public_key_len != 65) {
         ESP_LOGE(TAG, "Unexpected public key length: %u", (unsigned)public_key_len);
+        slotManager_.release();
         return -1;
     }
 
@@ -225,23 +233,28 @@ int SecureSession::storeSharedSecret(std::string base64Input)
 
     String label = hashKey(base64Input.c_str());
 
+    // Finalize the slot reserved during generateKeypair().
+    // Falls back to assign() if no reservation is pending (e.g. called outside normal pairing flow).
     char evicted[SlotManager::LABEL_LEN + 1];
-    bool is_new = false;
-    uint8_t slot = slotManager_.assign(label.c_str(), &is_new, evicted);
+    uint8_t slot = slotManager_.commit(label.c_str(), evicted);
     if (slot == SlotManager::INVALID_SLOT) {
-        ESP_LOGE(TAG, "SlotManager assign failed");
+        ESP_LOGW(TAG, "No pending reservation; falling back to assign()");
+        bool is_new = false;
+        slot = slotManager_.assign(label.c_str(), &is_new, evicted);
+    }
+    if (slot == SlotManager::INVALID_SLOT) {
+        ESP_LOGE(TAG, "SlotManager commit/assign failed");
         return -1;
     }
 
     preferences.begin("security", false);
 
-    // Remove stale NVS secret for the evicted label, if any
     if (evicted[0] != '\0') {
         ESP_LOGW(TAG, "Removing stale secret for evicted label: %s", evicted);
         preferences.remove(evicted);
     }
 
-    ESP_LOGD(TAG, "Storing secret for label=%s slot=%u is_new=%d", label.c_str(), slot, is_new);
+    ESP_LOGD(TAG, "Storing secret for label=%s slot=%u", label.c_str(), slot);
     int putBytes = preferences.putBytes(label.c_str(), sharedSecret, sizeof(sharedSecret));
     ESP_LOGD(TAG, "Secret stored: putBytes=%d", putBytes);
 

@@ -24,6 +24,18 @@ public:
     // evicted_label_out: if non-null, filled with the evicted label (LABEL_LEN+1 bytes) or '\0' if no eviction
     uint8_t assign(const char* label, bool* out_is_new = nullptr, char* evicted_label_out = nullptr);
 
+    // Reserve a slot before the peer label is known (call at keypair generation time).
+    // The slot is held in RAM only — not persisted — until commit() or release() is called.
+    // Only one reservation can be active at a time; calling reserve() again returns the same slot.
+    uint8_t reserve();
+
+    // Finalize a pending reservation with the now-known label. Persists to NVS.
+    // Returns the reserved slot, or INVALID_SLOT if no reservation is pending.
+    uint8_t commit(const char* label, char* evicted_label_out = nullptr);
+
+    // Cancel a pending reservation, freeing the slot. No NVS write.
+    void release();
+
     void remove(const char* label);
 
 private:
@@ -35,8 +47,10 @@ private:
 
     Entry entries_[CAPACITY];
     uint32_t counter_;
+    int pending_idx_;  // index chosen by reserve(), or -1
 
     int find_label(const char* label) const;
     int find_free() const;
-    int find_lru() const;
+    int find_lru()  const;
+    int pick_slot_idx(char* evicted_label_out);
 };
