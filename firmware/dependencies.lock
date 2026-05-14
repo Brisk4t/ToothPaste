@@ -154,8 +154,8 @@ dependencies:
       registry_url: https://components.espressif.com
       type: service
     version: 0.6.1~4
-  espressif/dl_fft:
-    component_hash: 7dadbd644c0d7ba4733cc3726ec4cff6edf27b043725e1115861dec1609a3d28
+  espressif/cjson:
+    component_hash: e788323270d90738662d66fffa910bfe1fba019bba087f01557e70c40485b469
     dependencies:
     - name: idf
       require: private
@@ -163,9 +163,19 @@ dependencies:
     source:
       registry_url: https://components.espressif.com
       type: service
-    version: 0.3.1
+    version: 1.7.19~2
+  espressif/dl_fft:
+    component_hash: ced3cf28cc70452b7859c06f4e5059215167254a2047e34c893d6f501ccd6ea2
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.0'
+    source:
+      registry_url: https://components.espressif.com
+      type: service
+    version: 0.4.0
   espressif/esp-dsp:
-    component_hash: 42dce32d46ac93dc11f60d368e29a830e9661c7345d794b8a45c343479cae636
+    component_hash: 12e44db246517a627bc0fe2b255b8335410c0215c98bfba2df5a8e3edea839ef
     dependencies:
     - name: idf
       require: private
@@ -173,7 +183,7 @@ dependencies:
     source:
       registry_url: https://components.espressif.com
       type: service
-    version: 1.7.0
+    version: 1.8.0
   espressif/esp-modbus:
     component_hash: 5d5e90b9e55721a8a194b301ad8102d4affb647f47b74cd413ff7d1ce2c1169c
     dependencies:
@@ -192,8 +202,12 @@ dependencies:
       type: service
     version: 0.0.11
   espressif/esp-sr:
-    component_hash: 1158509d88b59134ca880ecf87388b0eacceff6fe6b6b27fd5f1a563d6cfc50b
+    component_hash: e89fce9c0afe1b6782a9fbc65b5fc2ba5841ed4a39704d08414aad891ccce1a3
     dependencies:
+    - name: espressif/cjson
+      registry_url: https://components.espressif.com
+      require: private
+      version: ^1.7.19
     - name: espressif/dl_fft
       registry_url: https://components.espressif.com
       require: private
@@ -201,14 +215,14 @@ dependencies:
     - name: espressif/esp-dsp
       registry_url: https://components.espressif.com
       require: private
-      version: 1.7.0
+      version: 1.8.0
     - name: idf
       require: private
       version: '>=5.0'
     source:
       registry_url: https://components.espressif.com
       type: service
-    version: 2.3.0
+    version: 2.4.4
   espressif/esp-zboss-lib:
     component_hash: 321883d142421f65009972408287441794250057668a11abbdfd8bec77c3309a
     dependencies:
@@ -282,7 +296,7 @@ dependencies:
       type: service
     version: 1.2.2
   espressif/esp_modem:
-    component_hash: 07b6ca85dc0c1edbcd76f650005c74067001db138db6bfa106bf05567adca4af
+    component_hash: f4fa6dab2496af2673a68881132bb7ce0f05bf62e30e5bd0d45b607066378a28
     dependencies:
     - name: idf
       require: private
@@ -290,7 +304,7 @@ dependencies:
     source:
       registry_url: https://components.espressif.com
       type: service
-    version: 2.0.0
+    version: 2.0.1
   espressif/esp_rainmaker:
     component_hash: f6fe458fc7a0102ee2879f0247da4b41419e6c07de12031f66e5e9454d25baaa
     dependencies:
@@ -364,7 +378,7 @@ dependencies:
       type: service
     version: 1.2.0
   espressif/esp_secure_cert_mgr:
-    component_hash: 29248e402b2014394228b289a3c02fdb1dc43168ef18fc83449a868dfbc2341f
+    component_hash: 40a986c1f45d91eb6d339ca51dcab90c4ecce2a6622c268edaaa05887852d464
     dependencies:
     - name: idf
       require: private
@@ -372,7 +386,7 @@ dependencies:
     source:
       registry_url: https://components.espressif.com
       type: service
-    version: 2.8.0
+    version: 2.9.2
   espressif/esp_tinyusb:
     component_hash: 6a50305bc61c7a361da8c0833642be824e92dacb0a6001719a832a4e96e471bf
     dependencies:
@@ -418,7 +432,7 @@ dependencies:
       type: service
     version: 1.0.3
   espressif/libsodium:
-    component_hash: 6ee084dee7a4d664498274870aa65391c9ec9d38dcdb34d2ad2b8518726f8b5e
+    component_hash: 39c9dc77d81804d54a539c8f076faed165152be7720ddd0e721acb9daf4aa5af
     dependencies:
     - name: idf
       require: private
@@ -426,9 +440,9 @@ dependencies:
     source:
       registry_url: https://components.espressif.com
       type: service
-    version: 1.0.20~3
+    version: 1.0.22
   espressif/mdns:
-    component_hash: 29e47564b1a7ee778135e17fbbf2a2773f71c97ebabfe626c8eda7c958a7ad16
+    component_hash: 8bcf12e37c58c1d584aef32a02b92548124c7a3a9fcf548d3235c844a035e0f0
     dependencies:
     - name: idf
       require: private
@@ -436,7 +450,7 @@ dependencies:
     source:
       registry_url: https://components.espressif.com
       type: service
-    version: 1.9.1
+    version: 1.11.1
   espressif/network_provisioning:
     component_hash: ef2e10182fd1861e68b821491916327c25416ca7ae70e5a6e43313dbc71fe993
     dependencies:
@@ -462,7 +476,7 @@ dependencies:
       type: service
     version: 1.4.6
   espressif/tinyusb:
-    component_hash: 5ea9d3b6d6b0734a0a0b3491967aa0e1bece2974132294dbda5dd2839b247bfa
+    component_hash: a40b7f67df6ac254a4afd96c6401cc56f2059ae747d6d7e66b568bca53ad0edc
     dependencies:
     - name: idf
       require: private
@@ -475,13 +489,14 @@ dependencies:
     - esp32s3
     - esp32p4
     - esp32h4
-    version: 0.19.0~2
+    - esp32s31
+    version: 0.19.0~3
   idf:
     source:
       type: idf
     version: 5.5.4
   joltwallet/littlefs:
-    component_hash: dcea25bcef2de023f089f5f01e8d8c46ad1b8ffef75861ad5ffb4098555839df
+    component_hash: 29eff7921c4e8bce021aeb7fff2723bfcafed661756de700646ea0f6223c2a32
     dependencies:
     - name: idf
       require: private
@@ -489,7 +504,7 @@ dependencies:
     source:
       registry_url: https://components.espressif.com
       type: service
-    version: 1.20.4
+    version: 1.21.1
   nikas-belogolov/nanopb:
     component_hash: f87bec16ffb47d5ceb557b7f13acb83cad95046ab155d1af33e488d1b048fddc
     dependencies:
@@ -505,6 +520,6 @@ direct_dependencies:
 - espressif/esp_tinyusb
 - idf
 - nikas-belogolov/nanopb
-manifest_hash: d75f55f4799b5dbc4eb31a4d96a816915131c62bc22c93190fd58c540016f7a2
+manifest_hash: 49437ab581d3a6e818fc398acb1d2a0398db5093db6072953ee54f9a67412cd5
 target: esp32s3
 version: 2.0.0

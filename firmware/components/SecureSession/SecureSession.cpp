@@ -1,6 +1,7 @@
 #include <Preferences.h>
 #include <nvs_flash.h>
 #include <psa/crypto.h>
+#include <cryptoauthlib.h>
 
 #include "esp_log.h"
 #include "SecureSession.h"
@@ -44,19 +45,82 @@ int SecureSession::init()
         ESP_LOGE(TAG, "PSA Crypto init failed: %ld", (long)status);
         return -1;
     }
+
+    // Initialize the ATECC608B secure element (identical to ATECC608A)
+    int ret = atcab_init(&cfg_ateccx08a_i2c_default);
+    if(ret != 0){
+        ESP_LOGE(TAG, "ATECC608B initialization failed %d", ret);
+        return -1;
+    }
+
+    // Test communication with the secure element by reading its serial number
+    uint8_t buf[ATCA_ECC_CONFIG_SIZE];
+    ret = atcab_info(buf);
+    if (ret != 0) {
+        ESP_LOGI(TAG, " failed\n  ! atcab_info returned %02x", ret);
+        return -1;
+    }
+    ESP_LOGI(TAG, " ok: %02x %02x", buf[2], buf[3]);
+
     ESP_LOGI(TAG, "PSA Crypto initialized");
     return 0;
 }
 
 // Generate private and public key using PSA [TODO: Moved to cryptoauthlib]
+// int SecureSession::generateKeypair(uint8_t outPublicKey[PUBKEY_SIZE], size_t& outPubLen)
+// {
+    
+    
+    
+//     // Destroy any existing key
+//     if (private_key_id != 0) {
+//         psa_destroy_key(private_key_id);
+//         private_key_id = 0;
+//     }
+
+//     // Set up key attributes for ECDH with secp256r1 curve
+//     psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
+//     psa_set_key_type(&attributes, PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1));
+//     psa_set_key_bits(&attributes, 256);  // secp256r1 is 256-bit
+//     psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_DERIVE);
+//     psa_set_key_algorithm(&attributes, PSA_ALG_ECDH);
+
+//     // Generate the keypair
+//     psa_status_t status = psa_generate_key(&attributes, &private_key_id);
+//     if (status != PSA_SUCCESS) {
+//         ESP_LOGE(TAG, "PSA key generation failed: %ld", (long)status);
+//         private_key_id = 0;
+//         return -1;
+//     }
+
+//     // Export the public key in uncompressed format (65 bytes: 0x04 + 32 + 32)
+//     uint8_t public_key_uncompressed[65];
+//     size_t public_key_len = 0;
+//     status = psa_export_public_key(private_key_id, public_key_uncompressed, 65, &public_key_len);
+//     if (status != PSA_SUCCESS) {
+//         ESP_LOGE(TAG, "PSA public key export failed: %ld", (long)status);
+//         return -1;
+//     }
+
+//     // PSA exports in uncompressed format (65 bytes), but we need compressed (33 bytes)
+//     // Compressed format: 0x02 or 0x03 (depending on Y parity) + X coordinate (32 bytes)
+//     if (public_key_len != 65) {
+//         ESP_LOGE(TAG, "Unexpected public key length: %u", (unsigned)public_key_len);
+//         return -1;
+//     }
+
+//     // Compress the public key: take prefix byte and X coordinate
+//     outPublicKey[0] = (public_key_uncompressed[64] & 0x01) ? 0x03 : 0x02;  // 0x03 if Y is odd, 0x02 if even
+//     memcpy(&outPublicKey[1], &public_key_uncompressed[1], 32);  // Copy X coordinate
+//     outPubLen = PUBKEY_SIZE;  // 33 bytes
+
+//     ESP_LOGI(TAG, "Keypair generated");
+//     return 0;
+// }
+
 int SecureSession::generateKeypair(uint8_t outPublicKey[PUBKEY_SIZE], size_t& outPubLen)
 {
-    // Destroy any existing key
-    if (private_key_id != 0) {
-        psa_destroy_key(private_key_id);
-        private_key_id = 0;
-    }
-
+ 
     // Set up key attributes for ECDH with secp256r1 curve
     psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
     psa_set_key_type(&attributes, PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1));

@@ -15,7 +15,8 @@ void generateSharedSecret(toothpaste_DataPacket* packet, SecureSession* session)
   size_t copyLen = (base64InputLen < sizeof(base64Input) - 1) ? base64InputLen : sizeof(base64Input) - 1;
   memcpy(base64Input, packet->encryptedData.bytes, copyLen);
   base64Input[copyLen] = '\0';
-
+  
+  // Decode the base64 public key from the packet 
   int ret = mbedtls_base64_decode(
     peerKeyArray,
     sizeof(peerKeyArray),
