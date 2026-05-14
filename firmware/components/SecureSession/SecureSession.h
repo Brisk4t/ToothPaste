@@ -8,6 +8,7 @@
 #include <mbedtls/base64.h>
 
 #include "toothpacket.pb.h"
+#include "SlotManager.h"
 
 
 #ifndef SECURESESSION_H
@@ -88,8 +89,10 @@ private:
     bool aesKeyReady;
 
 
+    SlotManager slotManager_;
+
     // Internal helper functions
-    
+
     // Store shared secret to NVS after ECDH computation
     int storeSharedSecret(std::string base64Input);
     

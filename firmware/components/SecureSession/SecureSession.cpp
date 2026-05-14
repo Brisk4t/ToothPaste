@@ -62,6 +62,8 @@ int SecureSession::init()
     }
     ESP_LOGI(TAG, " ok: %02x %02x", buf[2], buf[3]);
 
+    slotManager_.load();
+
     ESP_LOGI(TAG, "PSA Crypto initialized");
     return 0;
 }
@@ -218,31 +220,32 @@ int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE *
 // Store the computed shared secret to NVS for persistence across reboots
 int SecureSession::storeSharedSecret(std::string base64Input)
 {
-    // Return if a shared secret was never generated
     if (!sharedReady)
         return -1;
 
-    preferences.begin("security", false); // Start the preferences RW session (NOT SECURE, just for testing)
+    String label = hashKey(base64Input.c_str());
 
-    int pairedDevices = preferences.getInt("pairedDevices", -1);
-
-    // Clear all historical data if there is no space left
-    if((pairedDevices == -1) || (pairedDevices == MAX_PAIRED_DEVICES)){
-        preferences.clear();
-        ESP_LOGW(TAG, "Max paired devices reached or uninitialized, clearing all");
-        preferences.putInt("pairedDevices", 0);
+    char evicted[SlotManager::LABEL_LEN + 1];
+    bool is_new = false;
+    uint8_t slot = slotManager_.assign(label.c_str(), &is_new, evicted);
+    if (slot == SlotManager::INVALID_SLOT) {
+        ESP_LOGE(TAG, "SlotManager assign failed");
+        return -1;
     }
 
-    // Store the raw shared secret (not the AES key)
-    String hashedBase64 = hashKey(base64Input.c_str());
-    ESP_LOGD(TAG, "Storing secret for key: %s", hashedBase64.c_str());
+    preferences.begin("security", false);
 
-    int putBytes = preferences.putBytes(hashedBase64.c_str(), sharedSecret, sizeof(sharedSecret));
-    int putInt = preferences.putInt("pairedDevices", pairedDevices+1);
+    // Remove stale NVS secret for the evicted label, if any
+    if (evicted[0] != '\0') {
+        ESP_LOGW(TAG, "Removing stale secret for evicted label: %s", evicted);
+        preferences.remove(evicted);
+    }
 
-    ESP_LOGD(TAG, "Secret stored: putBytes=%d putInt=%d", putBytes, putInt);
+    ESP_LOGD(TAG, "Storing secret for label=%s slot=%u is_new=%d", label.c_str(), slot, is_new);
+    int putBytes = preferences.putBytes(label.c_str(), sharedSecret, sizeof(sharedSecret));
+    ESP_LOGD(TAG, "Secret stored: putBytes=%d", putBytes);
 
-    preferences.end(); // Close the write session
+    preferences.end();
     return 0;
 }
 
@@ -364,22 +367,21 @@ int SecureSession::decrypt(toothpaste_DataPacket* packet, uint8_t* decrypted_out
     return ret;
 }
 
-// Check if a key exists in preferences storage and load its shared secret
+// Check if a key exists and load its shared secret if enrolled
 bool SecureSession::loadIfEnrolled(const char* key){
-    preferences.begin("security", true); // Open storage session in read only mode
-    String hashedKey = hashKey(key); // Hash the key, since there is a char limit for keys in storage
+    String label = hashKey(key);
 
-    // Check if the hashed key exists in storage,
-    // If it does load the shared secret into the session variable and return true, otherwise return false
-    bool ret = preferences.isKey(hashedKey.c_str());
-    if (ret) {
-        // Load the shared secret into the session variable
-        preferences.getBytes(hashedKey.c_str(), sharedSecret, ENC_KEYSIZE);
-        sharedReady = true;
-    }
+    uint8_t slot = slotManager_.lookup(label.c_str());
+    if (slot == SlotManager::INVALID_SLOT)
+        return false;
 
+    preferences.begin("security", true);
+    preferences.getBytes(label.c_str(), sharedSecret, ENC_KEYSIZE);
     preferences.end();
-    return ret;
+
+    sharedReady = true;
+    ESP_LOGD(TAG, "Loaded secret for label=%s slot=%u", label.c_str(), slot);
+    return true;
 }
 
 // Debugging helper to print uint8_t arrays as base64 strings via esp_log
