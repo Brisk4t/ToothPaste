@@ -1,7 +1,6 @@
 #include <Preferences.h>
 #include <nvs_flash.h>
 #include <psa/crypto.h>
-#include <cryptoauthlib.h>
 
 #include "esp_log.h"
 #include "SecureSession.h"
@@ -46,7 +45,7 @@ int SecureSession::init()
         return -1;
     }
     // Initialize the ATECC608B secure element (identical to ATECC608A)
-    ATCAIfaceCfg cfg = cfg_ateccx08a_i2c_default;
+    cfg = cfg_ateccx08a_i2c_default;
     int ret = atcab_init(&cfg);
     if(ret != 0){
         ESP_LOGE(TAG, "ATECC608B initialization failed %d", ret);
@@ -55,13 +54,12 @@ int SecureSession::init()
 
     ESP_LOGI(TAG, "ATECC608B initialized successfully");
 
-    uint8_t randombuf[33] = {0}; // Avoid "unused variable" warning
-    ret = atcab_genkey(0, randombuf);
-    if (ret != 0) {
-        ESP_LOGE(TAG, "ATECC608B genkey generation failed: %d", ret);
-        return -1;
-    }
-    ESP_LOGD(TAG, "ATECC608B genkey generation successful: %02x%02x%02x%02x...", randombuf[0], randombuf[1], randombuf[2], randombuf[3]);
+    // ret = atcab_genkey(0, randombuf);
+    // if (ret != 0) {
+    //     ESP_LOGE(TAG, "ATECC608B genkey generation failed: %d", ret);
+    //     return -1;
+    // }
+    // ESP_LOGD(TAG, "ATECC608B genkey generation successful: %02x%02x%02x%02x...", randombuf[0], randombuf[1], randombuf[2], randombuf[3]);
     // Test communication with the secure element by reading its serial number
     uint8_t buf[ATCA_ECC_CONFIG_SIZE];
     ret = atcab_info(buf);
@@ -89,7 +87,7 @@ int SecureSession::generateKeypair(uint8_t outPublicKey[PUBKEY_SIZE], size_t& ou
     ESP_LOGD(TAG, "Reserved ATECC slot %u for keypair generation", slot);
 
     // Generate the keypair
-    uint8_t public_key_uncompressed[65];
+    uint8_t public_key_uncompressed[64];
 
     int ret = atcab_genkey(slot, public_key_uncompressed);
     if (ret != 0) {
@@ -97,10 +95,11 @@ int SecureSession::generateKeypair(uint8_t outPublicKey[PUBKEY_SIZE], size_t& ou
         slotManager_.release();
         return -1;
     }
+    printBase64(public_key_uncompressed, sizeof(public_key_uncompressed));
 
     // Compress the public key: take prefix byte and X coordinate
-    outPublicKey[0] = (public_key_uncompressed[64] & 0x01) ? 0x03 : 0x02;  // 0x03 if Y is odd, 0x02 if even
-    memcpy(&outPublicKey[1], &public_key_uncompressed[1], 32);  // Copy X coordinate
+    outPublicKey[0] = (public_key_uncompressed[63] & 0x01) ? 0x03 : 0x02;  // 0x03 if Y is odd, 0x02 if even
+    memcpy(&outPublicKey[1], &public_key_uncompressed[0], 32);  // Copy X coordinate
     outPubLen = PUBKEY_SIZE;  // 33 bytes
 
     ESP_LOGI(TAG, "Keypair generated");
@@ -130,10 +129,15 @@ int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE *
         return -1;
     }
 
+    // Trim peer public key to 64 bytes (drop last 2 bytes)
+    uint8_t trimmedKey[64];
+    memcpy(trimmedKey, peerPublicKey, 64);
+
     // Generate shared secret
     uint8_t current_slot = slotManager_.reserve(); // Get the slot reserved during keypair generation
-    int ret = atcab_ecdh_base(0x8, current_slot, peerPublicKey, sharedSecret, nullptr);
-     if (ret != 0) {
+    ESP_LOGD(TAG, "Using ATECC slot %u for ECDH computation", current_slot);
+    int ret = atcab_ecdh_base(0x8, current_slot, trimmedKey, sharedSecret, nullptr);
+    if (ret != 0) {
         ESP_LOGE(TAG, "ECDH key agreement failed: %d", ret);
         slotManager_.release(); // Free the reserved slot on failure
         return -1;

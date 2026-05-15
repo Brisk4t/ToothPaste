@@ -7,6 +7,7 @@
 #include <mbedtls/sha256.h>
 #include <mbedtls/base64.h>
 
+#include "cryptoauthlib.h"
 #include "toothpacket.pb.h"
 #include "SlotManager.h"
 
@@ -79,6 +80,7 @@ private:
     // The gcm context 
     mbedtls_gcm_context gcm;
     uint8_t sharedSecret[ENC_KEYSIZE]; // Shared secret in cache
+    ATCAIfaceCfg cfg;
 
     // Shared secret and session key management
     String hashKey(const char* longKey);

@@ -29,6 +29,7 @@ void generateSharedSecret(toothpaste_DataPacket* packet, SecureSession* session)
     stateManager->setState(ERROR);
     return;
   }
+  ESP_LOGD(TAG, "Base64 decoded, peer public key, length: %d", peerKeyLen);
 
   if (!session->computeSharedSecret(peerKeyArray, peerKeyLen, base64Input)) {
     ESP_LOGI(TAG, "Shared secret computed, AES key derived");
