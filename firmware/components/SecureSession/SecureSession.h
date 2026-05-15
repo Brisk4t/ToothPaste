@@ -94,7 +94,7 @@ private:
     // Internal helper functions
 
     // Store shared secret to NVS after ECDH computation
-    int storeSharedSecret(std::string base64Input);
+    int commitPeerKey(std::string base64Input);
     
 
     

@@ -45,14 +45,23 @@ int SecureSession::init()
         ESP_LOGE(TAG, "PSA Crypto init failed: %ld", (long)status);
         return -1;
     }
-
     // Initialize the ATECC608B secure element (identical to ATECC608A)
-    int ret = atcab_init(&cfg_ateccx08a_i2c_default);
+    ATCAIfaceCfg cfg = cfg_ateccx08a_i2c_default;
+    int ret = atcab_init(&cfg);
     if(ret != 0){
         ESP_LOGE(TAG, "ATECC608B initialization failed %d", ret);
         return -1;
     }
 
+    ESP_LOGI(TAG, "ATECC608B initialized successfully");
+
+    uint8_t randombuf[33] = {0}; // Avoid "unused variable" warning
+    ret = atcab_genkey(0, randombuf);
+    if (ret != 0) {
+        ESP_LOGE(TAG, "ATECC608B genkey generation failed: %d", ret);
+        return -1;
+    }
+    ESP_LOGD(TAG, "ATECC608B genkey generation successful: %02x%02x%02x%02x...", randombuf[0], randombuf[1], randombuf[2], randombuf[3]);
     // Test communication with the secure element by reading its serial number
     uint8_t buf[ATCA_ECC_CONFIG_SIZE];
     ret = atcab_info(buf);
@@ -68,58 +77,6 @@ int SecureSession::init()
     return 0;
 }
 
-// Generate private and public key using PSA [TODO: Moved to cryptoauthlib]
-// int SecureSession::generateKeypair(uint8_t outPublicKey[PUBKEY_SIZE], size_t& outPubLen)
-// {
-    
-    
-    
-//     // Destroy any existing key
-//     if (private_key_id != 0) {
-//         psa_destroy_key(private_key_id);
-//         private_key_id = 0;
-//     }
-
-//     // Set up key attributes for ECDH with secp256r1 curve
-//     psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
-//     psa_set_key_type(&attributes, PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1));
-//     psa_set_key_bits(&attributes, 256);  // secp256r1 is 256-bit
-//     psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_DERIVE);
-//     psa_set_key_algorithm(&attributes, PSA_ALG_ECDH);
-
-//     // Generate the keypair
-//     psa_status_t status = psa_generate_key(&attributes, &private_key_id);
-//     if (status != PSA_SUCCESS) {
-//         ESP_LOGE(TAG, "PSA key generation failed: %ld", (long)status);
-//         private_key_id = 0;
-//         return -1;
-//     }
-
-//     // Export the public key in uncompressed format (65 bytes: 0x04 + 32 + 32)
-//     uint8_t public_key_uncompressed[65];
-//     size_t public_key_len = 0;
-//     status = psa_export_public_key(private_key_id, public_key_uncompressed, 65, &public_key_len);
-//     if (status != PSA_SUCCESS) {
-//         ESP_LOGE(TAG, "PSA public key export failed: %ld", (long)status);
-//         return -1;
-//     }
-
-//     // PSA exports in uncompressed format (65 bytes), but we need compressed (33 bytes)
-//     // Compressed format: 0x02 or 0x03 (depending on Y parity) + X coordinate (32 bytes)
-//     if (public_key_len != 65) {
-//         ESP_LOGE(TAG, "Unexpected public key length: %u", (unsigned)public_key_len);
-//         return -1;
-//     }
-
-//     // Compress the public key: take prefix byte and X coordinate
-//     outPublicKey[0] = (public_key_uncompressed[64] & 0x01) ? 0x03 : 0x02;  // 0x03 if Y is odd, 0x02 if even
-//     memcpy(&outPublicKey[1], &public_key_uncompressed[1], 32);  // Copy X coordinate
-//     outPubLen = PUBKEY_SIZE;  // 33 bytes
-
-//     ESP_LOGI(TAG, "Keypair generated");
-//     return 0;
-// }
-
 int SecureSession::generateKeypair(uint8_t outPublicKey[PUBKEY_SIZE], size_t& outPubLen)
 {
     // Reserve an ATECC slot now; label is unknown until peer public key arrives.
@@ -131,33 +88,12 @@ int SecureSession::generateKeypair(uint8_t outPublicKey[PUBKEY_SIZE], size_t& ou
     }
     ESP_LOGD(TAG, "Reserved ATECC slot %u for keypair generation", slot);
 
-    // Set up key attributes for ECDH with secp256r1 curve
-    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_set_key_type(&attributes, PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1));
-    psa_set_key_bits(&attributes, 256);
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_DERIVE);
-    psa_set_key_algorithm(&attributes, PSA_ALG_ECDH);
-
     // Generate the keypair
-    psa_status_t status = psa_generate_key(&attributes, &private_key_id);
-    if (status != PSA_SUCCESS) {
-        ESP_LOGE(TAG, "PSA key generation failed: %ld", (long)status);
-        private_key_id = 0;
-        slotManager_.release();
-        return -1;
-    }
-
     uint8_t public_key_uncompressed[65];
-    size_t public_key_len = 0;
-    status = psa_export_public_key(private_key_id, public_key_uncompressed, 65, &public_key_len);
-    if (status != PSA_SUCCESS) {
-        ESP_LOGE(TAG, "PSA public key export failed: %ld", (long)status);
-        slotManager_.release();
-        return -1;
-    }
 
-    if (public_key_len != 65) {
-        ESP_LOGE(TAG, "Unexpected public key length: %u", (unsigned)public_key_len);
+    int ret = atcab_genkey(slot, public_key_uncompressed);
+    if (ret != 0) {
+        ESP_LOGE(TAG, "ATECC key generation failed: %d", ret);
         slotManager_.release();
         return -1;
     }
@@ -194,14 +130,12 @@ int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE *
         return -1;
     }
 
-    // Perform ECDH key agreement using psa_raw_key_agreement
-    // This takes the raw peer public key without needing to import it first
-    size_t output_len = 0;
-    psa_status_t status = psa_raw_key_agreement(PSA_ALG_ECDH, private_key_id, peerPublicKey, peerPubLen,
-                                               sharedSecret, ENC_KEYSIZE, &output_len);
-
-    if (status != PSA_SUCCESS) {
-        ESP_LOGE(TAG, "ECDH key agreement failed: %ld", (long)status);
+    // Generate shared secret
+    uint8_t current_slot = slotManager_.reserve(); // Get the slot reserved during keypair generation
+    int ret = atcab_ecdh_base(0x8, current_slot, peerPublicKey, sharedSecret, nullptr);
+     if (ret != 0) {
+        ESP_LOGE(TAG, "ECDH key agreement failed: %d", ret);
+        slotManager_.release(); // Free the reserved slot on failure
         return -1;
     }
 
@@ -210,12 +144,12 @@ int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE *
 
     sharedReady = true;
     // Store the shared secret in NVS for persistence
-    int ret = storeSharedSecret(base64pubKey);
+    ret = commitPeerKey(base64pubKey);
     if (ret != 0) {
-        ESP_LOGE(TAG, "Failed to store shared secret: %d", ret);
+        ESP_LOGE(TAG, "Failed to save peer key to NVS: %d", ret);
         return ret;
     }
-
+    
     ret = deriveAESKeyFromSecret(base64pubKey);
     if (ret != 0) {
         ESP_LOGE(TAG, "Failed to derive AES key from shared secret: %d", ret);
@@ -226,11 +160,14 @@ int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE *
 }
 
 // Store the computed shared secret to NVS for persistence across reboots
-int SecureSession::storeSharedSecret(std::string base64Input)
+int SecureSession::commitPeerKey(std::string base64Input)
 {
-    if (!sharedReady)
+    if (!sharedReady){
+        ESP_LOGD(TAG, "commitPeerKey called but shared secret is not ready");
         return -1;
-
+    }
+    
+    // Hash the base64-encoded public key to create a fixed-length label for slot management
     String label = hashKey(base64Input.c_str());
 
     // Finalize the slot reserved during generateKeypair().
@@ -242,23 +179,17 @@ int SecureSession::storeSharedSecret(std::string base64Input)
         bool is_new = false;
         slot = slotManager_.assign(label.c_str(), &is_new, evicted);
     }
+
     if (slot == SlotManager::INVALID_SLOT) {
         ESP_LOGE(TAG, "SlotManager commit/assign failed");
         return -1;
     }
-
-    preferences.begin("security", false);
 
     if (evicted[0] != '\0') {
         ESP_LOGW(TAG, "Removing stale secret for evicted label: %s", evicted);
         preferences.remove(evicted);
     }
 
-    ESP_LOGD(TAG, "Storing secret for label=%s slot=%u", label.c_str(), slot);
-    int putBytes = preferences.putBytes(label.c_str(), sharedSecret, sizeof(sharedSecret));
-    ESP_LOGD(TAG, "Secret stored: putBytes=%d", putBytes);
-
-    preferences.end();
     return 0;
 }
 
@@ -269,23 +200,25 @@ int SecureSession::deriveAESKeyFromSecret(const char* base64pubKey)
     const uint8_t info[] = "aes-gcm-256"; // Must match JS
     size_t info_len = sizeof(info) - 1;
 
-    psa_status_t status = psa_generate_random(sessionSalt, sizeof(sessionSalt));
-    if (status != PSA_SUCCESS) {
-        ESP_LOGE(TAG, "Failed to generate HKDF salt: %ld", (long)status);
-        return -1;
-    }
+    // psa_status_t status = psa_generate_random(sessionSalt, sizeof(sessionSalt));
+    // if (status != PSA_SUCCESS) {
+    //     ESP_LOGE(TAG, "Failed to generate HKDF salt: %ld", (long)status);
+    //     return -1;
+    // }
 
     ESP_LOGD(TAG, "Session salt:");
     printBase64(sessionSalt, sizeof(sessionSalt));
 
-    // Use custom HKDF to create a secure AES-GCM 256-bit key
-    int ret = hkdf_sha256(
-        sessionSalt, sizeof(sessionSalt),        // random salt for this session
-        sharedSecret, sizeof(sharedSecret),      // session's shared secret
-        info, info_len,                          // context info
-        aesKey, ENC_KEYSIZE                      // output directly to member variable
-    );
+    
 
+    // Use custom HKDF to create a secure AES-GCM 256-bit key
+    // int ret = hkdf_sha256(
+    //     sessionSalt, sizeof(sessionSalt),        // random salt for this session
+    //     sharedSecret, sizeof(sharedSecret),      // session's shared secret
+    //     info, info_len,                          // context info
+    //     aesKey, ENC_KEYSIZE                      // output directly to member variable
+    // );
+    int ret = atcab_kdf(0x50, 0x00, 0x18000001, info, aesKey, nullptr);
     if (ret == 0) {
         ESP_LOGI(TAG, "AES key derived");
         printBase64(aesKey, sizeof(aesKey));
@@ -388,9 +321,6 @@ bool SecureSession::loadIfEnrolled(const char* key){
     if (slot == SlotManager::INVALID_SLOT)
         return false;
 
-    preferences.begin("security", true);
-    preferences.getBytes(label.c_str(), sharedSecret, ENC_KEYSIZE);
-    preferences.end();
 
     sharedReady = true;
     ESP_LOGD(TAG, "Loaded secret for label=%s slot=%u", label.c_str(), slot);

@@ -13,7 +13,7 @@
 #include "main.h"
 #include "ble.h"
 
-
+//#define ATCA_NO_POLL
 static const char* TAG = "MAIN";
 
 SecureSession sec; // Global Secure Session
