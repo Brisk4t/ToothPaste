@@ -112,12 +112,6 @@ int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE *
 {
     ESP_LOGD(TAG, "Computing shared secret, peer key len=%u", (unsigned)peerPubLen);
 
-    // TODO: Remove redundant checks
-    // Handle null-terminated keys by skipping the null terminator
-    if (peerPubLen == 66 && peerPublicKey[65] == 0x00) {
-        peerPubLen = 65;  // Ignore the null terminator
-    }
-
     if (peerPubLen != 65) {
         ESP_LOGE(TAG, "Peer key must be 65 bytes (uncompressed), got %u", (unsigned)peerPubLen);
         return -1;
@@ -129,12 +123,9 @@ int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE *
         return -1;
     }
 
-    printBase64(peerPublicKey, peerPubLen);
     // atcab_ecdh expects raw X||Y (64 bytes); skip the 0x04 uncompressed-point prefix
     uint8_t trimmedKey[64];
     memcpy(trimmedKey, peerPublicKey + 1, 64);
-
-    printBase64(trimmedKey, sizeof(trimmedKey));
 
     // Prime TempKey register for ECDH
     uint8_t nonce_in[20] = {0};  // or actual random

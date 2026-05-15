@@ -6,7 +6,7 @@ static const char* TAG = "BLE_AUTH";
 // Derive a new ECDH shared secret and session AES key from a pairing AUTH packet
 void generateSharedSecret(toothpaste_DataPacket* packet, SecureSession* session)
 {
-  uint8_t peerKeyArray[66];
+  uint8_t peerKeyArray[65];
   size_t peerKeyLen = 0;
 
   // Copy the base64 key bytes into a null-terminated char array
