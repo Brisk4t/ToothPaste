@@ -129,14 +129,25 @@ int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE *
         return -1;
     }
 
-    // Trim peer public key to 64 bytes (drop last 2 bytes)
+    printBase64(peerPublicKey, peerPubLen);
+    // atcab_ecdh expects raw X||Y (64 bytes); skip the 0x04 uncompressed-point prefix
     uint8_t trimmedKey[64];
-    memcpy(trimmedKey, peerPublicKey, 64);
+    memcpy(trimmedKey, peerPublicKey + 1, 64);
+
+    printBase64(trimmedKey, sizeof(trimmedKey));
+
+    // Prime TempKey register for ECDH
+    uint8_t nonce_in[20] = {0};  // or actual random
+    int ret = atcab_nonce(nonce_in);  // seeds TempKey, marks it valid
+    if (ret != 0) { 
+        ESP_LOGE(TAG, "Failed to seed TempKey for ECDH: %d", ret);
+        return -1;
+     }
 
     // Generate shared secret
     uint8_t current_slot = slotManager_.reserve(); // Get the slot reserved during keypair generation
     ESP_LOGD(TAG, "Using ATECC slot %u for ECDH computation", current_slot);
-    int ret = atcab_ecdh_base(0x8, current_slot, trimmedKey, sharedSecret, nullptr);
+    ret = atcab_ecdh(current_slot, trimmedKey, sharedSecret);
     if (ret != 0) {
         ESP_LOGE(TAG, "ECDH key agreement failed: %d", ret);
         slotManager_.release(); // Free the reserved slot on failure

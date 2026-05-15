@@ -35,7 +35,6 @@ void generateSharedSecret(toothpaste_DataPacket* packet, SecureSession* session)
     ESP_LOGI(TAG, "Shared secret computed, AES key derived");
     memcpy(clientPubKey, base64Input, copyLen + 1);
     clientPubKeyLen = copyLen;
-    stateManager->setState(READY);
     notifyResponsePacket(toothpaste_ResponsePacket_ResponseType_CHALLENGE, session->sessionSalt, sizeof(session->sessionSalt));
   }
   else {
