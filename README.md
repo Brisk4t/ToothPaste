@@ -3,6 +3,14 @@
 >
 >\- Someone defintely 
 
+|  | ToothPaste V1.0 | ToothPaste V2.0 |
+|----------|----------|----------|
+| Cross-Platform | ✅ | ✅ |
+| Security Stack | MBedTLS | MBedTLS + Cryptoauthlib |
+| Credential Storage | Software-Bound 🟠  | Hardware-Bound 🟢 |
+| Paired Device Limit | 5 | 8 |
+
+
 <div align="center">
   <h1 style="text-align: center; margin: 10;">
     <span style="display: inline-flex; align-items: center; gap: 10px;">
@@ -86,6 +94,8 @@ Essentially Web BLE allows us to use a system's Bluetooth hardware inside a brow
 The other (and more fun) part of the ToothPaste solution is the hardware itself. Since the ESP32-S3 has both USB and BLE (along with a bunch of other things we don't care about) in one package, the hardware just ends up being the bare-minimum nedded to run the MCU. 
 
 For most hobbyists, any development board will suffice. But considering that we're transferring some potentially sensitive information over a **very** open protocol, ToothPaste V2.0 uses a **Cryptographic Coprocessor** to store the credentials required to encrypt and decrypt data.  
+
+
 
 ### I present...
 
