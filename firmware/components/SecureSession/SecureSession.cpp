@@ -467,8 +467,9 @@ bool SecureSession::getDeviceName(String &deviceNameBuffer){
 bool SecureSession::setDeviceName(const char* deviceName){
     preferences.begin("identity", false);
 
-    bool ret = preferences.isKey("blename"); // Check if the AES key for the given key exists
-    // If the name string exists return itTTR
+    bool ret = preferences.isKey("blename"); // Check if the name key exists
+    
+    // If the name string exists remove it before setting the new name to prevent stale data
     if(ret){
         preferences.remove("blename");
     }
