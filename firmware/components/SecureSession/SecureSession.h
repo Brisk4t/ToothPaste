@@ -31,7 +31,7 @@ public:
     ~SecureSession();
 
 
-    unsigned char sessionSalt[16] = {0}; // Salt for the current session
+    unsigned char sessionSalt[32] = {0}; // Salt for the current session
 
 
     // Initialize PSA Crypto subsystem; must be called before other operations

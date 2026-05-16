@@ -138,7 +138,9 @@ int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE *
     // Generate shared secret
     uint8_t current_slot = slotManager_.reserve(); // Get the slot reserved during keypair generation
     ESP_LOGD(TAG, "Using ATECC slot %u for ECDH computation", current_slot);
-    ret = atcab_ecdh(current_slot, trimmedKey, sharedSecret);
+    //ret = atcab_ecdh_base(0x08, current_slot, trimmedKey, sharedSecret, nullptr); // 0x08 = output shared secret to TempKey
+    
+    ret = atcab_ecdh(current_slot, trimmedKey, sharedSecret); // 0x08 = output shared secret to TempKey
     if (ret != 0) {
         ESP_LOGE(TAG, "ECDH key agreement failed: %d", ret);
         slotManager_.release(); // Free the reserved slot on failure
@@ -146,8 +148,6 @@ int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE *
     }
 
     ESP_LOGI(TAG, "Shared secret computed");
-    printBase64(sharedSecret, sizeof(sharedSecret));
-
     sharedReady = true;
     // Store the shared secret in NVS for persistence
     ret = commitPeerKey(base64pubKey);
@@ -206,29 +206,19 @@ int SecureSession::deriveAESKeyFromSecret(const char* base64pubKey)
     const uint8_t info[] = "aes-gcm-256"; // Must match JS
     size_t info_len = sizeof(info) - 1;
 
-    // psa_status_t status = psa_generate_random(sessionSalt, sizeof(sessionSalt));
-    // if (status != PSA_SUCCESS) {
-    //     ESP_LOGE(TAG, "Failed to generate HKDF salt: %ld", (long)status);
-    //     return -1;
-    // }
+    atcab_random(sessionSalt); // Generate a random salt for this session
 
-    ESP_LOGD(TAG, "Session salt:");
-    printBase64(sessionSalt, sizeof(sessionSalt));
+    int ret = hkdf_sha256(
+        sessionSalt, sizeof(sessionSalt),        // random salt for this session
+        sharedSecret, sizeof(sharedSecret),      // session's shared secret
+        info, info_len,                          // context info
+        aesKey, ENC_KEYSIZE                      // output directly to member variable
+    );
 
-    
-
-    // Use custom HKDF to create a secure AES-GCM 256-bit key
-    // int ret = hkdf_sha256(
-    //     sessionSalt, sizeof(sessionSalt),        // random salt for this session
-    //     sharedSecret, sizeof(sharedSecret),      // session's shared secret
-    //     info, info_len,                          // context info
-    //     aesKey, ENC_KEYSIZE                      // output directly to member variable
-    // );
-    int ret = atcab_kdf(0x50, 0x00, 0x18000001, info, aesKey, nullptr);
+    // TODO: Why wont you work damn it
+    // int ret = atcab_kdf(0x50, 0x00, 0x0B000002, info, aesKey, nullptr);
     if (ret == 0) {
         ESP_LOGI(TAG, "AES key derived");
-        printBase64(aesKey, sizeof(aesKey));
-        // Mark as ready for this session
         aesKeyReady = true;
     } else {
         ESP_LOGE(TAG, "AES key derivation failed: %d", ret);
