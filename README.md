@@ -9,7 +9,7 @@
       <img src="https://www.toothpasteapp.com/ToothPaste.png" alt="drawing" width="70"/>
       <span style="display: flex; flex-direction: column; align-items: center; line-height: 1;">
         <span style="font-weight: bold; font-size: 1.5em; margin: 1 0 5 0; padding: 0; line-height: 1;">ToothPaste V2: </span>
-        <span style="font-style: italic; font-size: 0.6em; margin: 1 0 0 0; padding: 0; line-height: 1;">A better copy-paste.</span>
+        <span style="font-style: italic; font-size: 0.6em; margin: 1 0 0 0; padding: 0; line-height: 1;">Hardware Backed Wireless Clipboard.</span>
       </span>
     </span>
   </h1>
@@ -100,7 +100,7 @@ For most hobbyists, any development board will suffice. But considering that we'
 ![ToothPaste Completed](/web/public/ToothPasteIPad.png)
 
 
-# 🔌The Hardware [Sponsored By [PCBWay](https://www.pcbway.com/)]
+# 🔌The Hardware [Deus Ex [PCBWay](https://www.pcbway.com/)]
 
 You know that feeling when you think you've finally turned all the ideas you had into a real product and THEN **another one strikes**? Yeah that's how the hardware security component of ToothPaste felt. 
 
