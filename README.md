@@ -3,14 +3,6 @@
 >
 >\- Someone defintely 
 
-|  | ToothPaste V1.0 | ToothPaste V2.0 |
-|----------|----------|----------|
-| Cross-Platform | ✅ | ✅ |
-| Security Stack | MBedTLS | MBedTLS + Cryptoauthlib |
-| Credential Storage | Software-Bound 🟠  | Hardware-Bound 🟢 |
-| Paired Device Limit | 5 | 8 |
-
-
 <div align="center">
   <h1 style="text-align: center; margin: 10;">
     <span style="display: inline-flex; align-items: center; gap: 10px;">
@@ -37,7 +29,7 @@
   <strong>ToothPaste</strong> allows a user to transmit <strong>AES-256</strong> encrypted keyboard and mouse commands to any USB-compatible device wirelessly, without the need for specialized drivers or extensive set-up using WEB-BLE, a Cryptographic IC and an ESP32-S3.
 </p>
 
-![ToothPaste Website About Page Thumbnail](/web/public/ToothPasteCoverBlocks.png)
+![ToothPaste Website About Page Thumbnail](/web/public/ToothPaste_Cover_V2.png)
 <br/>
 
 
@@ -95,14 +87,20 @@ The other (and more fun) part of the ToothPaste solution is the hardware itself.
 
 For most hobbyists, any development board will suffice. But considering that we're transferring some potentially sensitive information over a **very** open protocol, ToothPaste V2.0 uses a **Cryptographic Coprocessor** to store the credentials required to encrypt and decrypt data.  
 
-
+### ToothPaste V1.0 vs V2.0
+|  | ToothPaste V1.0 | ToothPaste V2.0 |
+|----------|----------|----------|
+| Cross-Platform | ✅ | ✅ |
+| Security Stack | MBedTLS | MBedTLS + Cryptoauthlib |
+| Credential Storage | Software-Bound 🟠  | Hardware-Bound 🟢 |
+| Paired Device Limit | 5 | 8 |
 
 ### I present...
 
 ![ToothPaste Completed](/web/public/ToothPasteIPad.png)
 
 
-# The Hardware [Sponsored By [PCBWay](https://www.pcbway.com/)] :
+# 🔌The Hardware [Sponsored By [PCBWay](https://www.pcbway.com/)]
 
 You know that feeling when you think you've finally turned all the ideas you had into a real product and THEN **another one strikes**? Yeah that's how the hardware security component of ToothPaste felt. 
 
@@ -118,7 +116,7 @@ That's when [PCBWay](https://www.pcbway.com/) contacted me saying they wanted to
 
 ### And finally... 
 
-![ToothPaste V2.0](/hardware/ToothPaste_V2_Cover_Annotated.jpg)
+![ToothPaste V2.0](/hardware/ToothPaste_V2_Cover_Annotated_PCBWay.png)
 
 ### **They were flawless! They were beautiful!**
 
