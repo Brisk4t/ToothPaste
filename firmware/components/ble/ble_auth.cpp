@@ -46,34 +46,44 @@ void generateSharedSecret(toothpaste_DataPacket* packet, SecureSession* session)
   ESP_LOGI(TAG, "Pairing mode disabled");
 }
 
-// Check whether a reconnecting client is enrolled; derive the session key if so
+// Check whether a reconnecting client is enrolled; compute the session key if so
 void authenticateClient(toothpaste_DataPacket* packet, SecureSession* session)
 {
   ESP_LOGD(TAG, "Entered authenticateClient");
 
-  // AUTH packets carry the unencrypted public key in the encryptedData field
+  // Decode the base64 peer public key from the packet
+  uint8_t peerKeyArray[65];
+  size_t peerKeyLen = 0;
+  int ret = mbedtls_base64_decode(
+    peerKeyArray,
+    sizeof(peerKeyArray),
+    &peerKeyLen,
+    packet->encryptedData.bytes,
+    packet->encryptedData.size);
+
+  if (ret != 0) {
+    ESP_LOGE(TAG, "Base64 decode failed, err %d", ret);
+    notifyResponsePacket(toothpaste_ResponsePacket_ResponseType_PEER_UNKNOWN, nullptr, 0);
+    stateManager->setState(ERROR);
+    return;
+  }
+  ESP_LOGD(TAG, "Base64 decoded peer public key, length: %zu", peerKeyLen);
+
+  // Store the base64 key for reference
   clientPubKeyLen = (packet->encryptedData.size < sizeof(clientPubKey) - 1)
                     ? packet->encryptedData.size : sizeof(clientPubKey) - 1;
   memcpy(clientPubKey, packet->encryptedData.bytes, clientPubKeyLen);
   clientPubKey[clientPubKeyLen] = '\0';
 
-  if (!session->loadIfEnrolled(clientPubKey)) {
-    ESP_LOGW(TAG, "Client not enrolled");
+  // Load the enrolled client and compute shared secret on-the-fly
+  if (!session->loadIfEnrolled(peerKeyArray, peerKeyLen, clientPubKey)) {
+    ESP_LOGW(TAG, "Client not enrolled or shared secret computation failed");
     notifyResponsePacket(toothpaste_ResponsePacket_ResponseType_PEER_UNKNOWN, nullptr, 0);
     stateManager->setState(UNPAIRED);
     return;
   }
 
-  ESP_LOGI(TAG, "Client enrolled");
-
-  // Todo: challenge-response verification before READY to prevent MITM enrollment attacks
-  int ret = session->deriveAESKeyFromSecret(clientPubKey);
-  if (ret != 0) {
-    ESP_LOGE(TAG, "Failed to derive session AES key: %d", ret);
-    notifyResponsePacket(toothpaste_ResponsePacket_ResponseType_PEER_UNKNOWN, nullptr, 0);
-    stateManager->setState(ERROR);
-    return;
-  }
+  ESP_LOGI(TAG, "Client authenticated and shared secret computed");
 
   notifyResponsePacket(toothpaste_ResponsePacket_ResponseType_CHALLENGE, session->sessionSalt, sizeof(session->sessionSalt));
   stateManager->setState(READY);

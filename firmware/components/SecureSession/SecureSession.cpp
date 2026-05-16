@@ -54,13 +54,7 @@ int SecureSession::init()
 
     ESP_LOGI(TAG, "ATECC608B initialized successfully");
 
-    // ret = atcab_genkey(0, randombuf);
-    // if (ret != 0) {
-    //     ESP_LOGE(TAG, "ATECC608B genkey generation failed: %d", ret);
-    //     return -1;
-    // }
-    // ESP_LOGD(TAG, "ATECC608B genkey generation successful: %02x%02x%02x%02x...", randombuf[0], randombuf[1], randombuf[2], randombuf[3]);
-    // Test communication with the secure element by reading its serial number
+    // Get info for sanity check
     uint8_t buf[ATCA_ECC_CONFIG_SIZE];
     ret = atcab_info(buf);
     if (ret != 0) {
@@ -69,6 +63,7 @@ int SecureSession::init()
     }
     ESP_LOGI(TAG, " ok: %02x %02x", buf[2], buf[3]);
 
+    // Initialize the LRU slot manager
     slotManager_.load();
 
     ESP_LOGI(TAG, "PSA Crypto initialized");
@@ -137,10 +132,10 @@ int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE *
 
     // Generate shared secret
     uint8_t current_slot = slotManager_.reserve(); // Get the slot reserved during keypair generation
-    ESP_LOGD(TAG, "Using ATECC slot %u for ECDH computation", current_slot);
-    //ret = atcab_ecdh_base(0x08, current_slot, trimmedKey, sharedSecret, nullptr); // 0x08 = output shared secret to TempKey
+    ESP_LOGD(TAG, "Using private key in ATECC slot %u for ECDH computation", current_slot);
     
-    ret = atcab_ecdh(current_slot, trimmedKey, sharedSecret); // 0x08 = output shared secret to TempKey
+    //ret = atcab_ecdh_base(0x08, current_slot, trimmedKey, sharedSecret, nullptr); // 0x08 = output shared secret to TempKey
+    ret = atcab_ecdh(current_slot, trimmedKey, sharedSecret);
     if (ret != 0) {
         ESP_LOGE(TAG, "ECDH key agreement failed: %d", ret);
         slotManager_.release(); // Free the reserved slot on failure
@@ -149,13 +144,15 @@ int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE *
 
     ESP_LOGI(TAG, "Shared secret computed");
     sharedReady = true;
-    // Store the shared secret in NVS for persistence
+
+    // Store PeerPubKey : Atecc Slot Mapping in NVS for later retrieval 
     ret = commitPeerKey(base64pubKey);
     if (ret != 0) {
         ESP_LOGE(TAG, "Failed to save peer key to NVS: %d", ret);
         return ret;
     }
     
+    // Deriver the session AES key from the shared secret using HKDF
     ret = deriveAESKeyFromSecret(base64pubKey);
     if (ret != 0) {
         ESP_LOGE(TAG, "Failed to derive AES key from shared secret: %d", ret);
@@ -177,7 +174,8 @@ int SecureSession::commitPeerKey(std::string base64Input)
     String label = hashKey(base64Input.c_str());
 
     // Finalize the slot reserved during generateKeypair().
-    // Falls back to assign() if no reservation is pending (e.g. called outside normal pairing flow).
+    // Falls back to assign() if no reservation is pending
+    
     char evicted[SlotManager::LABEL_LEN + 1];
     uint8_t slot = slotManager_.commit(label.c_str(), evicted);
     if (slot == SlotManager::INVALID_SLOT) {
@@ -309,17 +307,50 @@ int SecureSession::decrypt(toothpaste_DataPacket* packet, uint8_t* decrypted_out
     return ret;
 }
 
-// Check if a key exists and load its shared secret if enrolled
-bool SecureSession::loadIfEnrolled(const char* key){
-    String label = hashKey(key);
+// Check if a key exists and compute the shared secret on-the-fly using ECDH
+bool SecureSession::loadIfEnrolled(const uint8_t* peerPublicKey, size_t peerPubLen, const char* base64pubKey)
+{
+    String label = hashKey(base64pubKey);
 
+    // Find the slot number for the private key
     uint8_t slot = slotManager_.lookup(label.c_str());
-    if (slot == SlotManager::INVALID_SLOT)
+    if (slot == SlotManager::INVALID_SLOT){
+        ESP_LOGE(TAG, "Slot not found for label: %s", label.c_str());
         return false;
+    }
 
+    // Verify peer public key format and length
+    if (peerPubLen != 65) {
+        ESP_LOGE(TAG, "Peer key must be 65 bytes (uncompressed), got %u", (unsigned)peerPubLen);
+        return false;
+    }
+
+    if (peerPublicKey[0] != 0x04) {
+        ESP_LOGE(TAG, "Invalid peer key format: expected 0x04, got 0x%02x", peerPublicKey[0]);
+        return false;
+    }
+
+    // Trim peer public key to 64 bytes (drop the 0x04 prefix)
+    uint8_t trimmedKey[64];
+    memcpy(trimmedKey, peerPublicKey + 1, 64);
+
+    // Compute shared secret using ECDH with stored private key
+    int ret = atcab_ecdh(slot, trimmedKey, sharedSecret);
+    if (ret != 0) {
+        ESP_LOGE(TAG, "ECDH key agreement failed: %d", ret);
+        return false;
+    }
 
     sharedReady = true;
-    ESP_LOGD(TAG, "Loaded secret for label=%s slot=%u", label.c_str(), slot);
+    ESP_LOGD(TAG, "Computed shared secret for label=%s slot=%u", label.c_str(), slot);
+
+    // Derive AES key from the computed shared secret
+    ret = deriveAESKeyFromSecret(base64pubKey);
+    if (ret != 0) {
+        ESP_LOGE(TAG, "Failed to derive AES key from shared secret: %d", ret);
+        return false;
+    }
+
     return true;
 }
 

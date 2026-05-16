@@ -65,8 +65,8 @@ public:
 
     bool isSharedSecretReady() const { return sharedReady; }
 
-    // Check if an AUTH packet is known
-    bool loadIfEnrolled(const char* key);
+    // Check if an AUTH packet is known and compute shared secret on-the-fly
+    bool loadIfEnrolled(const uint8_t* peerPublicKey, size_t peerPubLen, const char* base64pubKey);
 
     // Device name functions 
     bool getDeviceName(String &deviceName);
