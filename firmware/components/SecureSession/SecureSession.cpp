@@ -122,20 +122,13 @@ int SecureSession::computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE *
     uint8_t trimmedKey[64];
     memcpy(trimmedKey, peerPublicKey + 1, 64);
 
-    // Prime TempKey register for ECDH
-    uint8_t nonce_in[20] = {0};  // or actual random
-    int ret = atcab_nonce(nonce_in);  // seeds TempKey, marks it valid
-    if (ret != 0) { 
-        ESP_LOGE(TAG, "Failed to seed TempKey for ECDH: %d", ret);
-        return -1;
-     }
-
-    // Generate shared secret
-    uint8_t current_slot = slotManager_.reserve(); // Get the slot reserved during keypair generation
+    // Generate shared secret — result goes directly to TempKey, never touches RAM
+    uint8_t current_slot = slotManager_.reserve();
     ESP_LOGD(TAG, "Using private key in ATECC slot %u for ECDH computation", current_slot);
-    
-    //ret = atcab_ecdh_base(0x08, current_slot, trimmedKey, sharedSecret, nullptr); // 0x08 = output shared secret to TempKey
-    ret = atcab_ecdh(current_slot, trimmedKey, sharedSecret);
+
+    int ret = atcab_ecdh_base(
+        ECDH_MODE_SOURCE_EEPROM_SLOT | ECDH_MODE_COPY_TEMP_KEY,
+        current_slot, trimmedKey, nullptr, nullptr);
     if (ret != 0) {
         ESP_LOGE(TAG, "ECDH key agreement failed: %d", ret);
         slotManager_.release(); // Free the reserved slot on failure
@@ -205,21 +198,22 @@ int SecureSession::deriveAESKeyFromSecret(const char* base64pubKey)
 
     atcab_random(sessionSalt); // Generate a random salt for this session
 
-    // HKDF Extract: PRK = HMAC-SHA256(salt=TempKey, IKM=sharedSecret)
-    // Load sessionSalt into TempKey so the chip uses it as the HMAC key (salt role)
-    int ret = atcab_nonce_load(NONCE_MODE_TARGET_TEMPKEY, sessionSalt, ATCA_KEY_SIZE);
+    // HKDF Extract: PRK = HMAC-SHA256(salt=AltKeyBuf, IKM=TempKey)
+    // Load sessionSalt into AltKeyBuf (HMAC key = salt); ECDH result stays in TempKey (HMAC data = IKM)
+    int ret = atcab_nonce_load(NONCE_MODE_TARGET_ALTKEYBUF, sessionSalt, ATCA_KEY_SIZE);
     if (ret != 0) {
-        ESP_LOGE(TAG, "HKDF: failed to load salt into TempKey: %d", ret);
+        ESP_LOGE(TAG, "HKDF: failed to load salt into AltKeyBuf: %d", ret);
         return ret;
     }
 
-    // source key = TempKey (salt), message = sharedSecret (IKM, 32 bytes from RAM), PRK → TempKey
+    // source key = AltKeyBuf (salt), message = TempKey (IKM, ECDH result), PRK → TempKey
+    // sessionSalt passed as dummy non-null message ptr; chip reads IKM from TempKey via MSG_LOC_TEMPKEY
     ret = atcab_kdf(
-        KDF_MODE_ALG_HKDF | KDF_MODE_SOURCE_TEMPKEY | KDF_MODE_TARGET_TEMPKEY,
-        0, 
-        ((uint32_t)ATCA_KEY_SIZE << 24) | KDF_DETAILS_HKDF_MSG_LOC_INPUT, 
-        sharedSecret, 
-        nullptr, 
+        KDF_MODE_ALG_HKDF | KDF_MODE_SOURCE_ALTKEYBUF | KDF_MODE_TARGET_TEMPKEY,
+        0,
+        ((uint32_t)ATCA_KEY_SIZE << 24) | KDF_DETAILS_HKDF_MSG_LOC_TEMPKEY,
+        sessionSalt,
+        nullptr,
         nullptr);
 
     if (ret != 0) {
@@ -237,7 +231,6 @@ int SecureSession::deriveAESKeyFromSecret(const char* base64pubKey)
     
     if (ret == 0) {
         ESP_LOGI(TAG, "AES key derived");
-        printBase64(aesKey, ENC_KEYSIZE);
         aesKeyReady = true;
     } else {
         ESP_LOGE(TAG, "HKDF Expand failed: %d", ret);
@@ -355,8 +348,10 @@ bool SecureSession::loadIfEnrolled(const uint8_t* peerPublicKey, size_t peerPubL
     uint8_t trimmedKey[64];
     memcpy(trimmedKey, peerPublicKey + 1, 64);
 
-    // Compute shared secret using ECDH with stored private key
-    int ret = atcab_ecdh(slot, trimmedKey, sharedSecret);
+    // Compute shared secret — result goes directly to TempKey, never touches RAM
+    int ret = atcab_ecdh_base(
+        ECDH_MODE_SOURCE_EEPROM_SLOT | ECDH_MODE_COPY_TEMP_KEY,
+        slot, trimmedKey, nullptr, nullptr);
     if (ret != 0) {
         ESP_LOGE(TAG, "ECDH key agreement failed: %d", ret);
         return false;
