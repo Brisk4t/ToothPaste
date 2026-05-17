@@ -38,7 +38,7 @@
 - [Full setup 🛠️](#full-setup-)
 - [How it works Pt.1 ⭐](#how-it-works-pt1-)
 - [How it works Pt. 2 ⭐⭐](#how-it-works-pt-2-)
-- [The Hardware 🔌](#the-hardware-deus-ex-pcbway--🔌)
+- [The Hardware (Deus Ex PCBWay) 🔌](#the-hardware-deus-ex-pcbway-)
 - [Security 🔑](#security-)
 - [More Security 🔒](#more-security-)
 - [Then there was AI 🤖](#then-there-was-ai-)
@@ -111,14 +111,14 @@ For most hobbyists, any development board will suffice. But considering that we'
 ![ToothPaste Completed](/web/public/ToothPasteIPad.png)
 
 
-# The Hardware [Deus Ex [PCBWay](https://www.pcbway.com/)] 🔌
+# The Hardware (Deus Ex PCBWay) 🔌
 
 You know that feeling when you think you've finally turned all the ideas you had into a real product and THEN **another one strikes**? Yeah that's how the hardware security component of ToothPaste felt. 
 
-### But why... 
+### The problem... 
 I realized that the most 🤌 *perfect* 🤌 security solution for ToothPaste would use a Crypto IC / Secure Element / TPM / \<insert cool word here\> which stores the ECDH Private keys in an isolated storage space, making it impossible to extract them even if you have physical access to the device. This is how hardware cryptocurrency wallets like [Trezor](https://trezor.io/) and hardware 2FA solutions like [YubiKey](https://www.yubico.com/) ensure that even if a nefarious actor gets their grubby paws on your physical device, they can never get to the information inside.
 
-### The problem...
+### [The saviour](https://www.pcbway.com/)...
 
 The problem was I had already designed and ordered the ToothPaste V1 PCBs and with hardware development being an expensive hobby, I didn't want to break the bank simply for the love of the game.
 
