@@ -201,25 +201,46 @@ int SecureSession::commitPeerKey(std::string base64Input)
 int SecureSession::deriveAESKeyFromSecret(const char* base64pubKey)
 {
     // Derive AES key from the shared secret using HKDF
-    const uint8_t info[] = "aes-gcm-256"; // Must match JS
-    size_t info_len = sizeof(info) - 1;
+    static const uint8_t expand_msg[] = "aes-gcm-256\x01"; // info + HKDF counter T(1)
 
     atcab_random(sessionSalt); // Generate a random salt for this session
 
-    int ret = hkdf_sha256(
-        sessionSalt, sizeof(sessionSalt),        // random salt for this session
-        sharedSecret, sizeof(sharedSecret),      // session's shared secret
-        info, info_len,                          // context info
-        aesKey, ENC_KEYSIZE                      // output directly to member variable
-    );
+    // HKDF Extract: PRK = HMAC-SHA256(salt=TempKey, IKM=sharedSecret)
+    // Load sessionSalt into TempKey so the chip uses it as the HMAC key (salt role)
+    int ret = atcab_nonce_load(NONCE_MODE_TARGET_TEMPKEY, sessionSalt, ATCA_KEY_SIZE);
+    if (ret != 0) {
+        ESP_LOGE(TAG, "HKDF: failed to load salt into TempKey: %d", ret);
+        return ret;
+    }
 
-    // TODO: Why wont you work damn it
-    // int ret = atcab_kdf(0x50, 0x00, 0x0B000002, info, aesKey, nullptr);
+    // source key = TempKey (salt), message = sharedSecret (IKM, 32 bytes from RAM), PRK → TempKey
+    ret = atcab_kdf(
+        KDF_MODE_ALG_HKDF | KDF_MODE_SOURCE_TEMPKEY | KDF_MODE_TARGET_TEMPKEY,
+        0, 
+        ((uint32_t)ATCA_KEY_SIZE << 24) | KDF_DETAILS_HKDF_MSG_LOC_INPUT, 
+        sharedSecret, 
+        nullptr, 
+        nullptr);
+
+    if (ret != 0) {
+        ESP_LOGE(TAG, "HKDF Extract failed: %d", ret);
+        return ret;
+    }
+
+    // HKDF Expand: OKM = HMAC-SHA256(PRK=TempKey, info || 0x01)
+    ret = atcab_kdf(
+        KDF_MODE_ALG_HKDF | KDF_MODE_SOURCE_TEMPKEY | KDF_MODE_TARGET_OUTPUT,
+        0, ((uint32_t)(sizeof(expand_msg) - 1) << 24) | KDF_DETAILS_HKDF_MSG_LOC_INPUT,
+        expand_msg,
+        aesKey,
+        nullptr);
+    
     if (ret == 0) {
         ESP_LOGI(TAG, "AES key derived");
+        printBase64(aesKey, ENC_KEYSIZE);
         aesKeyReady = true;
     } else {
-        ESP_LOGE(TAG, "AES key derivation failed: %d", ret);
+        ESP_LOGE(TAG, "HKDF Expand failed: %d", ret);
     }
 
     return ret;

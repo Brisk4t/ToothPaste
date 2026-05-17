@@ -247,11 +247,18 @@ export const ECDHProvider = ({ children }) => {
                 name: "AES-GCM",
                 length: 256,
             },
-            false, // not extractable
+            true, // not extractable
             ["encrypt", "decrypt"]
         );
 
+        
+        // Log the base64 AES key for debugging
+        const exportedAESKey = await crypto.subtle.exportKey("raw", aesKeyGen);
+        const base64AESKey = arrayBufferToBase64(exportedAESKey);
+        console.log("[ECDHContext] Derived AES key (base64):", base64AESKey);
+        
         aesKey.current = aesKeyGen;
+
 
     };
 
