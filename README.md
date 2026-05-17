@@ -9,7 +9,7 @@
       <img src="https://www.toothpasteapp.com/ToothPaste.png" alt="drawing" width="70"/>
       <span style="display: flex; flex-direction: column; align-items: center; line-height: 1;">
         <span style="font-weight: bold; font-size: 1.5em; margin: 1 0 5 0; padding: 0; line-height: 1;">ToothPaste V2: </span>
-        <span style="font-style: italic; font-size: 0.6em; margin: 1 0 0 0; padding: 0; line-height: 1;">Hardware Backed Wireless Clipboard.</span>
+        <span style="font-style: italic; font-size: 0.6em; margin: 1 0 0 0; padding: 0; line-height: 1;">Hardware-Backed BLE Clipboard.</span>
       </span>
     </span>
   </h1>
