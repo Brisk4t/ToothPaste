@@ -72,6 +72,11 @@ int SecureSession::init()
     // Initialize the LRU slot manager (used by both hardware and software paths)
     slotManager_.load();
 
+#ifdef USE_SOFTWARE_CRYPTO
+    ESP_LOGI(TAG, "Crypto mode: SOFTWARE (mbedtls/PSA)");
+#else
+    ESP_LOGI(TAG, "Crypto mode: HARDWARE (ATECC608B)");
+#endif
     ESP_LOGI(TAG, "PSA Crypto initialized");
     return 0;
 }
