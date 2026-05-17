@@ -7,7 +7,10 @@
 #include <mbedtls/sha256.h>
 #include <mbedtls/base64.h>
 
+#ifndef USE_SOFTWARE_CRYPTO
 #include "cryptoauthlib.h"
+#endif
+
 #include "toothpacket.pb.h"
 #include "SlotManager.h"
 
@@ -79,8 +82,11 @@ private:
 
     // The gcm context 
     mbedtls_gcm_context gcm;
-    uint8_t sharedSecret[ENC_KEYSIZE]; // Shared secret in cache
+    uint8_t sharedSecret[ENC_KEYSIZE]; // Shared secret buffer (RAM in software mode; stays in ATECC TempKey on hardware)
+
+#ifndef USE_SOFTWARE_CRYPTO
     ATCAIfaceCfg cfg;
+#endif
 
     // Shared secret and session key management
     String hashKey(const char* longKey);
@@ -95,7 +101,7 @@ private:
 
     // Internal helper functions
 
-    // Store shared secret to NVS after ECDH computation
+    // Persist peer key mapping (and private key in software mode) to NVS after ECDH
     int commitPeerKey(std::string base64Input);
     
 
