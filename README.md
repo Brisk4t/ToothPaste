@@ -204,6 +204,8 @@ Given more freedom in this area I would like to implement a full USB MSC (Mass S
 Telling your favorite MCP-compatible agent to ```send keystrokes using ToothPaste``` works quite consistently, but without the explicit instructions to ```use the > operator to pipe data to the serial port device at COMx or /dev/ttyx and wait till data is available``` has a far less consistent success rate.
 
 But I have to say there is a certain joy to saying ```Jarvis, open chrome and play jojo roundabout``` and it just working.
+
+While I work in the shadows on ToothPasteDesktop, if you want to mess around with a less polished version, the MCPerhaps branches on this github have an electron app that does the same thing but... clunkier.
   
 ![To Be Continued](/web/public/tobecontinued.png)
 
