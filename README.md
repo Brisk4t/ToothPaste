@@ -32,6 +32,17 @@
 ![ToothPaste Website About Page Thumbnail](/web/public/ToothPaste_Cover_V2.png)
 <br/>
 
+## Table of Contents
+- [The Problem ❓](#the-problem-)
+- [Quick Start 📦](#quick-start-)
+- [Full setup 🛠️](#full-setup-)
+- [How it works Pt.1 ⭐](#how-it-works-pt1-)
+- [How it works Pt. 2 ⭐⭐](#how-it-works-pt-2-)
+- [The Hardware 🔌](#the-hardware-deus-ex-pcbway--🔌)
+- [Security 🔑](#security-)
+- [More Security 🔒](#more-security-)
+- [Then there was AI 🤖](#then-there-was-ai-)
+- [There's a lot more...](#theres-a-lot-more)
 
 # The Problem ❓
 The core idea was to eliminate the need for complicated and lengthy login flows for one-off cases where a keyboard would normally be required or is the **only device that is supported** (BIOS, air-gapped systems, shady back-alley computers where you don't want to install your password manager etc.). 
@@ -100,7 +111,7 @@ For most hobbyists, any development board will suffice. But considering that we'
 ![ToothPaste Completed](/web/public/ToothPasteIPad.png)
 
 
-# 🔌The Hardware [Deus Ex [PCBWay](https://www.pcbway.com/)]
+# The Hardware [Deus Ex [PCBWay](https://www.pcbway.com/)] 🔌
 
 You know that feeling when you think you've finally turned all the ideas you had into a real product and THEN **another one strikes**? Yeah that's how the hardware security component of ToothPaste felt. 
 
@@ -164,6 +175,38 @@ This is identical to how password managers with browser extensions do it.
 
 ![ToothPasteArgon](/web/public/ToothPasteArgon.png)
 
+# Then there was AI 🤖
+
+Since I've scope-crept my way from weekend project to daily obsession, I realized that a lot of the most common interactions I have with ToothPaste on something like my Raspberry Pi are a lot more SSH-like. 
+
+Sometimes you just want to "set up a basic webserver with a frontend for displaying the sensor value on GPIO3". You know what you need to do, its not rocket science, its barely coding. It might be something as simple as running a script, or a few.... 
+
+The best option, if you have it is to SSH into the device, and let an LLM handle the rest until it asks if you want to run ```sudo rm -rf *``` where you politely decline and move on with your day.
+
+### But if you can't
+
+![ToothPasteDesktop Preview](/web/public/ToothPaste_Desktop_Preview.png)
+
+[ToothPasteDesktop](TODO) implements a Rust-based **TUI & MCP server** that lets an AI agent control a ToothPaste and get a response from the remote system over a Serial port. This bi-directional bus does have some drawbacks, some fixable in software, others more hardware-based.
+
+1. The ESP32-S3 has a limited number of USB Endpoints. Right now they are used by:
+   - BOOT Keyboard Interface (For complete BIOS support)
+   - BOOT Mouse (More BIOS support)
+   - Generic HID Input (Full Keyboard + Mouse Support)
+   - Control Descriptor (Required for all of the above)
+
+This means (afaik) we need to sacrifice one of those to enable the USB CDC (Serial) Device endpoint that allows the ToothPaste to get data from the connected device.
+
+Given more freedom in this area I would like to implement a full USB MSC (Mass Storage Device Class) to allow us to take screenshots and view them which would basically make ToothPaste a BLE based IP-KVM much like a [PiKVM](https://pikvm.org/) does over traditional HTTP. 
+
+2. Generic models are finnicky without very specific instructions and some amount of fine-tuning.
+
+Telling your favorite MCP-compatible agent to ```send keystrokes using ToothPaste``` works quite consistently, but without the explicit instructions to ```use the > operator to pipe data to the serial port device at COMx or /dev/ttyx and wait till data is available``` has a far less consistent success rate.
+
+But I have to say there is a certain joy to saying ```Jarvis, open chrome and play jojo roundabout``` and it just working.
+  
+![To Be Continued](/web/public/tobecontinued.png)
+
 # There's a lot more...
 
 ### As with any passion-project, sometimes I get sidetracked with cool features and forget to fix / test everything. 
@@ -172,7 +215,8 @@ This is identical to how password managers with browser extensions do it.
 ![ToothPasteScripting](/web/public/ToothPasteScripting.png)
 
 
+There are features on the WebApp that I'll slowly document here and ToothPaste web hasn't gotten much TLC since I became enamoured with ToothPasteDesktop's Rust. 
 
-There are features on the WebApp that I'll slowly document here and there is cursed vibe-coded tailwind styling begging to be turned into recyclable classes. ToothPaste is still a work in progress but it is finally at a point where I use it daily, so I thought its as good a time as any to open-source it. 
+ToothPaste is still a work in progress but it is finally at a point where I use it daily, so I thought its as good a time as any to open-source it. 
 
 If you find discrepancies or would like to contribute in any way, feel free to create issues but since I'm just a little guy, I might take a while to get to reviewing them. 
