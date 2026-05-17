@@ -104,7 +104,7 @@ For most hobbyists, any development board will suffice. But considering that we'
 | Cross-Platform | ✅ | ✅ |
 | Security Stack | MBedTLS | MBedTLS + Cryptoauthlib |
 | Credential Storage | Software-Bound 🟠  | Hardware-Bound 🟢 |
-| Paired Device Limit | 5 | 8 |
+| Requires Extra Config | ❎ | ☑️ |
 
 ### I present...
 
