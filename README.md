@@ -45,7 +45,8 @@
 - [There's a lot more...](#theres-a-lot-more)
 
 # The Problem ❓
-The core idea was to eliminate the need for complicated and lengthy login flows for one-off cases where a keyboard would normally be required or is the **only device that is supported** (BIOS, air-gapped systems, shady back-alley computers where you don't want to install your password manager etc.). 
+> [!NOTE]
+> The core idea was to eliminate the need for complicated and lengthy login flows for one-off cases where a keyboard would normally be required or is the **only device that is supported** (BIOS, air-gapped systems, shady back-alley computers where you don't want to install your password manager etc.). 
 
 This means existing solutions like [KDE Connect](https://github.com/KDE/kdeconnect-kde) are non-starters since, at the very least, they require both devices to run a compatible operating system and allow installing third-party software.
 
@@ -63,7 +64,11 @@ The [USB Rubber Ducky by Hak5](https://hak5.org/products/usb-rubber-ducky?varian
 
 # Quick Start 📦
 
-The quickest way to get started is to go to [The ToothPaste Webapp](https://www.toothpasteapp.com) and click **Update**. This opens a WEB Serial selector and lets you select a connected ESP32-S3 device to flash the firmware. 
+> [!TIP]
+> The quickest way to get started is to go to [The ToothPaste Webapp](https://www.toothpasteapp.com) and click **Update**. This opens a WEB Serial selector and lets you select a connected ESP32-S3 device to flash the firmware.
+
+> [!NOTE] 
+> The ToothPaste webapp requires Web-API support which is only available on chromium based browsers like Brave, Edge and Chrome. If you're a non-chromium purist I suggest using the desktop app.
 
 #### Alternatively, download the latest .bin firmware file from the releases section and flash it using [esptool](https://github.com/espressif/esptool) / [espwebtool](https://esptool.spacehuhn.com/) or a similar flasher utility.
 
@@ -153,7 +158,8 @@ However, as of now Web BLE only supports the "just works" authentication method,
 
 **So we need to ensure that only authenticated devices are allowed to send data that is then typed out.**
 
-Without delving into the complete reasoning for **not** choosing any of the other standards for cryptography (sersiously there's way too much information out there for the pros and cons of each) I decided to go with a two-step encryption workflow combining [**ECDH Public Key Cryptography**](https://www.cloudflare.com/learning/ssl/how-does-public-key-encryption-work/) and a partially Out of Band (OOB: *fancy way of saying the keys arent shared over BLE*) key exchange to derive a symmetric **AES-256** key that is used to encrypt the ToothPaste packets (_or ToothPackets if you're cool_).
+> [!IMPORTANT]
+> Without delving into the complete reasoning for **not** choosing any of the other standards for cryptography (sersiously there's way too much information out there for the pros and cons of each) I decided to go with a two-step encryption workflow combining [**ECDH Public Key Cryptography**](https://www.cloudflare.com/learning/ssl/how-does-public-key-encryption-work/) and a partially Out of Band (OOB: *fancy way of saying the keys arent shared over BLE*) key exchange to derive a symmetric **AES-256** key that is used to encrypt the ToothPaste packets (_or ToothPackets if you're cool_).
 
 With the [ATECC608B CryptoAuth IC](https://www.microchip.com/en-us/product/atecc608b), **ToothPaste V2.0** also ensures that even if you physically took apart the ToothPaste and hooked up to the raw flash memory of the ESP32-WROOM module you wouldn't be able to find the security credentials anywhere. The ATECC generates and stores these credentials in its isolated flash and never exposes them to the rest of the ToothPaste firmware, the only information sent over its I2C bus is the session-specific AES-256 key which finally encrypts the data. Since this key is unique and a new one is generated every time you connect to a ToothPaste, someone getting their hands on it after a session disconnects doesn't affect us at all.
 
@@ -165,9 +171,9 @@ With the [ATECC608B CryptoAuth IC](https://www.microchip.com/en-us/product/atecc
 
 ### ☀️ ToothPaste is entirely local. There is no server, no agent, no SaaS cloud-native troll "guarding" your data.
 
-This means if someone can dump the indexdb data stored in your browser they can access your AES Key and impersonate the device from which the commands are sent. 
-
-_although if someone has gotten this far, the ToothPaste might be the least of your concerns 💀_
+> [!CAUTION]
+> This means if someone can dump the indexdb data stored in your browser they can access your AES Key and impersonate the device from which the commands are sent. 
+> _although if someone has gotten this far, the ToothPaste might be the least of your concerns 💀_
 
 ### 🤷 But Because I can 
 
