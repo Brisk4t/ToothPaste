@@ -594,6 +594,13 @@ CONFIG_PARTITION_TABLE_MD5=y
 # end of Partition Table
 
 #
+# ToothPaste
+#
+# CONFIG_TOOTHPASTE_SOFTWARE_CRYPTO is not set
+CONFIG_TOOTHPASTE_RGB_LED_PIN=12
+# end of ToothPaste
+
+#
 # Arduino Configuration
 #
 CONFIG_ARDUINO_VARIANT="esp32s3"

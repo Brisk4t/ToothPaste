@@ -5,7 +5,7 @@
 #include "esp_log.h"
 #include "SecureSession.h"
 
-//#define USE_SOFTWARE_CRYPTO // Comment out to use ATECC608B hardware secure element instead of software crypto
+// USE_SOFTWARE_CRYPTO is injected by CMakeLists.txt based on CONFIG_TOOTHPASTE_SOFTWARE_CRYPTO
 static const char* TAG = "SESSION";
 
 psa_key_id_t private_key_id = 0;  // Stores the ECDH private key ID

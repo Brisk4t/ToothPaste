@@ -6,7 +6,11 @@ file(GLOB_RECURSE component_sources
 
 # Register the component with ESP-IDF
 idf_component_register(
-    SRCS ${component_sources}           # All source files found
-    INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}"  # Header search path
-    REQUIRES arduino-esp32 nvs_flash toothPacket esp-cryptoauthlib      # Optional: list dependencies
+    SRCS ${component_sources}
+    INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}"
+    REQUIRES arduino-esp32 nvs_flash toothPacket esp-cryptoauthlib
 )
+
+if(CONFIG_TOOTHPASTE_SOFTWARE_CRYPTO)
+    target_compile_definitions(${COMPONENT_LIB} PUBLIC USE_SOFTWARE_CRYPTO)
+endif()

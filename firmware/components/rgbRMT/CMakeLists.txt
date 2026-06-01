@@ -6,7 +6,11 @@ file(GLOB_RECURSE component_sources
 
 # Register the component with ESP-IDF
 idf_component_register(
-    SRCS ${component_sources}           # All source files found
-    INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}"  # Header search path
-    REQUIRES arduino-esp32      # Optional: list dependencies
+    SRCS ${component_sources}
+    INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}"
+    REQUIRES arduino-esp32
+)
+
+target_compile_definitions(${COMPONENT_LIB} PRIVATE
+    "RGB_LED_PIN=GPIO_NUM_${CONFIG_TOOTHPASTE_RGB_LED_PIN}"
 )

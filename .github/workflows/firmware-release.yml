@@ -1,0 +1,81 @@
+name: Build and Release Firmware
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ${{ matrix.config }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - config: 8MB_MBEDTLS
+            flash_size: 8MB
+            sdkconfig_file: sdkconfig.defaults.8mb_mbedtls
+          - config: 4MB_MBEDTLS
+            flash_size: 4MB
+            sdkconfig_file: sdkconfig.defaults.4mb_mbedtls
+          - config: 8MB_ATECC
+            flash_size: 8MB
+            sdkconfig_file: sdkconfig.defaults.8mb_atecc
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build firmware (${{ matrix.config }})
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v5.5.4
+          target: esp32s3
+          path: firmware
+          # Remove the committed sdkconfig so idf.py starts from our defaults file,
+          # then build. The committed sdkconfig is for local dev; CI uses the
+          # variant-specific defaults files instead.
+          command: rm -f sdkconfig && idf.py "-DSDKCONFIG_DEFAULTS=sdkconfig.defaults;${{ matrix.sdkconfig_file }}" build
+
+      - name: Merge bootloader + partition table + app
+        run: |
+          pip install esptool --quiet
+          python -m esptool --chip esp32s3 merge_bin \
+            -o ToothPasteFirmware_${{ matrix.config }}.bin \
+            --flash_mode dio \
+            --flash_freq 80m \
+            --flash_size ${{ matrix.flash_size }} \
+            0x0     firmware/build/bootloader/bootloader.bin \
+            0x8000  firmware/build/partition_table/partition-table.bin \
+            0x10000 firmware/build/ToothPaste.bin
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ToothPasteFirmware_${{ matrix.config }}
+          path: ToothPasteFirmware_${{ matrix.config }}.bin
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all firmware artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: release-artifacts
+
+      - name: Create release with firmware binaries
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-artifacts/*.bin
+          generate_release_notes: true

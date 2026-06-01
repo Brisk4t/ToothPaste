@@ -1,0 +1,19 @@
+menu "ToothPaste"
+
+    config TOOTHPASTE_SOFTWARE_CRYPTO
+        bool "Use software crypto (mbedTLS / PSA)"
+        default n
+        help
+            Perform ECDH key generation and shared-secret derivation entirely
+            in software via mbedTLS PSA Crypto. When disabled, the ATECC608
+            secure element handles key operations so private key material never
+            enters RAM.
+
+    config TOOTHPASTE_RGB_LED_PIN
+        int "RGB LED GPIO pin"
+        default 12
+        range 0 48
+        help
+            GPIO pin number connected to the WS2812 RGB LED data line.
+
+endmenu
