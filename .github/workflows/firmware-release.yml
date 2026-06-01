@@ -17,12 +17,15 @@ jobs:
           - config: 8MB_MBEDTLS
             flash_size: 8MB
             sdkconfig_file: sdkconfig.defaults.8mb_mbedtls
-          - config: 4MB_MBEDTLS
-            flash_size: 4MB
-            sdkconfig_file: sdkconfig.defaults.4mb_mbedtls
           - config: 8MB_ATECC
             flash_size: 8MB
             sdkconfig_file: sdkconfig.defaults.8mb_atecc
+          - config: 4MB_MBEDTLS_LED48
+            flash_size: 4MB
+            sdkconfig_file: sdkconfig.defaults.4mb_mbedtls_led48
+          - config: 4MB_MBEDTLS_LED10
+            flash_size: 4MB
+            sdkconfig_file: sdkconfig.defaults.4mb_mbedtls_led10
 
     steps:
       - name: Checkout repository

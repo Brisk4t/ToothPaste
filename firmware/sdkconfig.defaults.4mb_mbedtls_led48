@@ -1,4 +1,4 @@
-# Build variant: 4MB flash, software MBEDTLS only (no ATECC hardware ECDSA)
+# Build variant: 4MB flash, software MBEDTLS, RGB LED on GPIO 48
 
 # Flash configuration
 CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
@@ -17,3 +17,6 @@ CONFIG_ATCA_I2C_BAUD_RATE=100000
 
 # Software crypto path (no ATECC hardware ECDSA)
 CONFIG_TOOTHPASTE_SOFTWARE_CRYPTO=y
+
+# RGB LED pin
+CONFIG_TOOTHPASTE_RGB_LED_PIN=48
