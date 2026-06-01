@@ -7,7 +7,7 @@
 
 #include "esp_log.h"
 #include "espHID.h"
-#include "secureSession.h"
+#include "SecureSession.h"
 #include "toothpacket.pb.h"
 
 #define FIRMWARE_VERSION            "0.9.0"
