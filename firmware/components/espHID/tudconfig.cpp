@@ -4,10 +4,12 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/gpio.h"
+#include "fido_u2f.h"
 
 // FIDO U2F is a "HID device" but it doesn't use the standard HID report descriptor, so we need to define our own total length
-#define TOOTHPASTE_USER_HID_DEVICES CFG_TUD_HID-1
-#define TUSB_DESC_TOTAL_LEN      (TUD_CONFIG_DESC_LEN + TOOTHPASTE_USER_HID_DEVICES * TUD_HID_DESC_LEN + TUD_HID_INOUT_DESC_LEN)
+// The other option is i start going through the tinyusb code but ughhh
+#define TOOTHPASTE_USER_HID_DEVICES (CFG_TUD_HID-1)
+#define TUSB_DESC_TOTAL_LEN      (TUD_CONFIG_DESC_LEN + (TOOTHPASTE_USER_HID_DEVICES * TUD_HID_DESC_LEN) + TUD_HID_INOUT_DESC_LEN)
 
 static const char *TAG = "hid_keyboard";
 
@@ -165,18 +167,33 @@ void tudsetup()
 //   return hid_configuration_descriptor;
 // }
 
-// Invoked when received GET_REPORT control request
-// Application must fill buffer report's content and return its length.
-// Return zero will cause the stack to STALL request
-uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type, uint8_t *buffer, uint16_t reqlen)
+uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id,
+                                hid_report_type_t report_type,
+                                uint8_t *buffer, uint16_t reqlen)
 {
-    (void) instance;
-    (void) report_id;
-    (void) report_type;
-    (void) buffer;
-    (void) reqlen;
-
+    if (instance == FIDO_TUD_ITF) {
+        return ctap_hid_get_report(instance, report_id, report_type, buffer, reqlen);
+    }
+    //memset(buffer, 0, reqlen);
     return 0;
+}
+
+void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
+                            hid_report_type_t report_type,
+                            uint8_t const *buffer, uint16_t bufsize)
+{
+    if (instance == FIDO_TUD_ITF) {
+        ctap_hid_set_report(instance, report_id, report_type, buffer, bufsize);
+    }
+    /* keyboard/mouse/consumer SET_REPORT not used – ignore */
+}
+
+void tud_hid_report_complete_cb(uint8_t instance,
+                                 uint8_t const *report, uint16_t len)
+{
+    if (instance == FIDO_TUD_ITF) {
+        ctap_hid_report_complete(instance, report, len);
+    }
 }
 
 uint8_t const * tud_hid_descriptor_report_cb(uint8_t itf)
@@ -201,10 +218,5 @@ uint8_t const * tud_hid_descriptor_report_cb(uint8_t itf)
   return NULL;
 }
 
-// Invoked when received SET_REPORT control request or
-// received data on OUT endpoint ( Report ID = 0, Type = 0 )
-void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type, uint8_t const *buffer, uint16_t bufsize)
-{
-}
 
 

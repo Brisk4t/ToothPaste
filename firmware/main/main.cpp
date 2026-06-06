@@ -11,6 +11,7 @@
 #include "espHID.h"
 #include "main.h"
 #include "ble.h"
+#include "fido_u2f.h"
 
 //#define ATCA_NO_POLL
 static const char* TAG = "MAIN";
@@ -35,17 +36,18 @@ extern "C" void app_main() {
 
     // Initialize devices
     hidSetup();          // HID device
-    bleSetup(&sec);      // BLE device with secure session
     sec.init();          // Secure session
+    bleSetup(&sec);      // BLE device with secure session
+    fido_u2f_init();     // FIDO U2F/CTAP2 stack
 
     // Register button callbacks — any component can call registerButtonCallback() to hook in
 
     // Single press callback
-    registerButtonCallback(ButtonEvent::SINGLE_PRESS, []() {
-        if (stateManager->getState() == PAIRING) {
-            sendString(sec.base64pubKey, 45, true); // Resend public key over HID
-        }
-    });
+    // registerButtonCallback(ButtonEvent::SINGLE_PRESS, []() {
+    //     if (stateManager->getState() == PAIRING) {
+    //         sendString(sec.base64pubKey, 45, true); // Resend public key over HID
+    //     }
+    // });
 
     // Hold callback to enter pairing mode
     registerButtonCallback(ButtonEvent::HOLD, []() { sec.enterPairingMode(); });
