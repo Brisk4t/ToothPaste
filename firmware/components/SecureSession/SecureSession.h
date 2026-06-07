@@ -35,6 +35,7 @@ public:
 
 
     unsigned char sessionSalt[32] = {0}; // Salt for the current session
+    char base64pubKey[45] = {0};         // Base64-encoded local public key, populated by enterPairingMode()
 
 
     // Initialize PSA Crypto subsystem; must be called before other operations
@@ -42,6 +43,9 @@ public:
 
     // Generate ECDH keypair, output public key bytes
     int generateKeypair(uint8_t outPublicKey[PUBKEY_SIZE], size_t& outPubLen);
+
+    // Trigger pairing: generate keypair, encode, set device state, and schedule HID transmission
+    void enterPairingMode();
 
     // Compute shared secret given peer public key bytes
     int computeSharedSecret(const uint8_t peerPublicKey[PUBKEY_SIZE], size_t peerPubLen, const char* base64pubKey);

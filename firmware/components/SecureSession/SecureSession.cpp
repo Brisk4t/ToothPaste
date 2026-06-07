@@ -1,9 +1,13 @@
 #include <Preferences.h>
 #include <nvs_flash.h>
 #include <psa/crypto.h>
+#include <esp_timer.h>
 
 #include "esp_log.h"
 #include "SecureSession.h"
+#include "StateManager.h"
+#include "NeoPixelRMT.h"
+#include "espHID.h"
 
 // USE_SOFTWARE_CRYPTO is injected by CMakeLists.txt based on CONFIG_TOOTHPASTE_SOFTWARE_CRYPTO
 static const char* TAG = "SESSION";
@@ -154,6 +158,60 @@ int SecureSession::generateKeypair(uint8_t outPublicKey[PUBKEY_SIZE], size_t& ou
 
     ESP_LOGI(TAG, "Keypair generated");
     return 0;
+}
+
+// Send the public key over HID and wait for the peer public key
+static void sendPublicKey(void* arg) {
+  SecureSession* session = static_cast<SecureSession*>(arg);
+  ESP_LOGI("SESSION", "Sending public key: %s", session->base64pubKey);
+  sendString(session->base64pubKey); // Send the public key to the client over HID
+  sendString("\n");
+  led.blinkEnd(); // Stop blinking
+
+  // Finish the handshake here
+  led.set(Colors::Purple); // Set green to indicate waiting for peer public key
+  //enablePairingMode(); // Set ble to interpret the next write as a peer public key
+}
+
+// Enter pairing mode, generate a keypair, and send the public key to the transmitter
+void SecureSession::enterPairingMode() {
+  ESP_LOGI(TAG, "Entering pairing mode");
+  stateManager->setState(PAIRING);
+
+  uint8_t pubKey[PUBKEY_SIZE];
+  size_t pubLen;
+
+  int ret = generateKeypair(pubKey, pubLen); // Generate the compressed public key in pairing mode
+
+  // Successful keygen returns 0
+  if (!ret) {
+    // Base64 encode the public key for transmission
+    size_t olen = 0;
+    mbedtls_base64_encode((unsigned char *)base64pubKey, sizeof(base64pubKey), &olen, pubKey, PUBKEY_SIZE);
+    base64pubKey[olen] = '\0';  // Null-terminate the public key string
+
+    // Print Public Key to Serial
+    ESP_LOGI(TAG, "Public key generated: %s", base64pubKey);
+
+    // Create a one-shot timer to send the public key after 5 seconds
+    esp_timer_create_args_t timer_args = {
+      .callback = &sendPublicKey,
+      .arg = this,
+      .dispatch_method = ESP_TIMER_TASK,
+      .name = "delayedFn"
+    };
+    esp_timer_handle_t oneShotTimer;
+    esp_timer_create(&timer_args, &oneShotTimer);
+    esp_timer_start_once(oneShotTimer, 5000000); // 5 seconds
+  }
+
+  else {
+    char retchar[12];
+    snprintf(retchar, 12, "%d", ret);
+
+    ESP_LOGE(TAG, "Keygen failed with error: %s", retchar);
+    stateManager->setState(ERROR);
+  }
 }
 
 // Compute shared secret given the peer's public key.

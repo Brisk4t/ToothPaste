@@ -13,7 +13,7 @@ endif()
 idf_component_register(
     SRCS ${component_sources}
     INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}"
-    REQUIRES arduino-esp32 nvs_flash toothPacket ${CRYPTO_REQUIRES}
+    REQUIRES arduino-esp32 nvs_flash toothPacket stateManager espHID rgbRMT ${CRYPTO_REQUIRES}
 )
 
 if(CONFIG_TOOTHPASTE_SOFTWARE_CRYPTO)
