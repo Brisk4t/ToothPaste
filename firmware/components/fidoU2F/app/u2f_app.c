@@ -227,7 +227,7 @@ static int cmd_register(void) {
     const uint8_t *challenge = apdu.data;
     const uint8_t *app_param = apdu.data + 32;
 
-    if (!u2f_presence_wait(10000)) return SW_CONDITIONS_NOT_SATISFIED();
+    if (u2f_presence_check(10000) > 0) return SW_CONDITIONS_NOT_SATISFIED();
 
     /* Derive key handle (64 bytes) and keypair */
     uint8_t key_handle[KEY_HANDLE_LEN];
@@ -333,7 +333,7 @@ static int cmd_authenticate(void) {
         return SW_CONDITIONS_NOT_SATISFIED();   /* valid handle, no sign */
 
     if (p1 == U2F_AUTH_ENFORCE || p1 == U2F_AUTH_NO_ENFORCE) {
-        if (p1 == U2F_AUTH_ENFORCE && !u2f_presence_wait(10000))
+        if (p1 == U2F_AUTH_ENFORCE && u2f_presence_check(10000) > 0)
             return SW_CONDITIONS_NOT_SATISFIED();
 
         /* Re-derive credential keypair */

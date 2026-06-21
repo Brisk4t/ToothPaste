@@ -26,8 +26,21 @@ extern "C" {
 void u2f_presence_init(void);
 
 /* Block until the user presses the button or timeout_ms elapses.
- * Returns true if approved, false on timeout or cancellation. */
+ * Returns true if approved, false on timeout or cancellation.
+ * Used by the CTAP2/CBOR path (check_user_presence), where the host
+ * sends one command and waits on KEEPALIVE frames. */
 bool u2f_presence_wait(uint32_t timeout_ms);
+
+/* Non-blocking per-poll presence check for the CTAP1/U2F path.
+ * Mirrors pico-keys wait_button_pressed():
+ *   0 = button pressed (proceed)
+ *   1 = not pressed yet / timed out (return SW_CONDITIONS_NOT_SATISFIED)
+ *   2 = cancelled
+ * The first call arms the request (starts the LED, sets the deadline);
+ * subsequent calls return quickly so each host poll gets a prompt
+ * response. A press arriving between polls is latched and reported on
+ * the next call. */
+int u2f_presence_check(uint32_t timeout_ms);
 
 /* Non-blocking: returns true while u2f_presence_wait() is blocked
  * waiting for a button press. Used by send_keepalive() to set the

@@ -58,8 +58,8 @@ bool is_nk = false;
 uint8_t (*get_version_major)(void) = NULL;
 uint8_t (*get_version_minor)(void) = NULL;
 
-static usb_buffer_t *hid_rx = NULL;
-static usb_buffer_t *hid_tx = NULL;
+static usb_buffer_t hid_rx[ITF_HID_TOTAL];
+static usb_buffer_t hid_tx[ITF_HID_TOTAL];
 
 PACK(
 typedef struct msg_packet {
@@ -70,8 +70,8 @@ typedef struct msg_packet {
 
 static msg_packet_t msg_packet = { 0 };
 
-static uint16_t       *send_buffer_size  = NULL;
-static write_status_t *last_write_result = NULL;
+static uint16_t       send_buffer_size[ITF_HID_TOTAL];
+static write_status_t last_write_result[ITF_HID_TOTAL];
 
 CTAPHID_FRAME *ctap_req  = NULL;
 CTAPHID_FRAME *ctap_resp = NULL;
@@ -107,20 +107,8 @@ static uint32_t hid_write(uint16_t size) {
  * ----------------------------------------------------------------------- */
 
 void hid_init(void) {
-    if (send_buffer_size == NULL) {
-        send_buffer_size = (uint16_t *)calloc(ITF_HID_TOTAL, sizeof(uint16_t));
-    }
-    if (last_write_result == NULL) {
-        last_write_result = (write_status_t *)calloc(ITF_HID_TOTAL, sizeof(write_status_t));
-    }
-    if (hid_rx == NULL) {
-        hid_rx = (usb_buffer_t *)calloc(ITF_HID_TOTAL, sizeof(usb_buffer_t));
-    }
-    if (hid_tx == NULL) {
-        hid_tx = (usb_buffer_t *)calloc(ITF_HID_TOTAL, sizeof(usb_buffer_t));
-    }
-    /* Run NVS + presence init now, before any USB traffic arrives, so the
-     * 20ms NVS read never blocks inside the TinyUSB callback. */
+    ctap_req  = (CTAPHID_FRAME *)(hid_rx[ITF_HID_CTAP].buffer);
+    ctap_resp = (CTAPHID_FRAME *)(hid_tx[ITF_HID_CTAP].buffer);
     init_fido();
 }
 
@@ -184,29 +172,19 @@ int ctap_error(uint8_t error) {
  * ----------------------------------------------------------------------- */
 
 static void send_keepalive(void) {
-    if (ctap_req == NULL) return;
-    /* Allow keepalives during CBOR (thread_type==2) always, and during
-     * CTAP1 MSG (thread_type==1) only while blocking for user presence.
-     * Never send outside an active command session — keepalives on
-     * CID_BROADCAST or after CTAPHID_INIT cause Windows/Chrome to treat
-     * the device as stuck and retry INIT endlessly. */
-    if (thread_type == 2) {
-        /* CBOR: always send */
-    } else if (thread_type == 1 && is_req_button_pending()) {
-        /* CTAP1 MSG: only while u2f_presence_wait is blocking */
-    } else {
+    if (thread_type == 1) {
         return;
     }
     CTAPHID_FRAME *resp = (CTAPHID_FRAME *)(
         hid_tx[ITF_HID_CTAP].buffer +
         sizeof(hid_tx[ITF_HID_CTAP].buffer) - 64);
-    resp->cid           = ctap_req->cid;
-    resp->init.cmd      = CTAPHID_KEEPALIVE;
-    resp->init.bcnth    = 0;
-    resp->init.bcntl    = 1;
-    resp->init.data[0]  = (thread_type == 1 || is_req_button_pending()) ?
-                          KEEPALIVE_STATUS_UPNEEDED :
-                          KEEPALIVE_STATUS_PROCESSING;
+    resp->cid          = ctap_req->cid;
+    resp->init.cmd     = CTAPHID_KEEPALIVE;
+    resp->init.bcnth   = 0;
+    resp->init.bcntl   = 1;
+    resp->init.data[0] = is_req_button_pending() ?
+                         KEEPALIVE_STATUS_UPNEEDED :
+                         KEEPALIVE_STATUS_PROCESSING;
     driver_write_hid(ITF_HID_CTAP, (const uint8_t *)resp, 64);
 }
 
@@ -461,10 +439,10 @@ int driver_process_usb_packet_hid(uint16_t read) {
     else if ((last_cmd == CTAPHID_MSG) &&
              (msg_packet.len == 0 ||
               (msg_packet.len == msg_packet.current_len && msg_packet.len > 0))) {
-        /* U2F MSG (CTAP1) path – evict any lingering CBOR task so its
-         * vTaskDelay wakeup cannot steal the EV_CMD_AVAILABLE we're about
-         * to post for apdu_thread. */
-        ctap_task_reset();
+        /* U2F MSG (CTAP1) path. The worker thread is reused across host
+         * polls (ctap_task_start only relaunches when switching between
+         * apdu_thread and cbor_thread), so a Windows retry no longer kills
+         * a worker that is waiting for / processing a button press. */
         select_app(u2f_aid + 1, u2f_aid[0]);
         thread_type = 1;
 
@@ -543,7 +521,7 @@ void hid_task(void) {
         int status = ctap_task_poll(ITF_HID);
         if (status == PICOKEYS_OK) {
             driver_exec_finished_hid(finished_data_size);
-            thread_type = 0;   /* CBOR transaction done; stop keepalives */
+            thread_type = 0;
         }
         else if (status == PICOKEYS_ERR_BLOCKED) {
             send_keepalive();
@@ -589,10 +567,6 @@ void ctap_hid_set_report(uint8_t instance, uint8_t report_id,
                           hid_report_type_t report_type,
                           uint8_t const *buffer, uint16_t bufsize) {
     (void)instance; (void)report_id; (void)report_type;
-
-    if (hid_rx == NULL) {
-        return; /* hid_init() not yet called */
-    }
 
     /* Buffer the incoming 64-byte CTAP frame and process it */
     memcpy(hid_rx[ITF_HID_CTAP].buffer + hid_rx[ITF_HID_CTAP].w_ptr,
