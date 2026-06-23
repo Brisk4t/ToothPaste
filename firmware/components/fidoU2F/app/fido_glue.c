@@ -5,7 +5,7 @@
  *   - load_keydev / derive_key / fido_load_key / verify_key  (key management)
  *   - credential_create / _verify / _load / _free            (credential ID lifecycle)
  *   - COSE_key / COSE_public_key / COSE_read_key             (CBOR COSE encoding)
- *   - fido_get_cert_der / x509_generate_cert                 (attestation cert)
+ *   - fido_get_cert_der                                      (self-attestation cert)
  *   - fido_get_sign_counter / fido_increment_sign_counter    (monotonic counter)
  *   - check_user_presence                                    (user touch gate)
  *
@@ -30,8 +30,6 @@
 #include "mbedtls/x509_crt.h"
 #include "mbedtls/pk.h"
 #include "mbedtls/bignum.h"
-#include "mbedtls/asn1write.h"
-#include "mbedtls/asn1.h"
 #include <string.h>
 #include <stdio.h>
 
@@ -70,10 +68,19 @@ int random_fill_iterator(void *rng_state, unsigned char *output, size_t len)
 
 /* -----------------------------------------------------------------------
  * Device master key
+ *
+ * SW path: reads the NVS attestation key (same 32-byte scalar used for
+ *          both attestation signing and credential HKDF derivation).
+ * HW path: derives 32 bytes from ATECC slot 9 via HMAC-SHA256, so that
+ *          the credential encryption root never touches NVS.
  * ----------------------------------------------------------------------- */
 int load_keydev(uint8_t key[32])
 {
+#ifdef USE_SOFTWARE_CRYPTO
     esp_err_t err = u2f_store_get_attestation_key(key);
+#else
+    esp_err_t err = u2f_store_hw_get_cred_key(key);
+#endif
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "load_keydev failed: %s", esp_err_to_name(err));
         return PICOKEYS_ERR_MEMORY_FATAL;
@@ -710,28 +717,31 @@ err:
     return error;
 }
 
-/* -----------------------------------------------------------------------
- * x509_generate_cert – SW-path: self-signed cert using the NVS P-256 key.
- * Returns byte count (right-aligned in buf) or negative mbedTLS error.
- * ----------------------------------------------------------------------- */
-#ifdef USE_SOFTWARE_CRYPTO
-static int x509_generate_cert(uint8_t *buf, size_t buf_size)
+/* Self-attestation cert — signed by the credential's own keypair, not cached. */
+int fido_get_cert_der(uint8_t *cert_der_buf, size_t *cert_der_len,
+                      mbedtls_ecp_keypair *kp)
 {
-    uint8_t priv_key_raw[32];
-    if (u2f_store_get_attestation_key(priv_key_raw) != ESP_OK) return -1;
+    mbedtls_mpi d;
+    mbedtls_mpi_init(&d);
+    int ret = mbedtls_ecp_export(kp, NULL, &d, NULL);
+    if (ret != 0) { mbedtls_mpi_free(&d); return ret; }
+
+    uint8_t d_buf[32];
+    ret = mbedtls_mpi_write_binary(&d, d_buf, sizeof(d_buf));
+    mbedtls_mpi_free(&d);
+    if (ret != 0) return ret;
 
     mbedtls_pk_context pk;
     mbedtls_pk_init(&pk);
-    mbedtls_pk_setup(&pk, mbedtls_pk_info_from_type(MBEDTLS_PK_ECKEY));
+    ret = mbedtls_pk_setup(&pk, mbedtls_pk_info_from_type(MBEDTLS_PK_ECKEY));
+    if (ret != 0) { mbedtls_platform_zeroize(d_buf, sizeof(d_buf)); return ret; }
 
-    mbedtls_ecp_keypair *kp = mbedtls_pk_ec(pk);
-    mbedtls_ecp_keypair_init(kp);
-    int ret = mbedtls_ecp_read_key(MBEDTLS_ECP_DP_SECP256R1, kp,
-                                   priv_key_raw, sizeof(priv_key_raw));
-    mbedtls_platform_zeroize(priv_key_raw, sizeof(priv_key_raw));
+    ret = mbedtls_ecp_read_key(MBEDTLS_ECP_DP_SECP256R1, mbedtls_pk_ec(pk),
+                                d_buf, sizeof(d_buf));
+    mbedtls_platform_zeroize(d_buf, sizeof(d_buf));
     if (ret != 0) { mbedtls_pk_free(&pk); return ret; }
 
-    ret = mbedtls_ecp_keypair_calc_public(kp, random_fill_iterator, NULL);
+    ret = mbedtls_ecp_keypair_calc_public(mbedtls_pk_ec(pk), random_fill_iterator, NULL);
     if (ret != 0) { mbedtls_pk_free(&pk); return ret; }
 
     mbedtls_x509write_cert crt;
@@ -750,276 +760,17 @@ static int x509_generate_cert(uint8_t *buf, size_t buf_size)
     mbedtls_x509write_crt_set_issuer_key (&crt, &pk);
     mbedtls_x509write_crt_set_basic_constraints(&crt, 0, 0);
 
-    ret = mbedtls_x509write_crt_der(&crt, buf, buf_size,
-                                    random_fill_iterator, NULL);
+    uint8_t scratch[1024];
+    int n = mbedtls_x509write_crt_der(&crt, scratch, sizeof(scratch),
+                                       random_fill_iterator, NULL);
     mbedtls_x509write_crt_free(&crt);
     mbedtls_pk_free(&pk);
-    return ret;
-}
-
-#else  /* !USE_SOFTWARE_CRYPTO – HW path: ATECC signs via u2f_store_hw_sign */
-
-/* DER-encode 64-byte raw R||S into SEQUENCE { INTEGER r, INTEGER s }.
- * Returns encoded length, or 0 on overflow. */
-static size_t rs_to_der(const uint8_t rs[64], uint8_t *out, size_t cap)
-{
-    uint8_t r[33], s[33];
-    size_t  rlen = 32, slen = 32;
-    if (rs[0]  & 0x80) { r[0] = 0; memcpy(r + 1, rs,      32); rlen = 33; }
-    else                  memcpy(r,           rs,      32);
-    if (rs[32] & 0x80) { s[0] = 0; memcpy(s + 1, rs + 32, 32); slen = 33; }
-    else                  memcpy(s,           rs + 32, 32);
-    size_t total = 2 + 2 + rlen + 2 + slen;
-    if (total > cap) return 0;
-    uint8_t *p = out;
-    *p++ = 0x30; *p++ = (uint8_t)(2 + rlen + 2 + slen);
-    *p++ = 0x02; *p++ = (uint8_t)rlen; memcpy(p, r, rlen); p += rlen;
-    *p++ = 0x02; *p++ = (uint8_t)slen; memcpy(p, s, slen); p += slen;
-    return (size_t)(p - out);
-}
-
-/* Build TBSCertificate DER backwards into buf for the given EC public key point
- * (65 bytes: 04||X||Y) and 16-byte serial number.
- * Returns total bytes written (right-aligned in buf) or negative error. */
-static int build_tbs_cert(uint8_t *buf, size_t buf_size,
-                           const uint8_t pub_point[65],
-                           const uint8_t serial[16])
-{
-    /* OIDs */
-    static const uint8_t OID_EC_PUBKEY[]    = {0x2A,0x86,0x48,0xCE,0x3D,0x02,0x01};
-    static const uint8_t OID_PRIME256V1[]   = {0x2A,0x86,0x48,0xCE,0x3D,0x03,0x01,0x07};
-    static const uint8_t OID_ECDSA_SHA256[] = {0x2A,0x86,0x48,0xCE,0x3D,0x04,0x03,0x02};
-    static const uint8_t OID_CN[]           = {0x55,0x04,0x03};
-
-    static const char DN[]         = "ToothPaste FIDO";
-    static const char NOT_BEFORE[] = "220901000000Z";
-    static const char NOT_AFTER[]  = "720831235959Z";
-
-    uint8_t *p     = buf + buf_size;
-    uint8_t *start = buf;
-    int      ret;
-    size_t   tbs_len = 0, inner;
-
-    /* ---- SubjectPublicKeyInfo ---- */
-    inner = 0;
-    {
-        /* BIT STRING: 0x00 || pub_point */
-        size_t bs = 0;
-        MBEDTLS_ASN1_CHK_ADD(bs, mbedtls_asn1_write_raw_buffer(&p, start, pub_point, 65));
-        *--p = 0x00; bs++;   /* no unused bits */
-        MBEDTLS_ASN1_CHK_ADD(bs, mbedtls_asn1_write_len(&p, start, bs));
-        MBEDTLS_ASN1_CHK_ADD(bs, mbedtls_asn1_write_tag(&p, start, MBEDTLS_ASN1_BIT_STRING));
-        inner += bs;
-
-        /* Algorithm SEQUENCE { ecPublicKey, prime256v1 } */
-        size_t alg = 0;
-        MBEDTLS_ASN1_CHK_ADD(alg, mbedtls_asn1_write_oid(&p, start,
-                (const char *)OID_PRIME256V1, sizeof(OID_PRIME256V1)));
-        MBEDTLS_ASN1_CHK_ADD(alg, mbedtls_asn1_write_oid(&p, start,
-                (const char *)OID_EC_PUBKEY, sizeof(OID_EC_PUBKEY)));
-        MBEDTLS_ASN1_CHK_ADD(alg, mbedtls_asn1_write_len(&p, start, alg));
-        MBEDTLS_ASN1_CHK_ADD(alg, mbedtls_asn1_write_tag(&p, start,
-                MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE));
-        inner += alg;
+    if (n <= 0) {
+        ESP_LOGE(TAG, "x509write_crt_der failed: %d", n);
+        return n ? n : -1;
     }
-    MBEDTLS_ASN1_CHK_ADD(inner, mbedtls_asn1_write_len(&p, start, inner));
-    MBEDTLS_ASN1_CHK_ADD(inner, mbedtls_asn1_write_tag(&p, start,
-            MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE));
-    tbs_len += inner;
-
-/* Helper macro: write a single-attribute Name (CN only) */
-#define WRITE_NAME(len_acc)                                                     \
-    do {                                                                        \
-        size_t _atav = 0;                                                       \
-        MBEDTLS_ASN1_CHK_ADD(_atav, mbedtls_asn1_write_utf8_string(            \
-                &p, start, DN, strlen(DN)));                                    \
-        MBEDTLS_ASN1_CHK_ADD(_atav, mbedtls_asn1_write_oid(                    \
-                &p, start, (const char *)OID_CN, sizeof(OID_CN)));             \
-        MBEDTLS_ASN1_CHK_ADD(_atav, mbedtls_asn1_write_len(&p, start, _atav)); \
-        MBEDTLS_ASN1_CHK_ADD(_atav, mbedtls_asn1_write_tag(&p, start,          \
-                MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE));             \
-        MBEDTLS_ASN1_CHK_ADD(_atav, mbedtls_asn1_write_len(&p, start, _atav)); \
-        MBEDTLS_ASN1_CHK_ADD(_atav, mbedtls_asn1_write_tag(&p, start,          \
-                MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SET));                  \
-        MBEDTLS_ASN1_CHK_ADD(len_acc, mbedtls_asn1_write_len(&p, start, _atav)); \
-        MBEDTLS_ASN1_CHK_ADD(len_acc, mbedtls_asn1_write_tag(&p, start,         \
-                MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE));              \
-        (len_acc) += _atav;                                                     \
-    } while (0)
-
-    /* ---- Subject ---- */
-    inner = 0; WRITE_NAME(inner); tbs_len += inner;
-
-    /* ---- Validity ---- */
-    inner = 0;
-    MBEDTLS_ASN1_CHK_ADD(inner, mbedtls_asn1_write_utctime(&p, start, NOT_AFTER));
-    MBEDTLS_ASN1_CHK_ADD(inner, mbedtls_asn1_write_utctime(&p, start, NOT_BEFORE));
-    MBEDTLS_ASN1_CHK_ADD(inner, mbedtls_asn1_write_len(&p, start, inner));
-    MBEDTLS_ASN1_CHK_ADD(inner, mbedtls_asn1_write_tag(&p, start,
-            MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE));
-    tbs_len += inner;
-
-    /* ---- Issuer (same DN) ---- */
-    inner = 0; WRITE_NAME(inner); tbs_len += inner;
-
-#undef WRITE_NAME
-
-    /* ---- Signature algorithm in TBS ---- */
-    inner = 0;
-    MBEDTLS_ASN1_CHK_ADD(inner, mbedtls_asn1_write_oid(&p, start,
-            (const char *)OID_ECDSA_SHA256, sizeof(OID_ECDSA_SHA256)));
-    MBEDTLS_ASN1_CHK_ADD(inner, mbedtls_asn1_write_len(&p, start, inner));
-    MBEDTLS_ASN1_CHK_ADD(inner, mbedtls_asn1_write_tag(&p, start,
-            MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE));
-    tbs_len += inner;
-
-    /* ---- SerialNumber ---- */
-    inner = 0;
-    MBEDTLS_ASN1_CHK_ADD(inner, mbedtls_asn1_write_raw_buffer(&p, start, serial, 16));
-    MBEDTLS_ASN1_CHK_ADD(inner, mbedtls_asn1_write_len(&p, start, inner));
-    MBEDTLS_ASN1_CHK_ADD(inner, mbedtls_asn1_write_tag(&p, start, MBEDTLS_ASN1_INTEGER));
-    tbs_len += inner;
-
-    /* ---- Version [0] EXPLICIT INTEGER 2 ---- */
-    inner = 0;
-    MBEDTLS_ASN1_CHK_ADD(inner, mbedtls_asn1_write_int(&p, start, 2));
-    MBEDTLS_ASN1_CHK_ADD(inner, mbedtls_asn1_write_len(&p, start, inner));
-    MBEDTLS_ASN1_CHK_ADD(inner, mbedtls_asn1_write_tag(&p, start,
-            MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_ASN1_CONSTRUCTED | 0));
-    tbs_len += inner;
-
-    /* ---- TBSCertificate SEQUENCE wrapper ---- */
-    MBEDTLS_ASN1_CHK_ADD(tbs_len, mbedtls_asn1_write_len(&p, start, tbs_len));
-    MBEDTLS_ASN1_CHK_ADD(tbs_len, mbedtls_asn1_write_tag(&p, start,
-            MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE));
-
-    /* p now points to TBS start; right-align by moving to buf start */
-    if (p != buf) memmove(buf, p, tbs_len);
-    return (int)tbs_len;
-}
-
-/* HW-path cert: TBSCertificate built with ASN.1 write, signed by ATECC slot 9.
- * Returns byte count (right-aligned in buf) or negative error. */
-static int x509_generate_cert(uint8_t *buf, size_t buf_size)
-{
-    static const uint8_t OID_ECDSA_SHA256[] = {0x2A,0x86,0x48,0xCE,0x3D,0x04,0x03,0x02};
-
-    /* Get ATECC public key */
-    uint8_t pubkey_raw[64];
-    if (u2f_store_hw_get_pubkey(pubkey_raw) != ESP_OK) return -1;
-    uint8_t pub_point[65];
-    pub_point[0] = 0x04;
-    memcpy(pub_point + 1, pubkey_raw, 64);
-
-    uint8_t serial[16];
-    esp_fill_random(serial, sizeof(serial));
-    serial[0] &= 0x7F;  /* ensure positive INTEGER */
-
-    /* Build TBSCertificate into a scratch buffer */
-    uint8_t tbs_buf[512];
-    int tbs_len = build_tbs_cert(tbs_buf, sizeof(tbs_buf), pub_point, serial);
-    if (tbs_len <= 0) return tbs_len ? tbs_len : -1;
-
-    /* Hash and sign with ATECC */
-    uint8_t tbs_hash[32];
-    mbedtls_sha256(tbs_buf, (size_t)tbs_len, tbs_hash, 0);
-
-    uint8_t raw_sig[64];
-    if (u2f_store_hw_sign(tbs_hash, raw_sig) != ESP_OK) return -1;
-
-    uint8_t der_sig[72];
-    size_t  der_sig_len = rs_to_der(raw_sig, der_sig, sizeof(der_sig));
-    if (der_sig_len == 0) return -1;
-
-    /* Assemble final Certificate backwards into buf */
-    uint8_t *p     = buf + buf_size;
-    uint8_t *start = buf;
-    int      ret;
-    size_t   cert_len = 0, inner;
-
-    /* signatureValue BIT STRING { DER-sig } */
-    inner = 0;
-    MBEDTLS_ASN1_CHK_ADD(inner, mbedtls_asn1_write_raw_buffer(&p, start,
-            der_sig, der_sig_len));
-    *--p = 0x00; inner++;   /* no unused bits */
-    MBEDTLS_ASN1_CHK_ADD(inner, mbedtls_asn1_write_len(&p, start, inner));
-    MBEDTLS_ASN1_CHK_ADD(inner, mbedtls_asn1_write_tag(&p, start,
-            MBEDTLS_ASN1_BIT_STRING));
-    cert_len += inner;
-
-    /* signatureAlgorithm AlgorithmIdentifier */
-    inner = 0;
-    MBEDTLS_ASN1_CHK_ADD(inner, mbedtls_asn1_write_oid(&p, start,
-            (const char *)OID_ECDSA_SHA256, sizeof(OID_ECDSA_SHA256)));
-    MBEDTLS_ASN1_CHK_ADD(inner, mbedtls_asn1_write_len(&p, start, inner));
-    MBEDTLS_ASN1_CHK_ADD(inner, mbedtls_asn1_write_tag(&p, start,
-            MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE));
-    cert_len += inner;
-
-    /* TBSCertificate (raw bytes, already DER-encoded by build_tbs_cert) */
-    if ((size_t)(p - start) < (size_t)tbs_len) return -1;
-    MBEDTLS_ASN1_CHK_ADD(cert_len, mbedtls_asn1_write_raw_buffer(&p, start,
-            tbs_buf, (size_t)tbs_len));
-
-    /* Outer Certificate SEQUENCE */
-    MBEDTLS_ASN1_CHK_ADD(cert_len, mbedtls_asn1_write_len(&p, start, cert_len));
-    MBEDTLS_ASN1_CHK_ADD(cert_len, mbedtls_asn1_write_tag(&p, start,
-            MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE));
-
-    return (int)cert_len;  /* DER is right-aligned: buf + buf_size - cert_len */
-}
-#endif /* USE_SOFTWARE_CRYPTO */
-
-/* -----------------------------------------------------------------------
- * fido_get_cert_der – Load (or generate and store) the attestation cert.
- *
- * cert_der_buf  output buffer
- * cert_der_len  in: buffer capacity; out: actual DER byte count
- * ----------------------------------------------------------------------- */
-#define NVS_NS_CERT "u2f_cert"
-#define NVS_KEY_DER "der"
-
-int fido_get_cert_der(uint8_t *cert_der_buf, size_t *cert_der_len)
-{
-    nvs_handle_t h;
-    esp_err_t err = nvs_open(NVS_NS_CERT, NVS_READWRITE, &h);
-    if (err != ESP_OK) return -1;
-
-    size_t stored_len = *cert_der_len;
-    err = nvs_get_blob(h, NVS_KEY_DER, cert_der_buf, &stored_len);
-
-    if (err == ESP_ERR_NVS_NOT_FOUND) {
-        /* Generate into a local scratch buffer then store in NVS */
-        uint8_t scratch[1024];
-        int n = x509_generate_cert(scratch, sizeof(scratch));
-        if (n <= 0) {
-            nvs_close(h);
-            ESP_LOGE(TAG, "x509_generate_cert failed: %d", n);
-            return n ? n : -1;
-        }
-        /* DER written right-aligned by mbedtls_x509write_crt_der */
-        const uint8_t *der = scratch + sizeof(scratch) - n;
-        err = nvs_set_blob(h, NVS_KEY_DER, der, (size_t)n);
-        if (err == ESP_OK) err = nvs_commit(h);
-        if (err == ESP_OK) {
-            if ((size_t)n > *cert_der_len) {
-                nvs_close(h);
-                return -1;
-            }
-            memcpy(cert_der_buf, der, (size_t)n);
-            *cert_der_len = (size_t)n;
-            ESP_LOGI(TAG, "Attestation cert generated (%d bytes)", n);
-        } else {
-            nvs_close(h);
-            return -1;
-        }
-    } else if (err != ESP_OK) {
-        nvs_close(h);
-        return -1;
-    } else {
-        *cert_der_len = stored_len;
-    }
-
-    nvs_close(h);
+    if ((size_t)n > *cert_der_len) return -1;
+    memcpy(cert_der_buf, scratch + sizeof(scratch) - n, (size_t)n);
+    *cert_der_len = (size_t)n;
     return 0;
 }

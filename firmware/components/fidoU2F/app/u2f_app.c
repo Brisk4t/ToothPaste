@@ -9,9 +9,10 @@
  * Key handles are 64 bytes: path(32) || HMAC-tag(32), created by derive_key()
  * and verified by verify_key() from fido_glue.c.
  *
- * Attestation signing:
- *   SW path: mbedTLS ECDSA with the NVS P-256 private key.
- *   HW path: ATECC608B slot 9 via u2f_store_hw_sign(); DER-encode afterwards.
+ * Attestation signing: mbedTLS ECDSA with the NVS P-256 private key on both
+ * SW and HW paths.  Per-credential ECC keypairs are derived by mbedTLS HKDF
+ * (derive_key in fido_glue.c); on the HW path the root material comes from
+ * ATECC slot 9 via u2f_store_hw_get_cred_key().
  *
  * Ported/adapted from pico-fido (polhenarejos/pico-fido), AGPL-3.0.
  */
@@ -96,78 +97,6 @@ static size_t raw_rs_to_der(const uint8_t *rs, uint8_t *buf, size_t cap)
     return (size_t)(p - buf);
 }
 
-/* -----------------------------------------------------------------------
- * Sign a 32-byte digest with the attestation key.
- * Writes DER signature into sig_buf, sets *sig_len.
- * Returns 0 on success.
- * ----------------------------------------------------------------------- */
-static int attest_sign(const uint8_t digest[32], uint8_t *sig_buf,
-                       size_t cap, size_t *sig_len)
-{
-#ifdef USE_SOFTWARE_CRYPTO
-    uint8_t priv[32];
-    if (u2f_store_get_attestation_key(priv) != ESP_OK) return -1;
-
-    mbedtls_ecp_keypair kp;
-    mbedtls_ecp_keypair_init(&kp);
-    int ret = mbedtls_ecp_read_key(MBEDTLS_ECP_DP_SECP256R1, &kp, priv, 32);
-    mbedtls_platform_zeroize(priv, sizeof(priv));
-    if (ret != 0) { mbedtls_ecp_keypair_free(&kp); return ret; }
-
-    ret = mbedtls_ecp_keypair_calc_public(&kp, random_fill_iterator, NULL);
-    if (ret != 0) { mbedtls_ecp_keypair_free(&kp); return ret; }
-
-    ret = mbedtls_ecdsa_write_signature((mbedtls_ecdsa_context *)&kp,
-                                        MBEDTLS_MD_SHA256,
-                                        digest, 32,
-                                        sig_buf, cap, sig_len,
-                                        random_fill_iterator, NULL);
-    mbedtls_ecp_keypair_free(&kp);
-    return ret;
-#else
-    uint8_t raw[64];
-    if (u2f_store_hw_sign(digest, raw) != ESP_OK) return -1;
-    *sig_len = raw_rs_to_der(raw, sig_buf, cap);
-    return (*sig_len > 0) ? 0 : -1;
-#endif
-}
-
-/* -----------------------------------------------------------------------
- * Get the uncompressed attestation public key (65 bytes: 0x04 || X || Y).
- * Returns 0 on success.
- * ----------------------------------------------------------------------- */
-static int attest_pubkey(uint8_t out[65])
-{
-#ifdef USE_SOFTWARE_CRYPTO
-    uint8_t priv[32];
-    if (u2f_store_get_attestation_key(priv) != ESP_OK) return -1;
-    mbedtls_ecp_keypair kp;
-    mbedtls_ecp_keypair_init(&kp);
-    int ret = mbedtls_ecp_read_key(MBEDTLS_ECP_DP_SECP256R1, &kp, priv, 32);
-    mbedtls_platform_zeroize(priv, sizeof(priv));
-    if (ret != 0) { mbedtls_ecp_keypair_free(&kp); return ret; }
-    ret = mbedtls_ecp_keypair_calc_public(&kp, random_fill_iterator, NULL);
-    if (ret == 0) {
-        mbedtls_ecp_point ecp_Q;
-        mbedtls_ecp_point_init(&ecp_Q);
-        ret = mbedtls_ecp_export(&kp, NULL, NULL, &ecp_Q);
-        if (ret == 0) {
-            out[0] = 0x04;
-            mbedtls_mpi_write_binary(&ecp_Q.X, out + 1,  32);
-            mbedtls_mpi_write_binary(&ecp_Q.Y, out + 33, 32);
-        }
-        mbedtls_ecp_point_free(&ecp_Q);
-    }
-    mbedtls_ecp_keypair_free(&kp);
-    return ret;
-#else
-    uint8_t raw[64];
-    if (u2f_store_hw_get_pubkey(raw) != ESP_OK) return -1;
-    out[0] = 0x04;
-    memcpy(out + 1, raw, 64);
-    return 0;
-#endif
-}
 
 /* -----------------------------------------------------------------------
  * init_fido / register_u2f_app
@@ -229,7 +158,6 @@ static int cmd_register(void) {
 
     if (u2f_presence_check(10000) > 0) return SW_CONDITIONS_NOT_SATISFIED();
 
-    /* Derive key handle (64 bytes) and keypair */
     uint8_t key_handle[KEY_HANDLE_LEN];
     mbedtls_ecp_keypair kp;
     mbedtls_ecp_keypair_init(&kp);
@@ -241,29 +169,30 @@ static int cmd_register(void) {
         return SW_UNKNOWN();
     }
 
-    /* Credential public key: uncompressed 04||X||Y */
     uint8_t pubkey[65];
     {
         mbedtls_ecp_point ecp_Q;
         mbedtls_ecp_point_init(&ecp_Q);
         int qret = mbedtls_ecp_export(&kp, NULL, NULL, &ecp_Q);
-        mbedtls_ecp_keypair_free(&kp);
-        if (qret != 0) { mbedtls_ecp_point_free(&ecp_Q); return SW_UNKNOWN(); }
+        if (qret != 0) {
+            mbedtls_ecp_point_free(&ecp_Q);
+            mbedtls_ecp_keypair_free(&kp);
+            return SW_UNKNOWN();
+        }
         pubkey[0] = 0x04;
         mbedtls_mpi_write_binary(&ecp_Q.X, pubkey + 1,  32);
         mbedtls_mpi_write_binary(&ecp_Q.Y, pubkey + 33, 32);
         mbedtls_ecp_point_free(&ecp_Q);
     }
 
-    /* Attestation cert */
     static uint8_t cert_der[1024];
     size_t cert_len = sizeof(cert_der);
-    if (fido_get_cert_der(cert_der, &cert_len) != 0) {
+    if (fido_get_cert_der(cert_der, &cert_len, &kp) != 0) {
         ESP_LOGE(TAG, "fido_get_cert_der failed");
+        mbedtls_ecp_keypair_free(&kp);
         return SW_UNKNOWN();
     }
 
-    /* TBS: SHA-256(0x00 || app_param || challenge || key_handle || pubkey) */
     uint8_t tbs_hash[32];
     {
         mbedtls_sha256_context sha;
@@ -281,14 +210,19 @@ static int cmd_register(void) {
 
     uint8_t sig[72];
     size_t  sig_len = sizeof(sig);
-    if (attest_sign(tbs_hash, sig, sig_len, &sig_len) != 0) {
-        ESP_LOGE(TAG, "attest_sign failed");
+    ret = mbedtls_ecdsa_write_signature((mbedtls_ecdsa_context *)&kp,
+                                        MBEDTLS_MD_SHA256,
+                                        tbs_hash, sizeof(tbs_hash),
+                                        sig, sizeof(sig), &sig_len,
+                                        random_fill_iterator, NULL);
+    mbedtls_ecp_keypair_free(&kp);
+    if (ret != 0) {
+        ESP_LOGE(TAG, "ecdsa_write_signature failed: %d", ret);
         return SW_UNKNOWN();
     }
 
-    /* Build response */
     uint8_t *p = res_APDU;
-    *p++ = 0x05;                                    /* reserved */
+    *p++ = 0x05;
     memcpy(p, pubkey, 65);          p += 65;
     *p++ = (uint8_t)KEY_HANDLE_LEN;
     memcpy(p, key_handle, KEY_HANDLE_LEN); p += KEY_HANDLE_LEN;

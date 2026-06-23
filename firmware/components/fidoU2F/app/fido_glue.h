@@ -183,16 +183,9 @@ bool check_user_presence(void);
  * COSE key encoding  (implementations in fido_glue.c, declared in ctap2_cbor.h)
  * ----------------------------------------------------------------------- */
 
-/* -----------------------------------------------------------------------
- * X.509 attestation certificate (self-signed, cached in NVS)
- *
- * cert_der_buf  output buffer for DER bytes
- * cert_der_len  in: buffer size; out: actual DER byte count
- *
- * On first call the cert is generated from the NVS attestation key and
- * stored in NVS "u2f_cert"/"der".  Subsequent calls reload from NVS.
- * ----------------------------------------------------------------------- */
-int fido_get_cert_der(uint8_t *cert_der_buf, size_t *cert_der_len);
+/* Self-attestation cert, per-registration (not cached). */
+int fido_get_cert_der(uint8_t *cert_der_buf, size_t *cert_der_len,
+                      mbedtls_ecp_keypair *kp);
 
 /* -----------------------------------------------------------------------
  * AAGUID (16 bytes)

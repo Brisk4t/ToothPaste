@@ -1,13 +1,15 @@
 /*
- * FIDO U2F credential storage – dual-path implementation.
+ * FIDO U2F credential storage -- dual-path implementation.
  *
  * Two compile-time paths share the same public API (u2f_store.h):
  *
  *   USE_SOFTWARE_CRYPTO (defined in CMakeLists / Kconfig)
- *     Attestation key : NVS namespace "u2f_attest", key "key" (32-byte blob)
- *     Sign counter    : NVS namespace "u2f_ctr",    key "ctr" (uint32)
+ *     Attestation key  : NVS namespace "u2f_attest", key "key" (32-byte scalar).
+ *                        Also used as the root material for credential HKDF/HMAC
+ *                        derivation.
+ *     Sign counter     : NVS namespace "u2f_ctr",    key "ctr" (uint32).
  *
- *     IMPORTANT – the NVS counter is NOT a guaranteed monotonic counter.
+ *     IMPORTANT -- the NVS counter is NOT a guaranteed monotonic counter.
  *     A power loss between nvs_set_u32() and nvs_commit() can leave the
  *     old value, and deliberate flash erasure resets it to zero.  This is
  *     acceptable for evaluation / development builds but MUST NOT be used
@@ -15,14 +17,18 @@
  *     concern.  Use the hardware path for a true monotonic counter.
  *
  *   Hardware path (ATECC608B, USE_SOFTWARE_CRYPTO not defined)
- *     Attestation key : ECC P-256 key pair generated into ATECC slot 9.
- *                       The private key is generated on-chip and never
- *                       exported.  get_attestation_key() / set_attestation_key()
- *                       return ESP_ERR_NOT_SUPPORTED; use u2f_store_hw_sign()
- *                       and u2f_store_hw_get_pubkey() from u2f_app.c instead.
- *     Sign counter    : ATECC Counter[0] — a hardware-guaranteed monotonic
- *                       counter with atomic increment semantics.  It cannot
- *                       be reset or decremented by software.
+ *     Attestation      : Self-attestation -- the per-credential ECC keypair
+ *                        (derived by mbedTLS) signs its own registration cert.
+ *                        No separate device attestation key is stored.
+ *     Credential key   : ATECC608B slot U2F_HW_CRED_SLOT (ECC P-256 slot).
+ *                        u2f_store_hw_get_cred_key() derives the 32-byte root
+ *                        material used to encrypt credentials sent back to the RP
+ *                        via static ECDH: atcab_ecdh(slot, G, pms) where G is the
+ *                        P-256 generator point.  The private key never leaves the
+ *                        chip; only the x-coordinate of (d * G) is returned.
+ *     Sign counter     : ATECC Counter[0] -- hardware-guaranteed monotonic
+ *                        counter with atomic increment semantics.  It cannot
+ *                        be reset or decremented by software.
  *
  *     Counter[1] is routed via U2F_HW_COUNTER_ID below.  The value is
  *     intentionally fixed at 0 (Counter[0]) in this file.  To switch to
@@ -50,7 +56,7 @@
 static const char *TAG = "u2f_store";
 
 /* -----------------------------------------------------------------------
- * Software path – NVS namespace and key constants
+ * NVS namespace and key constants (both paths)
  *
  * Two separate namespaces so each store can be managed or erased
  * independently (e.g. factory-reset only the counter without touching
@@ -64,15 +70,13 @@ static const char *TAG = "u2f_store";
 #define NVS_KEY_CTR     "ctr"
 
 /* -----------------------------------------------------------------------
- * Hardware path – slot and counter selection
+ * Hardware path -- credential key slot and counter selection
  *
- * U2F_HW_ATTESTATION_SLOT: ATECC608B ECC key slot used for attestation.
- *   Slot 9 is designated for the FIDO device master key.  genkey() is
- *   called once on first init; thereafter get_pubkey() reads the public
- *   key and sign() creates attestation/authentication signatures.
- *   This is intentionally NOT the ToothPaste slot manager's concern –
- *   the device master key occupies exactly one slot for the lifetime of
- *   the device and is never rotated via the session path.
+ * U2F_HW_CRED_SLOT: ATECC608B ECC P-256 slot used to protect credentials.
+ *   Slot 9 holds an ECC keypair generated on first boot via atcab_genkey().
+ *   At runtime, u2f_store_hw_get_cred_key() reads the slot's public key and
+ *   returns the x-coordinate as the deterministic 32-byte credential wrapping
+ *   key.  The private scalar never leaves the chip.
  *
  * U2F_HW_COUNTER_ID: which ATECC monotonic counter to use.
  *   0 = Counter[0]  (default, active)
@@ -82,10 +86,10 @@ static const char *TAG = "u2f_store";
  *   and recompile.  Both ATECC counters are 32-bit and max out at
  *   2,097,151 (0x1FFFFF) increments before saturating; plan accordingly.
  * ----------------------------------------------------------------------- */
-#define U2F_HW_ATTESTATION_SLOT   9
+#define U2F_HW_CRED_SLOT      9
 
-#define U2F_HW_COUNTER_ID         0
-/* #define U2F_HW_COUNTER_ID      1 */   /* Counter[1] – recompile to activate */
+#define U2F_HW_COUNTER_ID     0
+/* #define U2F_HW_COUNTER_ID  1 */   /* Counter[1] -- recompile to activate */
 
 /* -----------------------------------------------------------------------
  * u2f_store_init
@@ -168,107 +172,66 @@ esp_err_t u2f_store_init(void) {
     nvs_close(h);
     return ESP_OK;
 
-#else /* !USE_SOFTWARE_CRYPTO – ATECC608B hardware path */
+#else /* !USE_SOFTWARE_CRYPTO -- ATECC608B hardware path */
 
     /* ------------------------------------------------------------------ */
-    /* Hardware path: credential wrapping key in NVS (exportable, used    */
-    /* for ChaCha20-Poly1305 credential ID encryption and HKDF key        */
-    /* derivation).  Distinct from the ATECC attestation signing key.     */
+    /* Hardware path: ECC credential key in ATECC slot U2F_HW_CRED_SLOT   */
+    /*                                                                     */
+    /* Probe by attempting to read the public key.  If the slot is blank   */
+    /* (atcab_get_pubkey fails or returns all-zero), generate a new ECC    */
+    /* keypair.  At runtime the credential wrapping key is derived via      */
+    /* static ECDH (see u2f_store_hw_get_cred_key).                        */
     /* ------------------------------------------------------------------ */
     {
-        nvs_handle_t h;
-        esp_err_t err = nvs_open(NVS_NS_ATTEST, NVS_READWRITE, &h);
-        if (err != ESP_OK) {
-            ESP_LOGE(TAG, "nvs_open(%s) HW path failed: %s", NVS_NS_ATTEST, esp_err_to_name(err));
-            return err;
-        }
-        uint8_t wrap_key[32];
-        size_t  klen = sizeof(wrap_key);
-        err = nvs_get_blob(h, NVS_KEY_ATTEST, wrap_key, &klen);
-        if (err == ESP_ERR_NVS_NOT_FOUND) {
-            do { esp_fill_random(wrap_key, sizeof(wrap_key)); }
-            while (wrap_key[0] == 0 && wrap_key[1] == 0 && wrap_key[2] == 0 && wrap_key[3] == 0);
-            err = nvs_set_blob(h, NVS_KEY_ATTEST, wrap_key, sizeof(wrap_key));
-            if (err == ESP_OK) err = nvs_commit(h);
-            memset(wrap_key, 0, sizeof(wrap_key));
-            if (err != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to persist HW wrapping key: %s", esp_err_to_name(err));
-                nvs_close(h);
-                return err;
+        uint8_t pubkey[64];
+        memset(pubkey, 0, sizeof(pubkey));
+        ATCA_STATUS status = atcab_get_pubkey(U2F_HW_CRED_SLOT, pubkey);
+        bool key_missing = (status != ATCA_SUCCESS) ||
+                           (pubkey[0] == 0 && pubkey[1] == 0 &&
+                            pubkey[2] == 0 && pubkey[3] == 0);
+        if (key_missing) {
+            ESP_LOGI(TAG, "Generating ECC credential key in ATECC slot %d...",
+                     U2F_HW_CRED_SLOT);
+            status = atcab_genkey(U2F_HW_CRED_SLOT, pubkey);
+            if (status != ATCA_SUCCESS) {
+                ESP_LOGE(TAG, "atcab_genkey(slot %d) failed: 0x%02x",
+                         U2F_HW_CRED_SLOT, (unsigned)status);
+                return ESP_FAIL;
             }
-            ESP_LOGI(TAG, "HW credential wrapping key generated (first boot)");
-        } else if (err != ESP_OK) {
-            ESP_LOGE(TAG, "nvs_get_blob(%s/%s) HW failed: %s", NVS_NS_ATTEST, NVS_KEY_ATTEST, esp_err_to_name(err));
-            memset(wrap_key, 0, sizeof(wrap_key));
-            nvs_close(h);
-            return err;
+            ESP_LOGI(TAG, "ATECC credential key generated in slot %d", U2F_HW_CRED_SLOT);
         } else {
-            memset(wrap_key, 0, sizeof(wrap_key));
-            ESP_LOGI(TAG, "HW credential wrapping key present in NVS");
+            ESP_LOGI(TAG, "ATECC credential key present in slot %d", U2F_HW_CRED_SLOT);
         }
-        nvs_close(h);
-    }
-
-    /* ------------------------------------------------------------------ */
-    /* Hardware path: attestation key in ATECC slot 9                     */
-    /* ------------------------------------------------------------------ */
-
-    /* Probe the slot: if the key exists, get_pubkey succeeds and returns
-     * non-zero bytes.  If the slot is uninitialised, get_pubkey fails or
-     * returns all zeros, and we generate a new key pair. */
-    uint8_t pubkey[64];
-    memset(pubkey, 0, sizeof(pubkey));
-
-    ATCA_STATUS status = atcab_get_pubkey(U2F_HW_ATTESTATION_SLOT, pubkey);
-    bool key_missing = (status != ATCA_SUCCESS) ||
-                       (pubkey[0] == 0 && pubkey[1] == 0 &&
-                        pubkey[2] == 0 && pubkey[3] == 0);
-
-    if (key_missing) {
-        /* One-time, irreversible operation: the private key is generated
-         * inside the secure element and cannot be extracted.  Slot 9 is
-         * the permanent FIDO device attestation key. */
-        ESP_LOGI(TAG, "Generating ECC attestation key in ATECC slot %d...",
-                 U2F_HW_ATTESTATION_SLOT);
-        status = atcab_genkey(U2F_HW_ATTESTATION_SLOT, pubkey);
-        if (status != ATCA_SUCCESS) {
-            ESP_LOGE(TAG, "atcab_genkey(slot %d) failed: 0x%02x",
-                     U2F_HW_ATTESTATION_SLOT, (unsigned)status);
-            return ESP_FAIL;
-        }
-        ESP_LOGI(TAG, "ATECC attestation key generated in slot %d",
-                 U2F_HW_ATTESTATION_SLOT);
-    } else {
-        ESP_LOGI(TAG, "ATECC attestation key present in slot %d",
-                 U2F_HW_ATTESTATION_SLOT);
     }
 
     /* ------------------------------------------------------------------ */
     /* Hardware path: verify ATECC counter[U2F_HW_COUNTER_ID] is live     */
     /* ------------------------------------------------------------------ */
-    uint32_t ctr_val = 0;
-    status = atcab_counter_read(U2F_HW_COUNTER_ID, &ctr_val);
-    if (status != ATCA_SUCCESS) {
-        ESP_LOGE(TAG, "atcab_counter_read(%d) failed: 0x%02x",
-                 U2F_HW_COUNTER_ID, (unsigned)status);
-        return ESP_FAIL;
+    {
+        uint32_t ctr_val = 0;
+        ATCA_STATUS status = atcab_counter_read(U2F_HW_COUNTER_ID, &ctr_val);
+        if (status != ATCA_SUCCESS) {
+            ESP_LOGE(TAG, "atcab_counter_read(%d) failed: 0x%02x",
+                     U2F_HW_COUNTER_ID, (unsigned)status);
+            return ESP_FAIL;
+        }
+        ESP_LOGI(TAG, "ATECC counter[%d] = %" PRIu32, U2F_HW_COUNTER_ID, ctr_val);
     }
-    ESP_LOGI(TAG, "ATECC counter[%d] = %" PRIu32, U2F_HW_COUNTER_ID, ctr_val);
     return ESP_OK;
 
 #endif /* USE_SOFTWARE_CRYPTO */
 }
 
 /* -----------------------------------------------------------------------
- * Attestation key – software path only.
+ * Attestation key -- NVS on both paths.
  *
- * On the hardware path the private key never leaves ATECC slot 9.
- * Call u2f_store_hw_sign() / u2f_store_hw_get_pubkey() from u2f_app.c.
+ * SW path: this is the P-256 private scalar for BOTH attestation signing
+ *          AND credential HKDF root material.
+ * HW path: this is the P-256 private scalar for attestation signing only.
+ *          Credential root material is derived from ATECC slot U2F_HW_CRED_SLOT
+ *          via u2f_store_hw_get_cred_key().
  * ----------------------------------------------------------------------- */
 esp_err_t u2f_store_get_attestation_key(uint8_t out[32]) {
-    /* Both SW and HW paths store the credential wrapping key in NVS.
-     * On the HW path this is NOT the ATECC attestation signing key; that
-     * key never leaves the chip.  This is the ChaCha20/HKDF wrapping key. */
     nvs_handle_t h;
     ESP_RETURN_ON_ERROR(nvs_open(NVS_NS_ATTEST, NVS_READONLY, &h),
                         TAG, "nvs_open(attest)");
@@ -282,7 +245,6 @@ esp_err_t u2f_store_get_attestation_key(uint8_t out[32]) {
 }
 
 esp_err_t u2f_store_set_attestation_key(const uint8_t key[32]) {
-#ifdef USE_SOFTWARE_CRYPTO
     nvs_handle_t h;
     ESP_RETURN_ON_ERROR(nvs_open(NVS_NS_ATTEST, NVS_READWRITE, &h),
                         TAG, "nvs_open(attest)");
@@ -293,18 +255,13 @@ esp_err_t u2f_store_set_attestation_key(const uint8_t key[32]) {
         ESP_LOGE(TAG, "nvs_set_blob(attest key) failed: %s", esp_err_to_name(err));
     }
     return err;
-#else
-    (void)key;
-    ESP_LOGE(TAG, "set_attestation_key: not available on hardware crypto path");
-    return ESP_ERR_NOT_SUPPORTED;
-#endif
 }
 
 /* -----------------------------------------------------------------------
  * Sign counter
  *
  * Software path: NVS uint32 in namespace "u2f_ctr".
- *   NOT a guaranteed monotonic counter – see file-level comment.
+ *   NOT a guaranteed monotonic counter -- see file-level comment.
  *   The APDU task is single-threaded so no mutex is required; all calls
  *   to increment_counter originate from cbor_thread or apdu_thread,
  *   never concurrently.
@@ -377,37 +334,28 @@ esp_err_t u2f_store_increment_counter(uint32_t *out) {
 }
 
 /* -----------------------------------------------------------------------
- * Hardware-path-only helpers
+ * Hardware-path-only helper
  *
- * These are declared in u2f_store.h only when USE_SOFTWARE_CRYPTO is not
- * defined.  u2f_app.c calls them to perform attestation/authentication
- * ECDSA operations using the key held in ATECC slot 9.
+ * u2f_store_hw_get_cred_key -- Return the 32-byte credential root key.
+ *   Reads the public key from ATECC slot U2F_HW_CRED_SLOT and copies
+ *   the x-coordinate (first 32 bytes) into `out`.
  *
- * atcab_sign() expects a 32-byte SHA-256 digest, not raw data.
- * The caller is responsible for hashing the message before passing it.
- *
- * atcab_sign() returns a 64-byte raw (R‖S) ECDSA signature over P-256.
- * The caller must DER-encode it before inserting it into the U2F response.
+ *   All credential encryption (ChaCha20-Poly1305) and HKDF derivation
+ *   paths use this as their root material on the hardware path.
  * ----------------------------------------------------------------------- */
 #ifndef USE_SOFTWARE_CRYPTO
 
-esp_err_t u2f_store_hw_sign(const uint8_t digest[32], uint8_t sig[64]) {
-    ATCA_STATUS status = atcab_sign(U2F_HW_ATTESTATION_SLOT, digest, sig);
-    if (status != ATCA_SUCCESS) {
-        ESP_LOGE(TAG, "atcab_sign(slot %d) failed: 0x%02x",
-                 U2F_HW_ATTESTATION_SLOT, (unsigned)status);
-        return ESP_FAIL;
-    }
-    return ESP_OK;
-}
-
-esp_err_t u2f_store_hw_get_pubkey(uint8_t pubkey[64]) {
-    ATCA_STATUS status = atcab_get_pubkey(U2F_HW_ATTESTATION_SLOT, pubkey);
+esp_err_t u2f_store_hw_get_cred_key(uint8_t out[32]) {
+    /* d*G = the slot's public key; take the x-coordinate as the credential
+     * wrapping root.  The private scalar never leaves the chip. */
+    uint8_t pubkey[64];
+    ATCA_STATUS status = atcab_get_pubkey(U2F_HW_CRED_SLOT, pubkey);
     if (status != ATCA_SUCCESS) {
         ESP_LOGE(TAG, "atcab_get_pubkey(slot %d) failed: 0x%02x",
-                 U2F_HW_ATTESTATION_SLOT, (unsigned)status);
+                 U2F_HW_CRED_SLOT, (unsigned)status);
         return ESP_FAIL;
     }
+    memcpy(out, pubkey, 32);
     return ESP_OK;
 }
 
