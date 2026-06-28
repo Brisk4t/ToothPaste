@@ -194,7 +194,7 @@ The best option, if you have it is to SSH into the device, and let an LLM handle
 
 ![ToothPasteDesktop Preview](/web/public/ToothPaste_Desktop_Preview.png)
 
-[ToothPasteDesktop](TODO) implements a Rust-based **TUI & MCP server** that lets an AI agent control a ToothPaste and get a response from the remote system over a Serial port. This bi-directional bus does have some drawbacks, some fixable in software, others more hardware-based.
+[ToothPasteDesktop](https://github.com/Brisk4t/ToothPasteDesktop) implements a Rust-based **TUI & MCP server** that lets an AI agent control a ToothPaste and get a response from the remote system over a Serial port. This bi-directional bus does have some drawbacks, some fixable in software, others more hardware-based.
 
 1. The ESP32-S3 has a limited number of USB Endpoints. Right now they are used by:
    - BOOT Keyboard Interface (For complete BIOS support)
