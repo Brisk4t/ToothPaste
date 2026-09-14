@@ -5,9 +5,9 @@ import React, {
     useRef,
     useMemo,
 } from "react";
-import { keyExists, loadBase64 } from "../services/localSecurity/EncryptedStorage.js";
+import { keyExists, loadBase64 } from "../services/localSecurity/EncryptedStorage";
 import { ECDHContext } from "./ECDHContext.jsx";
-import { createUnencryptedPacket, unpackResponsePacket } from "../services/packetService/packetFunctions.js";
+import { createUnencryptedPacket, unpackResponsePacket } from "../services/packetService/packetFunctions";
 import { PacketQueue } from "../services/packetService/PacketQueue";
 import { create, toBinary, fromBinary } from "@bufbuild/protobuf";
 

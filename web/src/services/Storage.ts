@@ -5,7 +5,7 @@
  */
 
 const DB_NAME = "ToothPasteDB";
-const STORE_NAME = "deviceKeys";
+export const STORE_NAME = "deviceKeys";
 const DB_VERSION = 3;
 
 interface ClientRecord {

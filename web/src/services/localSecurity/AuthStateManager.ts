@@ -1,18 +1,17 @@
 /**
- * AuthStateManager.js
- * 
+ * AuthStateManager.ts
+ *
  * Centralized state machine for authentication flow.
  * Manages 7 distinct states and ensures single source of truth.
  */
 
-import { 
-    verifyStorageConsistency, 
-    getRequiredAuthMode, 
-    isUnlocked, 
+import {
+    verifyStorageConsistency,
+    getRequiredAuthMode,
+    isUnlocked,
     resetStorageCompletely,
     StorageConsistency,
     RequiredAuthMode,
-    AuthScheme
 } from './EncryptedStorage';
 
 export const AuthState = {
@@ -23,26 +22,27 @@ export const AuthState = {
     AWAITING_PASSWORDLESS: 'awaiting_passwordless', // Locked, need to verify passwordless
     UNLOCKED: 'unlocked',                        // Ready to connect
     CORRUPTED: 'corrupted',                      // Storage mismatch, need recovery
-};
+} as const;
+export type AuthState = typeof AuthState[keyof typeof AuthState];
+
+type AuthStateListener = (state: AuthState) => void;
 
 class AuthStateManager {
-    constructor() {
-        this.state = AuthState.UNINITIALIZED;
-        this.listeners = [];
-    }
+    private state: AuthState = AuthState.UNINITIALIZED;
+    private listeners: AuthStateListener[] = [];
 
-    subscribe(listener) {
+    subscribe(listener: AuthStateListener): () => void {
         this.listeners.push(listener);
         return () => {
             this.listeners = this.listeners.filter(l => l !== listener);
         };
     }
 
-    notifyListeners() {
+    notifyListeners(): void {
         this.listeners.forEach(listener => listener(this.state));
     }
 
-    async initialize() {
+    async initialize(): Promise<void> {
         console.log("[AuthStateManager] Initializing...");
         this.state = AuthState.LOADING;
         this.notifyListeners();
@@ -87,16 +87,16 @@ class AuthStateManager {
         this.notifyListeners();
     }
 
-    setState(newState) {
+    setState(newState: AuthState): void {
         this.state = newState;
         this.notifyListeners();
     }
 
-    getState() {
+    getState(): AuthState {
         return this.state;
     }
 
-    async attemptRecoveryFromCorruption() {
+    async attemptRecoveryFromCorruption(): Promise<void> {
         try {
             await resetStorageCompletely();
             this.state = AuthState.FIRST_TIME;

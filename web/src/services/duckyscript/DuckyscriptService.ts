@@ -1,41 +1,55 @@
 /**
- * duckyscript/DuckyscriptService.js
- * 
+ * duckyscript/DuckyscriptService.ts
+ *
  * Service for managing duckyscript files with encrypted storage
  * Handles loading, saving, parsing, and validation
  */
 
 import * as EncryptedStorage from '../localSecurity/EncryptedStorage';
 import { parseDuckyscript, estimateExecutionTime } from './DuckyscriptParser';
+import type { CommandNode, ParseError } from './DuckyscriptParser';
 
 const DUCKYSCRIPT_CLIENT_ID = 'duckyscript-scripts';
 const SCRIPTS_INDEX_KEY = 'scripts-index';
 
 /**
  * Script metadata stored in encrypted storage
- * @typedef {Object} ScriptMetadata
- * @property {string} id - Unique script identifier
- * @property {string} name - Human-readable script name
- * @property {string} content - Raw duckyscript content
- * @property {number} createdAt - Timestamp
- * @property {number} updatedAt - Timestamp
- * @property {Array} ast - Parsed AST
- * @property {Array} errors - Parse errors
- * @property {number} estimatedTime - Execution time estimate in ms
  */
+export interface ScriptMetadata {
+    id: string;
+    name: string;
+    content: string;
+    createdAt: number;
+    updatedAt: number;
+    ast: CommandNode[];
+    errors: ParseError[];
+    estimatedTime: number;
+}
+
+/**
+ * Lightweight summary stored in the scripts index
+ */
+export interface ScriptSummary {
+    id: string;
+    name: string;
+    createdAt: number;
+    updatedAt: number;
+    estimatedTime: number;
+    lineCount: number;
+    hasErrors: boolean;
+}
 
 /**
  * List all saved duckyscripts
- * @returns {Promise<Array>} - Array of script metadata
  */
-export async function listScripts() {
+export async function listScripts(): Promise<ScriptSummary[]> {
     try {
         if (!EncryptedStorage.isUnlocked()) {
             return [];
         }
-        
+
         const index = await EncryptedStorage.loadBase64(DUCKYSCRIPT_CLIENT_ID, SCRIPTS_INDEX_KEY);
-        return index || [];
+        return (index as ScriptSummary[] | null) || [];
     } catch (error) {
         console.error('[DuckyscriptService] Error listing scripts:', error);
         return [];
@@ -44,17 +58,15 @@ export async function listScripts() {
 
 /**
  * Load a specific script by ID
- * @param {string} scriptId - Script identifier
- * @returns {Promise<ScriptMetadata|null>}
  */
-export async function loadScript(scriptId) {
+export async function loadScript(scriptId: string): Promise<ScriptMetadata | null> {
     try {
         if (!EncryptedStorage.isUnlocked()) {
             throw new Error('Storage not unlocked');
         }
-        
+
         const script = await EncryptedStorage.loadBase64(DUCKYSCRIPT_CLIENT_ID, scriptId);
-        return script || null;
+        return (script as ScriptMetadata | null) || null;
     } catch (error) {
         console.error('[DuckyscriptService] Error loading script:', error);
         throw error;
@@ -63,40 +75,37 @@ export async function loadScript(scriptId) {
 
 /**
  * Save or update a duckyscript
- * @param {string} name - Script name
- * @param {string} content - Raw duckyscript content
- * @param {string|null} scriptId - Existing script ID (null for new)
- * @returns {Promise<ScriptMetadata>}
+ * @param scriptId - Existing script ID (null for new)
  */
-export async function saveScript(name, content, scriptId = null) {
+export async function saveScript(name: string, content: string, scriptId: string | null = null): Promise<ScriptMetadata> {
     try {
         if (!EncryptedStorage.isUnlocked()) {
             throw new Error('Storage not unlocked');
         }
-        
+
         // Parse and validate
         const parseResult = parseDuckyscript(content);
-        
+
         const now = Date.now();
         const id = scriptId || `script-${now}-${Math.random().toString(36).substr(2, 9)}`;
-        
-        const scriptData = {
+
+        const scriptData: ScriptMetadata = {
             id,
             name,
             content,
-            createdAt: scriptId ? (await loadScript(scriptId))?.createdAt : now,
+            createdAt: scriptId ? (await loadScript(scriptId))?.createdAt ?? now : now,
             updatedAt: now,
             ast: parseResult.ast,
             errors: parseResult.errors,
             estimatedTime: estimateExecutionTime(parseResult.ast),
         };
-        
+
         // Save script
         await EncryptedStorage.saveBase64(DUCKYSCRIPT_CLIENT_ID, id, scriptData);
-        
+
         // Update index
         await updateScriptsIndex(id, scriptData);
-        
+
         console.log('[DuckyscriptService] Script saved:', id);
         return scriptData;
     } catch (error) {
@@ -107,23 +116,21 @@ export async function saveScript(name, content, scriptId = null) {
 
 /**
  * Delete a script (removes both data and index)
- * @param {string} scriptId - Script identifier
- * @returns {Promise<void>}
  */
-export async function deleteScript(scriptId) {
+export async function deleteScript(scriptId: string): Promise<void> {
     try {
         if (!EncryptedStorage.isUnlocked()) {
             throw new Error('Storage not unlocked');
         }
-        
+
         // Delete the actual script data
         await EncryptedStorage.deleteBase64(DUCKYSCRIPT_CLIENT_ID, scriptId);
-        
+
         // Remove from index
         const index = await listScripts();
         const updatedIndex = index.filter(script => script.id !== scriptId);
         await EncryptedStorage.saveBase64(DUCKYSCRIPT_CLIENT_ID, SCRIPTS_INDEX_KEY, updatedIndex);
-        
+
         console.log('[DuckyscriptService] Script deleted:', scriptId);
     } catch (error) {
         console.error('[DuckyscriptService] Error deleting script:', error);
@@ -133,19 +140,16 @@ export async function deleteScript(scriptId) {
 
 /**
  * Update the scripts index with new metadata
- * @private
- * @param {string} scriptId
- * @param {ScriptMetadata} scriptData
  */
-async function updateScriptsIndex(scriptId, scriptData) {
+async function updateScriptsIndex(scriptId: string, scriptData: ScriptMetadata): Promise<void> {
     try {
         const index = await listScripts();
-        
+
         // Remove old entry if exists
         const filteredIndex = index.filter(script => script.id !== scriptId);
-        
+
         // Add new entry with summary
-        const summary = {
+        const summary: ScriptSummary = {
             id: scriptData.id,
             name: scriptData.name,
             createdAt: scriptData.createdAt,
@@ -154,9 +158,9 @@ async function updateScriptsIndex(scriptId, scriptData) {
             lineCount: scriptData.content.split('\n').length,
             hasErrors: scriptData.errors.length > 0,
         };
-        
+
         filteredIndex.push(summary);
-        
+
         // Save updated index
         await EncryptedStorage.saveBase64(DUCKYSCRIPT_CLIENT_ID, SCRIPTS_INDEX_KEY, filteredIndex);
     } catch (error) {
@@ -166,26 +170,24 @@ async function updateScriptsIndex(scriptId, scriptData) {
 
 /**
  * Import a duckyscript file (from file upload)
- * @param {File} file - File object from file input
- * @returns {Promise<ScriptMetadata>}
  */
-export async function importScriptFile(file) {
+export async function importScriptFile(file: File): Promise<ScriptMetadata> {
     return new Promise((resolve, reject) => {
         if (!file.type || !file.type.includes('text')) {
             reject(new Error('File must be a text file'));
             return;
         }
-        
+
         if (file.size > 1024 * 1024) { // 1MB limit
             reject(new Error('File size exceeds 1MB limit'));
             return;
         }
-        
+
         const reader = new FileReader();
-        
-        reader.onload = async (event) => {
+
+        reader.onload = async (event: ProgressEvent<FileReader>) => {
             try {
-                const content = event.target.result;
+                const content = event.target!.result as string;
                 const fileName = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
                 const script = await saveScript(fileName, content);
                 resolve(script);
@@ -193,27 +195,25 @@ export async function importScriptFile(file) {
                 reject(error);
             }
         };
-        
+
         reader.onerror = () => {
             reject(new Error('Failed to read file'));
         };
-        
+
         reader.readAsText(file);
     });
 }
 
 /**
  * Export a script as a downloadable file
- * @param {string} scriptId - Script identifier
- * @returns {Promise<void>}
  */
-export async function exportScriptFile(scriptId) {
+export async function exportScriptFile(scriptId: string): Promise<void> {
     try {
         const script = await loadScript(scriptId);
         if (!script) {
             throw new Error('Script not found');
         }
-        
+
         // Create blob and trigger download
         const blob = new Blob([script.content], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
@@ -224,7 +224,7 @@ export async function exportScriptFile(scriptId) {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
+
         console.log('[DuckyscriptService] Script exported:', scriptId);
     } catch (error) {
         console.error('[DuckyscriptService] Error exporting script:', error);
@@ -234,24 +234,23 @@ export async function exportScriptFile(scriptId) {
 
 /**
  * Clear all scripts (dangerous operation - deletes all script data and index)
- * @returns {Promise<void>}
  */
-export async function clearAllScripts() {
+export async function clearAllScripts(): Promise<void> {
     try {
         if (!EncryptedStorage.isUnlocked()) {
             throw new Error('Storage not unlocked');
         }
-        
+
         const scripts = await listScripts();
-        
+
         // Delete each script's data individually
         for (const script of scripts) {
             await EncryptedStorage.deleteBase64(DUCKYSCRIPT_CLIENT_ID, script.id);
         }
-        
+
         // Delete the index itself
         await EncryptedStorage.deleteBase64(DUCKYSCRIPT_CLIENT_ID, SCRIPTS_INDEX_KEY);
-        
+
         console.log('[DuckyscriptService] All scripts cleared');
     } catch (error) {
         console.error('[DuckyscriptService] Error clearing scripts:', error);

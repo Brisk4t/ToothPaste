@@ -1,8 +1,14 @@
 import { create, toBinary, fromBinary } from "@bufbuild/protobuf";
 import * as ToothPacketPB from './toothpacket/toothpacket_pb.js';
+import type { EncryptedData, ResponsePacket } from './toothpacket/toothpacket_pb.js';
+
+export interface MouseFrameLike {
+    x: number;
+    y: number;
+}
 
 // Create an unencrypted DataPacket from an input string
-export function createUnencryptedPacket(inputString) {
+export function createUnencryptedPacket(inputString: string): Uint8Array {
     const encoder = new TextEncoder();
     const textData = encoder.encode(inputString); // Encode the input string into a byte array
 
@@ -20,18 +26,18 @@ export function createUnencryptedPacket(inputString) {
 }
 
 // Return an EncryptedData packet containing a MousePacket
-export function createMousePacket(x, y, leftClick = false, rightClick = false) {
+export function createMousePacket(x: number, y: number, leftClick = 0, rightClick = 0): EncryptedData {
     const frame = create(ToothPacketPB.FrameSchema, {});
     frame.x = Math.round(x);
     frame.y = Math.round(y);
 
     const mousePacket = create(ToothPacketPB.MousePacketSchema, {});
-    
+
     mousePacket.frames = [frame];
     mousePacket.numFrames = 1;
     mousePacket.lClick = leftClick;
     mousePacket.rClick = rightClick;
-    
+
     const encryptedPacket = create(ToothPacketPB.EncryptedDataSchema, {
         packetType: ToothPacketPB.EncryptedData_PacketType.MOUSE,
         packetData: {
@@ -44,10 +50,10 @@ export function createMousePacket(x, y, leftClick = false, rightClick = false) {
 }
 
 // Return an EncryptedData packet containing a MousePacket
-export function createMouseStream(frames, leftClick = false, rightClick = false, scrollDelta = 0) {
+export function createMouseStream(frames: MouseFrameLike[], leftClick = 0, rightClick = 0, scrollDelta = 0): EncryptedData {
     const mousePacket = create(ToothPacketPB.MousePacketSchema, {});
-    
-    for (let frame of frames) {
+
+    for (const frame of frames) {
         const pbFrame = create(ToothPacketPB.FrameSchema, {});
         pbFrame.x = Math.round(frame.x);
         pbFrame.y = Math.round(frame.y);
@@ -71,7 +77,7 @@ export function createMouseStream(frames, leftClick = false, rightClick = false,
 }
 
 // Return an EncryptedData packet containing a KeyboardPacket
-export function createKeyboardPacket(keyString) {
+export function createKeyboardPacket(keyString: string): EncryptedData {
 
     const keyboardPacket = create(ToothPacketPB.KeyboardPacketSchema, {});
     keyboardPacket.message = keyString;
@@ -89,21 +95,21 @@ export function createKeyboardPacket(keyString) {
     return encryptedPacket
 }
 
-export function createKeyboardStream(keyStrings) {
+export function createKeyboardStream(keyStrings: string | string[]): EncryptedData[] {
     // Handle both single string and array of strings
-    let fullString = Array.isArray(keyStrings) ? keyStrings.join('') : keyStrings;
-    
-    const packets = [];
+    const fullString = Array.isArray(keyStrings) ? keyStrings.join('') : keyStrings;
+
+    const packets: EncryptedData[] = [];
     const chunkSize = 100; // Max characters per packet
-    
+
     // Split string into chunks and create a packet for each
     for (let i = 0; i < fullString.length; i += chunkSize) {
         const chunk = fullString.substring(i, i + chunkSize);
-        
+
         const keyboardPacket = create(ToothPacketPB.KeyboardPacketSchema, {});
         keyboardPacket.message = chunk;
         keyboardPacket.length = chunk.length;
-        
+
         const encryptedPacket = create(ToothPacketPB.EncryptedDataSchema, {
             packetType: ToothPacketPB.EncryptedData_PacketType.KEYBOARD_STRING,
             packetData: {
@@ -111,15 +117,15 @@ export function createKeyboardStream(keyStrings) {
                 value: keyboardPacket,
             },
         });
-        
+
         packets.push(encryptedPacket);
     }
-    
+
     return packets;
 }
 
 // Return an EncryptedData packet containing a KeycodePacket
-export function createKeyCodePacket(keycode) {
+export function createKeyCodePacket(keycode: Uint8Array): EncryptedData {
     const keycodePacket = create(ToothPacketPB.KeycodePacketSchema, {});
     keycodePacket.code = keycode;
     keycodePacket.length = keycode.length;
@@ -131,12 +137,12 @@ export function createKeyCodePacket(keycode) {
         value: keycodePacket,
         },
     });
-    
+
     return encryptedPacket;
 }
 
 // Return an EncryptedData packet containing a RenamePacket
-export function createRenamePacket(newName) {
+export function createRenamePacket(newName: string): EncryptedData {
     const renamePacket = create(ToothPacketPB.RenamePacketSchema, {});
     renamePacket.message = newName;
     renamePacket.length = newName.length;
@@ -153,7 +159,7 @@ export function createRenamePacket(newName) {
 }
 
 // Return an EncryptedData packet containing a RenamePacket
-export function createConsumerControlPacket(code) {
+export function createConsumerControlPacket(code: number): EncryptedData {
     const controlPacket = create(ToothPacketPB.ConsumerControlPacketSchema, {});
     controlPacket.code.push(code);
     controlPacket.length = 1;
@@ -170,7 +176,7 @@ export function createConsumerControlPacket(code) {
 }
 
 // Return an EncryptedData packet containing a MouseJigglePacket
-export function createMouseJigglePacket(enable) {
+export function createMouseJigglePacket(enable: boolean): EncryptedData {
     const jigglePacket = create(ToothPacketPB.MouseJigglePacketSchema, {});
     jigglePacket.enable = enable;
 
@@ -185,9 +191,7 @@ export function createMouseJigglePacket(enable) {
     return encryptedPacket;
 }
 
-export function unpackResponsePacket(responsePacketBytes) {
-    
+export function unpackResponsePacket(responsePacketBytes: Uint8Array): ResponsePacket {
     // Deserialize the ResponsePacket from binary data
-    const responsePacket = fromBinary(ToothPacketPB.ResponsePacketSchema, responsePacketBytes);
-    return responsePacket;  
+    return fromBinary(ToothPacketPB.ResponsePacketSchema, responsePacketBytes);
 }

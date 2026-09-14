@@ -13,6 +13,9 @@
 /dist
 /dev-dist
 
+# local planning docs
+/TYPESCRIPT_MIGRATION.md
+
 # misc
 .DS_Store
 .env.local

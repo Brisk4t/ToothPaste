@@ -6,7 +6,7 @@ import * as ToothPacketPB from '../services/packetService/toothpacket/toothpacke
 // const KeyboardPacket = new ToothPacketPB.proto.toothpaste.KeyboardPacket();
 
 
-import { createKeyboardStream } from '../services/packetService/packetFunctions.js';
+import { createKeyboardStream } from '../services/packetService/packetFunctions';
 import { keyboardHandler } from '../services/inputHandlers/keyboardHandler';
 
 

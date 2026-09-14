@@ -20,7 +20,9 @@ declare module "argon2-wasm-esm" {
   }
 
   export interface Argon2HashResult {
-    hash: Uint8Array;
+    // Pinned to the ArrayBuffer-backed generic (not the wider ArrayBufferLike
+    // default) so this satisfies DOM's BufferSource in crypto.subtle calls.
+    hash: Uint8Array<ArrayBuffer>;
     hashHex: string;
     encoded: string;
   }

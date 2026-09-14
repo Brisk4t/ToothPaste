@@ -1,22 +1,25 @@
-import { useRef, useState, useEffect, useCallback, useContext } from 'react';
+import { useRef, useState, useCallback, useContext } from 'react';
+import type { KeyboardEvent, ClipboardEvent, ChangeEvent, CompositionEvent } from 'react';
 import { BLEContext } from "../../context/BLEContext.jsx";
 import { ECDHContext } from "../../context/ECDHContext.jsx";
 
-import { createKeyboardStream } from '../packetService/packetFunctions.js';
+import { createKeyboardStream } from '../packetService/packetFunctions';
 import { keyboardHandler } from './keyboardHandler';
 
 
 export function useInputController() {
     // BLE and ECDH contexts
     const { pktCharacteristic, status, readyToReceive, sendEncrypted } = useContext(BLEContext);
-    const { createEncryptedPackets } = useContext(ECDHContext);
-    
+    // ECDHContextType's JSDoc (in ECDHContext.jsx) doesn't yet list createEncryptedPackets;
+    // full context typing lands in Phase 3. Cast narrowly here rather than editing that file.
+    const { createEncryptedPackets } = useContext(ECDHContext) as unknown as { createEncryptedPackets: unknown };
+
     // Text input handler variables
     const DEBOUNCE_INTERVAL_MS = 20; // Interval to wait before sending input data
-    const inputRef = useRef(null); // The input DOM element reference
+    const inputRef = useRef<HTMLInputElement | null>(null); // The input DOM element reference
     const ctrlPressed = useRef(false); // Flag to indicate if Ctrl is pressed
-    const debounceTimeout = useRef(null); // Holds the promise to send the buffer data after DEBOUNCE_INTERVAL_MS
-    const specialEvents = useRef([]); // store special keys pressed but not modifying buffer
+    const debounceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null); // Holds the promise to send the buffer data after DEBOUNCE_INTERVAL_MS
+    const specialEvents = useRef<string[]>([]); // store special keys pressed but not modifying buffer
     const [commandPassthrough, setCommandPassthrough] = useState(0);
     
     // Each event within a DEBOUNCE_INTERVAL_MS period is added to a buffer
@@ -116,13 +119,13 @@ export function useInputController() {
     }, [sendDiff]);
 
     // Update the current debounce session's buffer and reset debounce timer
-    function updateBufferAndSend(newBuffer) {
+    function updateBufferAndSend(newBuffer: string) {
         bufferRef.current = newBuffer;
         scheduleSend();
     }
 
     // Intercept keydown events
-    function handleKeyDown(e) {
+    function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
         console.log("Key down event: ", e.key, " | Ctrl: ", e.ctrlKey, " | Alt: ", e.altKey, " | Shift: ", e.shiftKey);
 
         // Handle inputs with modifiers (Ctrl + c, Alt + x, etc.). Don't prevent default behaviour until this point to allow selecting input modes
@@ -136,7 +139,7 @@ export function useInputController() {
 
         // If the key is a printing character ('a', 'b', '.' etc. === length 1), update the buffer and send
         if (e.key.length === 1) {
-            lastInputRef.current = inputRef.current.value; // Update last input value to the current input (for IME)
+            lastInputRef.current = inputRef.current!.value; // Update last input value to the current input (for IME)
             
             // Append the new key to the buffer
             updateBufferAndSend(bufferRef.current + e.key);
@@ -147,8 +150,8 @@ export function useInputController() {
     }
 
     // Handle inputs with modifiers (Ctrl + c, Alt + x, etc.). Don't prevent default behaviour until this point to allow selecting input modes
-    function handleCombo(e){
-        const modifiers = [];
+    function handleCombo(e: KeyboardEvent<HTMLInputElement>) {
+        const modifiers: string[] = [];
         
         // Check all modifiers
         if (e.ctrlKey) modifiers.push("Control");
@@ -178,7 +181,7 @@ export function useInputController() {
     }
 
     // Helper: handle special key events (Backspace, Enter, Tab, etc.)
-    function handleSpecialKey(e, buffer) {
+    function handleSpecialKey(e: KeyboardEvent<HTMLInputElement>, buffer: string): boolean {
         switch (e.key) {
             case "Backspace":
                 // If the buffer is empty, backspace must be sent by itself
@@ -214,15 +217,15 @@ export function useInputController() {
 
 
     // When a key is released
-    const handleKeyUp = (e) => {
+    const handleKeyUp = (e: KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Control") {
             ctrlPressed.current = false;
         }
     };
 
-    
+
     // Handle paste events (append pasted text to buffer)
-    function handlePaste(e) {
+    function handlePaste(e: ClipboardEvent<HTMLInputElement>) {
         e.preventDefault();
         const newBuffer = bufferRef.current + e.clipboardData.getData("text");
         bufferRef.current = newBuffer;
@@ -231,30 +234,32 @@ export function useInputController() {
     }
 
     // When the input is a result of an IME non-composition event, it contains NEW data
-    const handleOnBeforeInput = (event) => {
+    // React's onBeforeInput passes through the native InputEvent, which carries `.data`
+    // (not reflected in React's own weaker FormEvent typing for this handler).
+    const handleOnBeforeInput = (event: InputEvent) => {
         isIMERef.current = true; // Set IME flag on beforeinput
-        
+
         // Ignore any intermediate composition events
         if (isComposingRef.current) {
             return;
         }
-        
-        // Send the new data 
+
+        // Send the new data
         updateBufferAndSend(bufferRef.current + event.data)
         lastCompositionRef.current += event.data; // Create a ref for each character in the current composition (current word)
         isIMERef.current = false; // Reset IME flag on afterinput
 
-        // -> This will fire an onChange event for the input div 
+        // -> This will fire an onChange event for the input div
     };
 
     // Composition event handlers
-    function handleCompositionStart(event) {
+    function handleCompositionStart(event: CompositionEvent<HTMLInputElement>) {
         isComposingRef.current = true;
     };
 
     // When composition ends it contains a CORRECTED word, which is presumably the final word typed
-    function handleCompositionEnd(event) {        
-        var lastInput = (lastCompositionRef.current).trim(); 
+    function handleCompositionEnd(event: CompositionEvent<HTMLInputElement>) {
+        var lastInput = (lastCompositionRef.current).trim();
         var isPartialComplete = (lastInput !== ""); // If the last input is not a character, we assume fully autofilled word
 
         if (lastInput !== event.data.trim())  { // If the buffer doesnt match the composition end, autocorrect changed the word
@@ -268,11 +273,11 @@ export function useInputController() {
         }        
         //inputRef.current.value = " "; // Clear the input field (add a space to avoid auto capitalizing every word)
         lastCompositionRef.current = "";
-        lastInputRef.current = inputRef.current.value; // Update last input value to the new word
+        lastInputRef.current = inputRef.current!.value; // Update last input value to the new word
         isComposingRef.current = false;
     };
     
-    function handleOnChange(event) {
+    function handleOnChange(event: ChangeEvent<HTMLInputElement>) {
         // If the onChange event is fired but input size has shrunk, backspace was pressed
         // if (lastInputRef.current.length > event.target.value.length) {
         //     handleSpecialKey({key:"Backspace"}, bufferRef.current);
