@@ -1,11 +1,15 @@
-import React from 'react';
+import type { CSSProperties } from 'react';
 import { Typography } from "@material-tailwind/react";
-import { ArrowDownIcon, LockClosedIcon, ItalicIcon, 
-        EyeIcon, EyeSlashIcon, LightBulbIcon, 
+import { ArrowDownIcon, LockClosedIcon, ItalicIcon,
+        EyeIcon, EyeSlashIcon, LightBulbIcon,
     RssIcon, KeyIcon, LockOpenIcon, CpuChipIcon } from "@heroicons/react/24/outline";
-import { appColors } from '../../../styles/colors';
 
-export default function SecuritySection({ currentSlide, getSectionOpacity }) {
+interface SectionProps {
+    currentSlide: number;
+    getSectionOpacity: (index: number) => number;
+}
+
+export default function SecuritySection({ currentSlide, getSectionOpacity }: SectionProps) {
     return (
         <section
             className="absolute inset-0 flex flex-col px-6 md:px-12 py-12 z-50 bg-none"
@@ -14,7 +18,7 @@ export default function SecuritySection({ currentSlide, getSectionOpacity }) {
                 transition: 'opacity 0.3s ease-in-out',
                 pointerEvents: getSectionOpacity(2) > 0.5 ? 'auto' : 'none',
                 '--box-gap': '2rem'
-            }}
+            } as CSSProperties}
         >
             {/* Title Row */}
             <div className="flex items-start justify-center gap-4 mb-12 flex-shrink-0">
@@ -137,6 +141,9 @@ export default function SecuritySection({ currentSlide, getSectionOpacity }) {
             {/* Centered Scroll Prompt at Bottom - Absolute positioned within section */}
             <div className="absolute bottom-8 left-0 right-0 flex items-center justify-center gap-2 text-white">
                 <ArrowDownIcon className="h-5 w-5 animate-bounce" />
+                {/* "medium" isn't in material-tailwind's Typography `type` union (h1-h6|lead|p|small) —
+                    pre-existing usage, kept as-is rather than guessing the intended styling. */}
+                {/* @ts-expect-error */}
                 <Typography type="medium">Like what you see?</Typography>
             </div>
         </section>

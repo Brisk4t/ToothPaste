@@ -1,4 +1,5 @@
-import React, { useState, useContext, useEffect } from "react";
+import { useState, useEffect } from "react";
+import type { ComponentType } from "react";
 import "./styles/index.css";
 //import "./styles/global.css"; // Ensure global styles are applied
 import Navbar from "./components/Navigation/Navbar";
@@ -9,22 +10,20 @@ import ECDHOverlay from "./components/overlays/ECDHOverlay";
 import UpdateController from "./components/overlays/UpdateOverlay";
 import QuickStartOverlay from "./components/overlays/QuickStartOverlay";
 import GridBackground from './components/shared/GridBackground';
-import { ECDHContext, ECDHProvider } from "./context/ECDHContext";
+import { ECDHProvider } from "./context/ECDHContext";
 import { DuckyscriptProvider } from "./context/DuckyscriptContext";
 import About from "./views/about/About";
 
-
-import ToothPaste from "./assets/ToothPaste.png";
-import { Grid } from "@react-three/drei";
-
 function App() {
-    const [showOverlay, setShowOverlay] = useState(false);
-    const [showNavbar, setshowNavbar] = useState(true);
     const [activeView, setActiveView] = useState("live"); // control view here
-    const [activeOverlay, setActiveOverlay] = useState(null); // 'ecdh', 'pairing', etc.
-    const [overlayProps, setOverlayProps] = useState({});
-  
-    const overlays = {
+    const [activeOverlay, setActiveOverlay] = useState<string | null>(null); // 'ecdh', 'pairing', etc.
+    const [overlayProps, setOverlayProps] = useState<Record<string, unknown>>({});
+
+    // Each overlay component only actually consumes a subset of what's spread below
+    // (e.g. ECDHOverlay/UpdateController ignore `activeView`, QuickStartOverlay uses it) —
+    // cast to a loose component type at the render site rather than widening each
+    // overlay's own prop types to accept props they don't use.
+    const overlays: Record<string, ComponentType<any>> = {
       pair: ECDHOverlay,
       update: UpdateController,
       quickstart: QuickStartOverlay,
@@ -55,17 +54,14 @@ function App() {
     return (
     <DuckyscriptProvider>
       <ECDHProvider>
-        <BLEProvider setShowOverlay={setShowOverlay} showOverlay={showOverlay}>
+        <BLEProvider>
           <div className="flex flex-col h-dvh overflow-hidden bg-background relative">
             {/* Navbar - top layer */}
             <Navbar
-              showNavbar={showNavbar}
-              setshowNavbar={setshowNavbar}
               onNavigate={setActiveView}
               onChangeOverlay={setActiveOverlay}
               activeOverlay={activeOverlay}
               activeView={activeView}
-              className="relative z-50"
             />
 
             {/* Main content area - middle layer */}
@@ -83,8 +79,8 @@ function App() {
 
             {/* Overlay */}
             {ActiveOverlay && (
-              <ActiveOverlay 
-                {...overlayProps} 
+              <ActiveOverlay
+                {...overlayProps}
                 onChangeOverlay={setActiveOverlay}
                 activeView={activeView}
               />

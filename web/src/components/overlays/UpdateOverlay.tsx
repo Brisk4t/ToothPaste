@@ -1,7 +1,11 @@
-import React, { useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { ESPLoader, Transport } from "esptool-js";
 import { Progress, Typography, Button, Menu } from "@material-tailwind/react";
 import { LinkIcon, ArrowUpCircleIcon } from "@heroicons/react/24/outline";
+
+function getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+}
 
 // Status enum
 const UpdateStatus = {
@@ -14,26 +18,30 @@ const UpdateStatus = {
   COMPLETE: 'Flash complete',
   DISCONNECTED: 'Disconnected',
   ERROR: 'Error',
-};
+} as const;
 
-export default function UpdateController({ onChangeOverlay }) {
+interface UpdateOverlayProps {
+  onChangeOverlay: (overlay: string | null) => void;
+}
+
+export default function UpdateController({ onChangeOverlay }: UpdateOverlayProps) {
   const [connected, setConnected] = useState(false);
-  const [status, setStatus] = useState(UpdateStatus.IDLE);
+  const [status, setStatus] = useState<string>(UpdateStatus.IDLE);
   const [progress, setProgress] = useState(0);
-  const [error, setError] = useState(null);
-  const [selectedBoard, setSelectedBoard] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedBoard, setSelectedBoard] = useState<string | null>(null);
 
-  const esploaderRef = useRef(null);
-  const transportRef = useRef(null);
+  const esploaderRef = useRef<ESPLoader | null>(null);
+  const transportRef = useRef<Transport | null>(null);
 
 
-  const boardUrls = {
+  const boardUrls: Record<string, string> = {
     "4M Flash (Supermini)": "/ToothPasteFirmware_4M.bin",
     "8M Flash Devkit": "/ToothPasteFirmware_8M_Dev.bin",
     "8M Flash ToothPaste PCBv1": "/ToothPasteFirmware_8M_PCBv1.bin",
   };
 
-  const handleBoardSelect = (board) => {
+  const handleBoardSelect = (board: string) => {
     setSelectedBoard(board);
 
     const url = boardUrls[board];
@@ -50,6 +58,11 @@ export default function UpdateController({ onChangeOverlay }) {
       const port = await navigator.serial.requestPort({});
       transportRef.current = new Transport(port, true);
 
+      // This esptool-js version's LoaderOptions requires `romBaudrate`, which this
+      // pre-existing call never provided (esptool-js runs with it undefined at runtime,
+      // same as before this conversion) — preserved as-is rather than guessing a value
+      // for hardware-flashing config.
+      // @ts-expect-error
       const loader = new ESPLoader({
         transport: transportRef.current,
         baudrate: 460800,
@@ -66,9 +79,9 @@ export default function UpdateController({ onChangeOverlay }) {
 
       setStatus(`${UpdateStatus.CONNECTED} to ${chip}`);
       setConnected(true);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err);
-      setStatus(`${UpdateStatus.ERROR}: ${err.message}`);
+      setStatus(`${UpdateStatus.ERROR}: ${getErrorMessage(err)}`);
     }
   };
 
@@ -76,10 +89,10 @@ export default function UpdateController({ onChangeOverlay }) {
   const flashFirmware = async () => {
     try {
       if (!esploaderRef.current) throw new Error("Device not connected");
-      const progressBars = [];
+      const progressBars: unknown[] = [];
 
       setStatus(UpdateStatus.DOWNLOADING);
-      const result = await fetch(boardUrls[selectedBoard]);
+      const result = await fetch(boardUrls[selectedBoard!]);
       if (!result.ok) throw new Error("Failed to download firmware");
 
       const arrayBuffer = await result.arrayBuffer();
@@ -93,21 +106,25 @@ export default function UpdateController({ onChangeOverlay }) {
       setStatus(UpdateStatus.FLASHING);
       setProgress(0);
 
+      // This esptool-js version's FlashOptions also requires `flashMode`/`flashFreq`,
+      // which this pre-existing call never provided — preserved as-is, same reasoning
+      // as the ESPLoader options above.
+      // @ts-expect-error
       await esploaderRef.current.writeFlash({
         fileArray: [{ data: binaryStr, address: 0x00000 }],
         flashSize: "8MB",
         eraseAll: false,
         compress: true,
-        reportProgress: (_, written, total) =>
+        reportProgress: (_: number, written: number, total: number) =>
           setProgress(Math.round((written / total) * 100)),
       });
       await esploaderRef.current.after();
 
       setStatus(UpdateStatus.COMPLETE);
       setProgress(100);
-    } catch (err) {
+    } catch (err: unknown) {
       console.log(err);
-      setStatus(`${UpdateStatus.ERROR}: ${err.message}`);
+      setStatus(`${UpdateStatus.ERROR}: ${getErrorMessage(err)}`);
     }
   };
 
@@ -136,10 +153,15 @@ export default function UpdateController({ onChangeOverlay }) {
           <span className="text-text">Update Your ToothPaste</span>
         </Typography>
 
+        {/* This material-tailwind version's Progress has no `barProps`/`label` props
+            (present in some other version's docs) — pre-existing usage kept as-is. */}
+        {/* @ts-expect-error */}
         <Progress value={progress} className="w-full my-2 bg-ash" barProps={{ className: "bg-primary" }} label="">
           <Progress.Bar />
         </Progress>
 
+        {/* This material-tailwind version's Menu root has no `className` prop — pre-existing usage kept as-is. */}
+        {/* @ts-expect-error */}
         <Menu className="bg-ink">
           <Menu.Trigger as={Button} className="bg-dust border-none">
             {selectedBoard || "Select Board"}
@@ -154,9 +176,11 @@ export default function UpdateController({ onChangeOverlay }) {
           </Menu.Content>
         </Menu>
 
+        {/* This material-tailwind version's Button has no `loading` prop — pre-existing usage kept as-is. */}
         <Button
           // ref={keyRef}
           onClick={connect}
+          // @ts-expect-error
           loading={false}
           disabled={false}
           className={`w-full h-10 my-4 bg-orange text-text hover:bg-primary-ash border-none
@@ -173,6 +197,7 @@ export default function UpdateController({ onChangeOverlay }) {
         <Button
           // ref={keyRef}
           onClick={flashFirmware}
+          // @ts-expect-error
           loading={false}
           disabled={false}
           className={`w-full h-10 my-4 bg-primary text-text hover:bg-primary-ash focus:bg-primary-focus 

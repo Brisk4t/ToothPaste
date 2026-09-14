@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useContext } from 'react';
-import type { KeyboardEvent, ClipboardEvent, ChangeEvent, CompositionEvent } from 'react';
+import type { KeyboardEvent, ClipboardEvent, ChangeEvent, CompositionEvent, InputEvent as ReactInputEvent } from 'react';
 import { BLEContext } from "../../context/BLEContext";
 import { ECDHContext } from "../../context/ECDHContext";
 
@@ -18,7 +18,7 @@ export function useInputController() {
     const ctrlPressed = useRef(false); // Flag to indicate if Ctrl is pressed
     const debounceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null); // Holds the promise to send the buffer data after DEBOUNCE_INTERVAL_MS
     const specialEvents = useRef<string[]>([]); // store special keys pressed but not modifying buffer
-    const [commandPassthrough, setCommandPassthrough] = useState(0);
+    const [commandPassthrough, setCommandPassthrough] = useState(false);
     
     // Each event within a DEBOUNCE_INTERVAL_MS period is added to a buffer
     const bufferRef = useRef(""); // Tracks the current input buffer
@@ -232,9 +232,9 @@ export function useInputController() {
     }
 
     // When the input is a result of an IME non-composition event, it contains NEW data
-    // React's onBeforeInput passes through the native InputEvent, which carries `.data`
-    // (not reflected in React's own weaker FormEvent typing for this handler).
-    const handleOnBeforeInput = (event: InputEvent) => {
+    // React's own InputEvent<T> type doesn't expose `.data` directly, but it carries the
+    // real native InputEvent (with `.data`) via `.nativeEvent`.
+    const handleOnBeforeInput = (event: ReactInputEvent<HTMLInputElement>) => {
         isIMERef.current = true; // Set IME flag on beforeinput
 
         // Ignore any intermediate composition events
@@ -243,8 +243,9 @@ export function useInputController() {
         }
 
         // Send the new data
-        updateBufferAndSend(bufferRef.current + event.data)
-        lastCompositionRef.current += event.data; // Create a ref for each character in the current composition (current word)
+        const data = event.nativeEvent.data ?? '';
+        updateBufferAndSend(bufferRef.current + data)
+        lastCompositionRef.current += data; // Create a ref for each character in the current composition (current word)
         isIMERef.current = false; // Reset IME flag on afterinput
 
         // -> This will fire an onChange event for the input div

@@ -1,14 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Button, Typography, Input } from "@material-tailwind/react";
+// This installed @material-tailwind/react version's Input/Button types don't include
+// `label`/`loading` props (present in some other version's docs/examples). Both are
+// pre-existing usages preserved as-is with `@ts-expect-error` rather than guessing a
+// redesign of the loading/label UX — see TYPESCRIPT_MIGRATION.md's material-tailwind note.
 import { ShieldCheckIcon } from '@heroicons/react/24/outline';
 import { unlockWithPassword, unlockPasswordless } from '../../services/localSecurity/EncryptedStorage';
 import { authStateManager, AuthState } from '../../services/localSecurity/AuthStateManager';
 
-const AuthenticationOverlay = ({ onAuthSuccess, onClose }) => {
+function getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+}
+
+interface AuthenticationOverlayProps {
+    onAuthSuccess: () => void;
+    onClose: () => void;
+}
+
+const AuthenticationOverlay = ({ onAuthSuccess, onClose }: AuthenticationOverlayProps) => {
     const [password, setPassword] = useState('');
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [authState, setAuthState] = useState(null);
+    const [authState, setAuthState] = useState<AuthState | null>(null);
     const [showForgotPasswordConfirm, setShowForgotPasswordConfirm] = useState(false);
 
     // Subscribe to auth state changes and get current state
@@ -45,9 +58,9 @@ const AuthenticationOverlay = ({ onAuthSuccess, onClose }) => {
             authStateManager.setState(AuthState.UNLOCKED);
             setPassword('');
             onAuthSuccess();
-        } catch (e) {
+        } catch (e: unknown) {
             console.error("[AuthenticationOverlay] Password unlock error:", e);
-            setError(e.message || 'Unlock failed');
+            setError(getErrorMessage(e) || 'Unlock failed');
             setIsLoading(false);
         }
     };
@@ -64,9 +77,9 @@ const AuthenticationOverlay = ({ onAuthSuccess, onClose }) => {
             // Update state
             authStateManager.setState(AuthState.UNLOCKED);
             onAuthSuccess();
-        } catch (e) {
+        } catch (e: unknown) {
             console.error("[AuthenticationOverlay] Passwordless unlock error:", e);
-            setError(e.message || 'Unlock failed');
+            setError(getErrorMessage(e) || 'Unlock failed');
             setIsLoading(false);
         }
     };
@@ -89,9 +102,9 @@ const AuthenticationOverlay = ({ onAuthSuccess, onClose }) => {
             authStateManager.setState(AuthState.UNLOCKED);
             setPassword('');
             onAuthSuccess();
-        } catch (e) {
+        } catch (e: unknown) {
             console.error("[AuthenticationOverlay] First-time setup error:", e);
-            setError(e.message || 'Setup failed');
+            setError(getErrorMessage(e) || 'Setup failed');
             setIsLoading(false);
         }
     };
@@ -105,9 +118,9 @@ const AuthenticationOverlay = ({ onAuthSuccess, onClose }) => {
             await authStateManager.attemptRecoveryFromCorruption();
             setPassword('');
             setIsLoading(false);
-        } catch (e) {
+        } catch (e: unknown) {
             console.error("[AuthenticationOverlay] Recovery error:", e);
-            setError('Recovery failed: ' + e.message);
+            setError('Recovery failed: ' + getErrorMessage(e));
             setIsLoading(false);
         }
     };
@@ -121,9 +134,9 @@ const AuthenticationOverlay = ({ onAuthSuccess, onClose }) => {
             await authStateManager.attemptRecoveryFromCorruption();
             setPassword('');
             setIsLoading(false);
-        } catch (e) {
+        } catch (e: unknown) {
             console.error("[AuthenticationOverlay] Reset error:", e);
-            setError('Reset failed: ' + e.message);
+            setError('Reset failed: ' + getErrorMessage(e));
             setIsLoading(false);
         }
     };
@@ -168,6 +181,7 @@ const AuthenticationOverlay = ({ onAuthSuccess, onClose }) => {
 
                         <Input
                             type="password"
+                            // @ts-expect-error
                             label="Create Password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
@@ -178,6 +192,7 @@ const AuthenticationOverlay = ({ onAuthSuccess, onClose }) => {
 
                         <Button
                             onClick={handleSetPasswordFirstTime}
+                            // @ts-expect-error
                             loading={isLoading.toString()}
                             disabled={isLoading || !password.trim()}
                             className='w-full min-h-10 mb-3 bg-primary text-text hover:bg-primary-ash active:bg-primary-active flex flex-wrap items-center justify-center p-2'
@@ -191,8 +206,9 @@ const AuthenticationOverlay = ({ onAuthSuccess, onClose }) => {
                             Or continue without a password:
                         </Typography>
 
-                        <Button 
+                        <Button
                             onClick={handlePasswordlessUnlock}
+                            // @ts-expect-error
                             loading={isLoading.toString()}
                             disabled={isLoading}
                             className='w-full min-h-10 flex flex-wrap items-center justify-center bg-orange border-none p-2'
@@ -222,6 +238,7 @@ const AuthenticationOverlay = ({ onAuthSuccess, onClose }) => {
 
                         <Input
                             type="password"
+                            // @ts-expect-error
                             label="Password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
@@ -232,6 +249,7 @@ const AuthenticationOverlay = ({ onAuthSuccess, onClose }) => {
 
                         <Button
                             onClick={handlePasswordUnlock}
+                            // @ts-expect-error
                             loading={isLoading.toString()}
                             disabled={isLoading || !password.trim()}
                             className='w-full min-h-10 mb-3 bg-primary text-text hover:bg-primary-ash active:bg-primary-active flex flex-wrap items-center justify-center p-2'
@@ -281,6 +299,7 @@ const AuthenticationOverlay = ({ onAuthSuccess, onClose }) => {
                                     setError(null);
                                     await handleForgotPassword();
                                 }}
+                                // @ts-expect-error
                                 loading={isLoading.toString()}
                                 disabled={isLoading}
                                 className='flex-1 min-h-10 bg-secondary border-none text-text flex flex-wrap items-center justify-center p-2'
@@ -306,6 +325,7 @@ const AuthenticationOverlay = ({ onAuthSuccess, onClose }) => {
 
                         <Button
                             onClick={handlePasswordlessUnlock}
+                            // @ts-expect-error
                             loading={isLoading.toString()}
                             disabled={isLoading}
                             className='w-full min-h-10 flex flex-wrap items-center justify-center bg-primary text-text hover:bg-primary-ash border-none p-2'
@@ -339,6 +359,7 @@ const AuthenticationOverlay = ({ onAuthSuccess, onClose }) => {
 
                         <Button
                             onClick={handleRecoverFromCorruption}
+                            // @ts-expect-error
                             loading={isLoading.toString()}
                             disabled={isLoading}
                             className='w-full min-h-10 bg-primary text-text hover:bg-primary-ash active:bg-primary-active flex flex-wrap items-center justify-center p-2'

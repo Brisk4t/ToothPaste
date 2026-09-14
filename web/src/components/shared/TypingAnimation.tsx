@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+
+export interface TypingAnimationProps {
+  texts?: string[];
+  typingSpeed?: number;
+  pauseTime?: number;
+  repeat?: boolean;
+  className?: string;
+}
 
 /**
  * TypingAnimation - Displays text with a typing effect using Framer Motion
- * @param {Array<string>} texts - Array of texts to cycle through
- * @param {number} typingSpeed - Milliseconds per character (default: 100)
- * @param {number} pauseTime - Milliseconds to pause between texts (default: 2000)
- * @param {boolean} repeat - Whether to loop through texts (default: true)
- * @param {string} className - Tailwind classes to apply
  */
 export default function TypingAnimation({
   texts = ['Type something...'],
@@ -15,14 +18,14 @@ export default function TypingAnimation({
   pauseTime = 2000,
   repeat = true,
   className = ''
-}) {
+}: TypingAnimationProps) {
   const [displayText, setDisplayText] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTyping, setIsTyping] = useState(true);
 
   useEffect(() => {
     const currentText = texts[currentIndex];
-    let timeout;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
 
     if (isTyping) {
       // Typing phase

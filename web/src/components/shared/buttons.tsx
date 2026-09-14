@@ -1,16 +1,29 @@
 import React, { useState, useRef } from "react";
+import type { RefObject, ComponentType, TouchEvent } from "react";
+
+export interface KeySequenceButton {
+    label: string;
+    keys: string[];
+}
+
+interface KeyboardShortcutButtonProps {
+    label: string;
+    keySequence: string[];
+    wasSwipe: RefObject<boolean>;
+    onSendKeyboardShortcut: (keySequence: string[]) => void;
+}
 
 /**
  * Factory for creating a keyboard shortcut button
  * Used in carousels for touch-based shortcut input
  */
-export function KeyboardShortcutButton({ label, keySequence, wasSwipe, onSendKeyboardShortcut }) {
+export function KeyboardShortcutButton({ label, keySequence, wasSwipe, onSendKeyboardShortcut }: KeyboardShortcutButtonProps) {
     const [isPressed, setIsPressed] = useState(false);
     const touchStartRef = useRef({ x: 0, y: 0 });
     const isSwiping = useRef(false);
     const MOVEMENT_THRESHOLD = 15; // pixels of movement before considering it a swipe
 
-    const handleTouchStart = (e) => {
+    const handleTouchStart = (e: TouchEvent<HTMLButtonElement>) => {
         touchStartRef.current = {
             x: e.touches[0].clientX,
             y: e.touches[0].clientY
@@ -18,10 +31,10 @@ export function KeyboardShortcutButton({ label, keySequence, wasSwipe, onSendKey
         isSwiping.current = false;
     };
 
-    const handleTouchMove = (e) => {
+    const handleTouchMove = (e: TouchEvent<HTMLButtonElement>) => {
         const deltaX = Math.abs(e.touches[0].clientX - touchStartRef.current.x);
         const deltaY = Math.abs(e.touches[0].clientY - touchStartRef.current.y);
-        
+
         if (deltaX > MOVEMENT_THRESHOLD || deltaY > MOVEMENT_THRESHOLD) {
             isSwiping.current = true;
         }
@@ -30,7 +43,7 @@ export function KeyboardShortcutButton({ label, keySequence, wasSwipe, onSendKey
     const handlePress = () => {
         // Don't press if this was a swipe gesture or carousel swipe
         if (isSwiping.current || wasSwipe.current) return;
-        
+
         setIsPressed(true);
         onSendKeyboardShortcut(keySequence);
         setTimeout(() => setIsPressed(false), 100);
@@ -51,40 +64,45 @@ export function KeyboardShortcutButton({ label, keySequence, wasSwipe, onSendKey
     );
 }
 
+interface KeyboardShortcutCarouselProps {
+    shortcuts: KeySequenceButton[][];
+    onSendKeyboardShortcut: (keySequence: string[]) => void;
+}
+
 /**
  * Factory for creating a keyboard shortcut carousel with swipe navigation
  */
-export function KeyboardShortcutCarousel({ shortcuts, onSendKeyboardShortcut }) {
+export function KeyboardShortcutCarousel({ shortcuts, onSendKeyboardShortcut }: KeyboardShortcutCarouselProps) {
     const [currentSlide, setCurrentSlide] = useState(0);
     const pointerStart = useRef({ x: 0, y: 0 });
-    const carouselRef = useRef(null);
+    const carouselRef = useRef<HTMLDivElement | null>(null);
     const wasSwipe = useRef(false);
     const SWIPE_THRESHOLD = 50; // minimum horizontal swipe distance in pixels
     const ASPECT_RATIO = 2; // require horizontal movement to be 2x larger than vertical
 
-    const handlePointerDown = (e) => {
+    const handlePointerDown = (e: PointerEvent) => {
         pointerStart.current = {
-            x: e.clientX || e.touches?.[0].clientX,
-            y: e.clientY || e.touches?.[0].clientY
+            x: e.clientX,
+            y: e.clientY
         };
         wasSwipe.current = false;
     };
 
-    const handlePointerMove = (e) => {
-        const currentX = e.clientX || e.touches?.[0].clientX;
-        const currentY = e.clientY || e.touches?.[0].clientY;
-        
+    const handlePointerMove = (e: PointerEvent) => {
+        const currentX = e.clientX;
+        const currentY = e.clientY;
+
         const deltaX = Math.abs(currentX - pointerStart.current.x);
         const deltaY = Math.abs(currentY - pointerStart.current.y);
-        
+
         // Only consider it a horizontal swipe if X movement >> Y movement
         if (deltaX > SWIPE_THRESHOLD && deltaX > deltaY * ASPECT_RATIO) {
             wasSwipe.current = true;
         }
     };
 
-    const handlePointerUp = (e) => {
-        const endX = e.clientX || e.changedTouches?.[0].clientX;
+    const handlePointerUp = (e: PointerEvent) => {
+        const endX = e.clientX;
         const diff = pointerStart.current.x - endX;
 
         if (wasSwipe.current) {
@@ -130,8 +148,8 @@ export function KeyboardShortcutCarousel({ shortcuts, onSendKeyboardShortcut }) 
                         <div key={slideIdx} className="flex flex-shrink-0 w-full overflow-hidden">
                             {slide.map((btn, btnIdx) => (
                                 <React.Fragment key={btnIdx}>
-                                    <KeyboardShortcutButton 
-                                        label={btn.label} 
+                                    <KeyboardShortcutButton
+                                        label={btn.label}
                                         keySequence={btn.keys}
                                         wasSwipe={wasSwipe}
                                         onSendKeyboardShortcut={onSendKeyboardShortcut}
@@ -162,29 +180,39 @@ export function KeyboardShortcutCarousel({ shortcuts, onSendKeyboardShortcut }) 
     );
 }
 
+export interface ClickButtonConfig {
+    id: string | number;
+    label: string;
+    flex: number;
+    rounded: string;
+}
+
+interface ClickButtonGroupProps {
+    buttons: ClickButtonConfig[];
+    onButtonPress: (buttonId: string | number) => void;
+    onButtonRelease: (buttonId: string | number) => void;
+}
+
 /**
  * Generic click button group UI component
  * Handles button press/release states and styling
- * @param {Array} buttons - Array of button configs: { id, label, flex, rounded }
- * @param {Function} onButtonPress - Callback(buttonId) on touch start
- * @param {Function} onButtonRelease - Callback(buttonId) on touch end/cancel
  */
-export function ClickButtonGroup({ buttons, onButtonPress, onButtonRelease }) {
-    const [pressedButton, setPressedButton] = useState(null);
+export function ClickButtonGroup({ buttons, onButtonPress, onButtonRelease }: ClickButtonGroupProps) {
+    const [pressedButton, setPressedButton] = useState<string | number | null>(null);
 
-    const handleButtonPress = (buttonId) => {
+    const handleButtonPress = (buttonId: string | number) => {
         setPressedButton(buttonId);
         onButtonPress(buttonId);
     };
 
-    const handleButtonRelease = (buttonId) => {
+    const handleButtonRelease = (buttonId: string | number) => {
         if (pressedButton === buttonId) {
             setPressedButton(null);
         }
         onButtonRelease(buttonId);
     };
 
-    const getButtonClass = (buttonId, rounded) => {
+    const getButtonClass = (buttonId: string | number, rounded: string) => {
         const isPressed = pressedButton === buttonId;
         const bgColor = isPressed ? "bg-white text-ink" : "bg-ink text-text";
         return `h-16 flex justify-center items-center flex-1 transition-colors cursor-pointer select-none ${bgColor} ${rounded}`;
@@ -213,6 +241,17 @@ export function ClickButtonGroup({ buttons, onButtonPress, onButtonRelease }) {
     );
 }
 
+interface IconToggleButtonProps {
+    title: string;
+    toggled: boolean;
+    onClick: () => void;
+    Icon?: ComponentType<{ className?: string }>;
+    hoverText?: string;
+    className?: string;
+    expandDirection?: "left" | "right";
+    connectionStatus?: number;
+}
+
 /**
  * Factory for icon toggle buttons with hover text expansion
  * Used for various control buttons (capture, jiggle, etc.)
@@ -226,7 +265,7 @@ export function IconToggleButton({
     className = "", // Additional classes
     expandDirection = "left", // Direction to expand on hover: "left" or "right"
     connectionStatus = 0 // 0 = disconnected, 1+ = connected
-}) {
+}: IconToggleButtonProps) {
     const [isHovered, setIsHovered] = React.useState(false);
     const [isClicked, setIsClicked] = React.useState(false);
 
@@ -257,7 +296,7 @@ export function IconToggleButton({
         <div className={`relative w-10 h-10`}>
             <div
                 title={title}
-                onClick={connectionStatus === 0 ? null : handleClick}
+                onClick={connectionStatus === 0 ? undefined : handleClick}
                 onMouseDown={(e) => e.preventDefault()}
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
@@ -276,11 +315,19 @@ export function IconToggleButton({
     );
 }
 
+interface MediaToggleButtonProps {
+    title: string;
+    onClick: () => void;
+    Icon?: ComponentType<{ className?: string }>;
+    expandDirection?: "left" | "right";
+    connectionStatus?: number;
+}
+
 /**
  * Factory for momentary toggle buttons (visual feedback then reset)
  * Used for media control buttons that don't maintain state
  */
-export function MediaToggleButton({ title, onClick, Icon, expandDirection = "left", connectionStatus = 0 }) {
+export function MediaToggleButton({ title, onClick, Icon, expandDirection = "left", connectionStatus = 0 }: MediaToggleButtonProps) {
     const [toggled, setToggled] = React.useState(false);
 
     const handleClick = () => {

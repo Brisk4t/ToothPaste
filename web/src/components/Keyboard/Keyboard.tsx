@@ -1,6 +1,15 @@
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
+import type { RefObject } from "react";
 import { Button } from "@material-tailwind/react";
-const keys = [
+import type { ConnectionStatus } from "../../context/BLEContext";
+
+interface KeyDef {
+    eventCode: string;
+    label: string;
+    width?: string;
+}
+
+const keys: KeyDef[][] = [
   [ // Row 0
     { eventCode: "Escape", label: "ESC", width: "w-12 mr-14" },
     { eventCode: "F1", label: "F1" }, { eventCode: "F2", label: "F2" }, { eventCode: "F3", label: "F3" },
@@ -44,7 +53,7 @@ const keys = [
   ],
 ];
 
-const clusterKeys = [
+const clusterKeys: KeyDef[][] = [
   [ // Navigation block
     { eventCode: "Insert", label: "Ins", width: "w-16 mt-20" },
     { eventCode: "Home", label: "Home", width: "w-16 mt-20" },
@@ -65,7 +74,7 @@ const clusterKeys = [
   ],
 ];
 
-const numpadKeys = [
+const numpadKeys: KeyDef[][] = [
   [ // Top row
     { eventCode: "NumLock", label: "Num", width:"w-12 mt-20"},
     { eventCode: "NumpadDivide", label: "/", width:"w-12 mt-20" },
@@ -108,7 +117,7 @@ const modifierKeyCodes = [
     "MetaRight",
 ];
 
-const keyLabelMap = {};
+const keyLabelMap: Record<string, string> = {};
 [keys, clusterKeys, numpadKeys].forEach((section) => {
     section.forEach((row) => {
         row.forEach(({ eventCode, label }) => {
@@ -122,19 +131,29 @@ const HISTORY_DURATION = 3000;
 const COMBO_COOLDOWN = 200; // minimum ms before logging same combo again
 const DEBOUNCE_DURATION = 300; // in ms
 
-const Keyboard = ({ listenerRef, deviceStatus }) => {
-    const [activeKeys, setActiveKeys] = useState(new Set());
-    const [history, setHistory] = useState([]);
-    const timeoutsRef = useRef({});
-    const lastComboRef = useRef(null);
+interface HistoryEntry {
+    key: string;
+    id: number;
+}
+
+interface KeyboardProps {
+    listenerRef: RefObject<HTMLElement | null>;
+    deviceStatus: ConnectionStatus;
+}
+
+const Keyboard = ({ listenerRef, deviceStatus }: KeyboardProps) => {
+    const [activeKeys, setActiveKeys] = useState<Set<string>>(new Set());
+    const [history, setHistory] = useState<HistoryEntry[]>([]);
+    const timeoutsRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
+    const lastComboRef = useRef<string | null>(null);
 
     const [backgroundColor, setBackgroundColor] = useState("");
     const [showKeyboard, setShowKeyboard] = useState(false);
 
-    const comboTimestamps = useRef({});
-    const activeKeysRef = useRef(new Set());
-    const keyPressTimestamps = useRef({});
-    const debounceTimer = useRef(null);
+    const comboTimestamps = useRef<Record<string, number>>({});
+    const activeKeysRef = useRef<Set<string>>(new Set());
+    const keyPressTimestamps = useRef<Record<string, number>>({});
+    const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         switch (deviceStatus) {
@@ -179,7 +198,7 @@ const Keyboard = ({ listenerRef, deviceStatus }) => {
         const node = listenerRef?.current;
         if (!node) return;
 
-        const handleKeyDown = (e) => {
+        const handleKeyDown = (e: KeyboardEvent) => {
             const key = e.code; // Translate " " to "SPACE"
 
             // Only timestamp if not already held
@@ -248,7 +267,7 @@ const Keyboard = ({ listenerRef, deviceStatus }) => {
             }, DEBOUNCE_DURATION);
         };
 
-        const handleKeyUp = (e) => {
+        const handleKeyUp = (e: KeyboardEvent) => {
             const key = e.code;
             const pressTime = keyPressTimestamps.current[key];
             const now = Date.now();
@@ -333,7 +352,7 @@ const Keyboard = ({ listenerRef, deviceStatus }) => {
 
 
 
-    const isKeyActive = (eventCode) => activeKeys.has(eventCode);
+    const isKeyActive = (eventCode: string) => activeKeys.has(eventCode);
 
     return (
         <div id="keyboard-container" className="bg-transparent text-white flex flex-col w-full items-center justify-center space-y-6 mt-4">

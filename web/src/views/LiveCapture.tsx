@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState, useContext, useCallback, useMemo } from "react";
+import { useEffect, useRef, useState, useContext } from "react";
+import type { MouseEvent, PointerEvent, WheelEvent } from "react";
 
-import { Button, Typography } from "@material-tailwind/react";
-import { CommandLineIcon, LockOpenIcon } from "@heroicons/react/24/outline";
+import { Typography } from "@material-tailwind/react";
+import { CommandLineIcon } from "@heroicons/react/24/outline";
 import { BLEContext } from "../context/BLEContext";
 import Keyboard from "../components/Keyboard/Keyboard";
 import Touchpad from "../components/inputComponents/touchpad";
@@ -9,9 +10,13 @@ import KeyboardMouse from "../components/inputComponents/keyboardMouse";
 import { LeftButtonColumn, RightButtonColumn } from "../components/inputComponents/sharedComponents";
 import { useInputController } from "../services/inputHandlers/liveCaptureHooks";
 
-import { createMouseJigglePacket } from "../services/packetService/packetFunctions";
 import { mouseHandler } from "../services/inputHandlers/mouseHandler";
 import { keyboardHandler } from "../services/inputHandlers/keyboardHandler";
+
+interface Point {
+    x: number;
+    y: number;
+}
 
 export default function LiveCapture() {
     // Input controller hooks
@@ -33,28 +38,28 @@ export default function LiveCapture() {
     const [jiggling, setJiggling] = useState(false);
     const [isFocused, setIsFocused] = useState(false); // Track if input is focused
     const [isAutofillFocused, setIsAutofillFocused] = useState(false); // Track if autofill input is focused
-    const mobileInputRef = useRef(null); // Ref for mobile input
+    const mobileInputRef = useRef<HTMLInputElement | null>(null); // Ref for mobile input
 
     // Contexts
-    const { status, sendEncrypted } = useContext(BLEContext);
+    const { status, sendEncrypted } = useContext(BLEContext)!;
 
     // Mouse Vars
-    const mouseStartPos = useRef(null);
+    const mouseStartPos = useRef<Point | null>(null);
     const isMouseTracking = useRef(false);
     const REPORT_INTERVAL_MS = 100;
     const [captureMouse, setCaptureMouse] = useState(false);
 
     // Touch Vars
-    const touchStartPos = useRef(null);
+    const touchStartPos = useRef<Point | null>(null);
     const isTouching = useRef(false);
     const lastTapTime = useRef(0);
-    const lastTapPos = useRef(null);
+    const lastTapPos = useRef<Point | null>(null);
     const DOUBLE_TAP_THRESHOLD = 300; // ms
     const DOUBLE_TAP_DISTANCE = 50; // pixels
 
 
 
-    const displacementList = useRef([]);
+    const displacementList = useRef<Point[]>([]);
 
     // Mouse polling logic - wrapped in useEffect to prevent memory leaks in React 19
     useEffect(() => {
@@ -62,7 +67,7 @@ export default function LiveCapture() {
             //if (captureMouse && (tDisplacement.current.x !== 0 || tDisplacement.current.y !== 0)) {
             if (displacementList.current.length > 0) {
                 //sendMouseReport(tDisplacement.current.x, tDisplacement.current.y, false, false);
-                sendMouseReport(false, false);
+                sendMouseReport(0, 0);
             }
         }, REPORT_INTERVAL_MS);
 
@@ -70,7 +75,7 @@ export default function LiveCapture() {
     }, [captureMouse, sendMouseReport]);
 
     // On click logic
-    function onMouseDown(e) {
+    function onMouseDown(e: MouseEvent<HTMLInputElement>) {
         if (!isFocused) return; // Only capture when focused
         mouseStartPos.current = { x: e.clientX, y: e.clientY };
         isMouseTracking.current = true;
@@ -84,7 +89,7 @@ export default function LiveCapture() {
         }
     }
 
-    function onMouseUp(e) {
+    function onMouseUp(e: MouseEvent<HTMLInputElement>) {
         if (!isFocused) return; // Only capture when focused
         if (e.button == 0) mouseHandler.sendMouseClick(2, 0, sendEncrypted); // Send left click
         if (e.button == 2) {
@@ -99,10 +104,10 @@ export default function LiveCapture() {
     }
 
     // When a pointer moves
-    function onPointerMove(e) {
+    function onPointerMove(e: PointerEvent<HTMLInputElement>) {
         if (!isFocused || !captureMouse) return; // Only capture when focused and enabled
 
-        const rect = inputRef.current.getBoundingClientRect();
+        const rect = inputRef.current!.getBoundingClientRect();
         const inside =
             e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
 
@@ -119,8 +124,8 @@ export default function LiveCapture() {
         }
 
         // Calculate displacement and add to list
-        const displacementX = e.clientX - mouseStartPos.current.x;
-        const displacementY = e.clientY - mouseStartPos.current.y;
+        const displacementX = e.clientX - mouseStartPos.current!.x;
+        const displacementY = e.clientY - mouseStartPos.current!.y;
         displacementList.current.push({ x: displacementX, y: displacementY });
 
         // Update start position for next calculation
@@ -128,7 +133,7 @@ export default function LiveCapture() {
     }
 
 
-    function onWheel(e) {
+    function onWheel(e: WheelEvent<HTMLInputElement>) {
         if (!isFocused || !captureMouse) return; // Only capture when focused and enabled  
         e.preventDefault(); // Prevent page scrolling
 
@@ -137,14 +142,14 @@ export default function LiveCapture() {
     }
 
     // Handle scroll from touch pinch gesture
-    function onTouchScroll(scrollAmount) {
+    function onTouchScroll(scrollAmount: number) {
         if (!captureMouse) return;
         const reportDelta = scrollAmount * 0.01; // Scale touch scroll amount to report delta
         mouseHandler.sendMouseScroll(reportDelta, sendEncrypted);
     }
 
     // Touch event handlers for mobile touchpad
-    function onTouchStart(e) {
+    function onTouchStart(e: TouchEvent) {
         const touch = e.touches[0];
         const currentTime = Date.now();
         const currentPos = { x: touch.clientX, y: touch.clientY };
@@ -175,7 +180,7 @@ export default function LiveCapture() {
         isTouching.current = true;
     }
 
-    function onTouchMove(e) {
+    function onTouchMove(e: TouchEvent) {
         if (!captureMouse || !isTouching.current || !touchStartPos.current) return;
         e.preventDefault();
 
@@ -190,20 +195,20 @@ export default function LiveCapture() {
         touchStartPos.current = { x: touch.clientX, y: touch.clientY };
     }
 
-    function onTouchEnd(e) {
+    function onTouchEnd(_e: TouchEvent) {
         isTouching.current = false;
         touchStartPos.current = null;
     }
 
     // Make a mouse packet and send it
-    function sendMouseReport(LClick, RClick, scrollDelta = 0) {
+    function sendMouseReport(LClick: number, RClick: number, scrollDelta = 0) {
         const mouseFrames = displacementList.current.slice(0, 8);
         mouseHandler.sendMouseReport(mouseFrames, LClick, RClick, scrollDelta, sendEncrypted);
         displacementList.current = []; // reset list
     }
 
     // Helper function to send keyboard shortcuts
-    function sendKeyboardShortcut(keySequence) {
+    function sendKeyboardShortcut(keySequence: string[]) {
         keyboardHandler.sendKeyboardShortcut(keySequence, sendEncrypted);
     }
 
@@ -254,12 +259,12 @@ export default function LiveCapture() {
                         onKeyDown={(e) => {
                             // Default to backspace for unidentified keys to handle mobile keyboard quirks
                             handleKeyDown(e);
-                            mobileInputRef.current.value = "";
+                            mobileInputRef.current!.value = "";
                         }}
                         // IME event handlers
                         onChange={(e) => {
                             handleOnChange(e);
-                            mobileInputRef.current.value = "";
+                            mobileInputRef.current!.value = "";
                         }}
                         className="absolute inset-0 opacity-0 cursor-text pointer-events-auto"
                     ></input>

@@ -1,21 +1,35 @@
-import React, { useState, useContext, useRef, useEffect, useCallback } from 'react';
+import { useState, useContext, useRef, useEffect, useCallback } from 'react';
 import { Button, Typography, Tabs } from "@material-tailwind/react";
 import { Textarea } from "@material-tailwind/react";
 import { BLEContext } from '../context/BLEContext';
-import { HomeIcon, PaperAirplaneIcon, ClipboardIcon, InformationCircleIcon, SparklesIcon, LockClosedIcon } from "@heroicons/react/24/outline";
+import { ClipboardIcon, InformationCircleIcon, SparklesIcon, LockClosedIcon } from "@heroicons/react/24/outline";
 import { keyboardHandler } from '../services/inputHandlers/keyboardHandler';
 import DuckyscriptEditor from '../components/duckyscript/DuckyscriptEditor';
 import { parseDuckyscript, executeDuckyscript } from '../services/duckyscript/DuckyscriptParser';
 import { DuckyscriptContext } from '../context/DuckyscriptContext';
+import type { ScriptMetadata } from '../services/duckyscript/DuckyscriptService';
 
+function getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+}
 
+// Structurally matches both the native KeyboardEvent (window listener) and
+// React's synthetic KeyboardEvent<T> (onKeyDown prop) — handleShortcut is used as both.
+interface ShortcutKeyEvent {
+    ctrlKey: boolean;
+    metaKey: boolean;
+    altKey: boolean;
+    key: string;
+    preventDefault: () => void;
+    stopPropagation: () => void;
+}
 
 export default function BulkSend() {
     const [input, setInput] = useState('');
-    const [selectedScript, setSelectedScript] = useState(null);
-    const { status, sendEncrypted } = useContext(BLEContext);
-    const { isUnlocked, scripts } = useContext(DuckyscriptContext);
-    const editorRef = useRef(null);
+    const [selectedScript, setSelectedScript] = useState<ScriptMetadata | null>(null);
+    const { status, sendEncrypted } = useContext(BLEContext)!;
+    const { isUnlocked, scripts } = useContext(DuckyscriptContext)!;
+    const editorRef = useRef<HTMLTextAreaElement | null>(null);
 
 
     const sendString = useCallback(async () => {
@@ -46,11 +60,11 @@ export default function BulkSend() {
             }
             
             // Helper function for async delay
-            const delayFn = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-            
+            const delayFn = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
+
             // Helper function to send string via keyboardHandler
-            const sendStringFn = async (text) => {
-                return new Promise((resolve, reject) => {
+            const sendStringFn = async (text: string): Promise<void> => {
+                return new Promise<void>((resolve, reject) => {
                     try {
                         keyboardHandler.sendKeyboardString(text, sendEncrypted);
                         resolve();
@@ -65,14 +79,14 @@ export default function BulkSend() {
             
         } 
         
-        catch (error) { 
+        catch (error: unknown) {
             console.error('[BulkSend] Duckyscript execution error:', error);
-            alert('Error executing script: ' + error.message);
+            alert('Error executing script: ' + getErrorMessage(error));
         }
     }, [selectedScript, sendEncrypted]);
 
-    // Use Ctrl + Shift + Enter to send 
-    const handleShortcut = useCallback((event) => {
+    // Use Ctrl + Shift + Enter to send
+    const handleShortcut = useCallback((event: ShortcutKeyEvent) => {
         const isCtrl = event.ctrlKey || event.metaKey;
         const isAlt = event.altKey;
         const isEnter = event.key === "Enter";
@@ -96,7 +110,7 @@ export default function BulkSend() {
 
 
     useEffect(() => {
-        const keyListener = (e) => handleShortcut(e);
+        const keyListener = (e: KeyboardEvent) => handleShortcut(e);
         window.addEventListener("keydown", keyListener);
         return () => window.removeEventListener("keydown", keyListener);
     }, [handleShortcut]);
@@ -180,7 +194,7 @@ export default function BulkSend() {
                                             Selected Script: {selectedScript.name}
                                         </Typography>
                                         <Typography type="small" className="text-text">
-                                            Lines: {selectedScript.lineCount} | Est. Time: {Math.round(selectedScript.estimatedTime)}ms
+                                            Lines: {selectedScript.content.split('\n').length} | Est. Time: {Math.round(selectedScript.estimatedTime)}ms
                                         </Typography>
                                     </div>
                                     <Button

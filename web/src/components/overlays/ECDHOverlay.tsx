@@ -1,51 +1,55 @@
-import React, { useState, useContext, useRef, useEffect } from 'react';
+import { useState, useContext, useRef, useEffect } from 'react';
+import type { KeyboardEvent, MouseEvent } from 'react';
 import { ECDHContext } from '../../context/ECDHContext';
 import { Button, Typography, Spinner } from "@material-tailwind/react";
 import { KeyIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { BLEContext } from '../../context/BLEContext';
 
-const ECDHOverlay = ({ onChangeOverlay }) => {
-    const { processPeerKeyAndGenerateSharedSecret } = useContext(ECDHContext);
+function getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+}
+
+interface ECDHOverlayProps {
+    onChangeOverlay: (overlay: string | null) => void;
+}
+
+const ECDHOverlay = ({ onChangeOverlay }: ECDHOverlayProps) => {
+    const { processPeerKeyAndGenerateSharedSecret } = useContext(ECDHContext)!;
     const [keyInput, setkeyInput] = useState("");
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const [capsLockEnabled, setCapsLockEnabled] = useState(false);
-    const { device, pktCharacteristic, status, sendUnencrypted } = useContext(BLEContext);
-    const keyRef = useRef(null);
+    const { device, pktCharacteristic, status, sendUnencrypted } = useContext(BLEContext)!;
+    const keyRef = useRef<HTMLInputElement | null>(null);
 
     const [isLoading, setisLoading] = useState(false);
 
-    function sleep(ms) {
+    function sleep(ms: number): Promise<void> {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     // Handle capslock detection
-    const handleKeyDown = (event) => {
+    const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
         handleSubmit(event);
     };
 
-    const handleKeyUp = (event) => {
+    const handleKeyUp = (event: KeyboardEvent<HTMLInputElement>) => {
         // Check capslock on key up to detect toggle
         setCapsLockEnabled(event.getModifierState("CapsLock"));
     };
 
-    const handleFocus = (event) => {
-        // Check capslock on focus
-        setCapsLockEnabled(event.getModifierState("CapsLock"));
-    };
-
-    const handleClick = (event) => {
+    const handleClick = (event: MouseEvent<HTMLInputElement>) => {
         // Check capslock on click
         setCapsLockEnabled(event.getModifierState("CapsLock"));
     };
 
     // Handle submit when user (or ToothPaste) presses Enter in the input field
-    const handleSubmit =  (event) =>{
+    const handleSubmit = (event: KeyboardEvent<HTMLInputElement>) => {
         if(keyInput.trim() === "")
             return;
 
         if (event.key === 'Enter'){
             computeSecret();
-        }   
+        }
     }
 
     // Use the context function to handle entire key exchange
@@ -58,15 +62,15 @@ const ECDHOverlay = ({ onChangeOverlay }) => {
             // Use the comprehensive context function
             const b64SelfPublic = await processPeerKeyAndGenerateSharedSecret(
                 keyInput.trim(),
-                device.macAddress
+                device!.macAddress!
             );
 
             await sleep(2000); // Wait for 2 seconds after generating the shared secret
             await sendUnencrypted(b64SelfPublic);
             setisLoading(false);
 
-        } catch (e) {
-            setError('Error: ' + e.message);
+        } catch (e: unknown) {
+            setError('Error: ' + getErrorMessage(e));
             setisLoading(false);
         }
     };
@@ -105,7 +109,6 @@ const ECDHOverlay = ({ onChangeOverlay }) => {
                     placeholder="Pairing Key"
                     value={keyInput}
                     onChange={(e) => setkeyInput(e.target.value)}
-                    onFocus={handleFocus}
                     onClick={handleClick}
                     onKeyDown={handleKeyDown}
                     onKeyUp={handleKeyUp}
@@ -122,9 +125,12 @@ const ECDHOverlay = ({ onChangeOverlay }) => {
                     </div>
                 )}
 
+                {/* This @material-tailwind/react version's Button type has no `loading` prop
+                    (present in some other version's docs) — pre-existing usage kept as-is. */}
                 <Button
                     ref={keyRef}
                     onClick={computeSecret}
+                    // @ts-expect-error
                     loading={isLoading.toString()}
                     disabled={keyInput.trim().length < 44 || !pktCharacteristic || isLoading || capsLockEnabled}
                     className='w-full h-10 my-4 bg-primary text-text hover:bg-primary-ash focus:bg-primary-focus active:bg-primary-active

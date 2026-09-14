@@ -1,9 +1,13 @@
-import React from 'react';
 import { Typography } from "@material-tailwind/react";
 import { ArrowDownIcon } from "@heroicons/react/24/outline";
 import TypingAnimation from '../../../components/shared/TypingAnimation';
 
-export default function HeroSection({ currentSlide, getSectionOpacity }) {
+interface SectionProps {
+    currentSlide: number;
+    getSectionOpacity: (index: number) => number;
+}
+
+export default function HeroSection({ currentSlide, getSectionOpacity }: SectionProps) {
     return (
         // The text itself - model is "injected"
         <section
@@ -52,6 +56,9 @@ export default function HeroSection({ currentSlide, getSectionOpacity }) {
                     </div>
                     <div className="flex items-center gap-2 text-white mt-20">
                         <ArrowDownIcon className="h-5 w-5 animate-bounce" />
+                        {/* "medium" isn't in material-tailwind's Typography `type` union (h1-h6|lead|p|small) —
+                            pre-existing usage, kept as-is rather than guessing the intended styling. */}
+                        {/* @ts-expect-error */}
                         <Typography type="medium">Scroll to explore</Typography>
                     </div>
                 </div>
@@ -89,6 +96,9 @@ export default function HeroSection({ currentSlide, getSectionOpacity }) {
                     </div>
                     <div className="flex items-center gap-2 text-white mt-20">
                         <ArrowDownIcon className="h-5 w-5 animate-bounce" />
+                        {/* "medium" isn't in material-tailwind's Typography `type` union (h1-h6|lead|p|small) —
+                            pre-existing usage, kept as-is rather than guessing the intended styling. */}
+                        {/* @ts-expect-error */}
                         <Typography type="medium">Scroll to explore</Typography>
                     </div>
                 </div>

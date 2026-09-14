@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import type { ReactNode } from 'react';
 import { Button, Typography } from "@material-tailwind/react";
 import ToothPaste from "../../assets/ToothPaste.png";
 import { useBreakpoint } from "../../services/useBreakpoint";
@@ -8,8 +9,31 @@ import {
     CheckCircleIcon
 } from "@heroicons/react/24/outline";
 
+interface TourStep {
+    title: ReactNode;
+    description: ReactNode;
+    targetSelectorSmall: string | null;
+    targetSelectorLarge: string | null;
+    enabledOnMobile: boolean;
+    enabledOnDesktop: boolean;
+    // Small screen (< xl)
+    gridColumnSmall?: number;
+    gridRowSmall?: number;
+    columnSpanSmall?: number;
+    rowSpanSmall?: number;
+    // Large screen (>= xl)
+    gridColumn?: number;
+    gridRow?: number;
+    columnSpan?: number;
+    rowSpan?: number;
+    spotlightRadius?: number;
+    spotlightGridColumn?: number;
+    spotlightGridRow?: number;
+    gradientIntensity?: number;
+}
+
 // Shared step objects across all views
-const WELCOME_STEP = {
+const WELCOME_STEP: TourStep = {
     title: (
         <>
             <div className="inline-flex items-center gap-1 mb-3">
@@ -21,6 +45,9 @@ const WELCOME_STEP = {
     description: (
         <>
             <div className="mb-6">
+                {/* "paragraph" isn't in material-tailwind's Typography `type` union (h1-h6|lead|p|small) —
+                    pre-existing usage, kept as-is rather than guessing the intended styling. */}
+                {/* @ts-expect-error */}
                 <Typography type="paragraph" className="font-body text-xl">
                     A tool to quickly capture and send clipboard data across devices without compromising security.
                 </Typography>
@@ -62,7 +89,7 @@ const WELCOME_STEP = {
     gradientIntensity: 0.8,
 };
 
-const NAV_MENU_STEP = {
+const NAV_MENU_STEP: TourStep = {
     title: 'Navigation Menu',
     description: 'Toggle the menu to switch between Live Capture, Bulk Send, and other features.',
     targetSelectorSmall: '#navbar',
@@ -81,7 +108,7 @@ const NAV_MENU_STEP = {
     rowSpan: 1,
 };
 
-const CONNECTION_STATUS_STEP = {
+const CONNECTION_STATUS_STEP: TourStep = {
     title: (<><Typography type="h4" className="font-header">Connect Button</Typography></>),
     description: (
         <>
@@ -118,7 +145,7 @@ const CONNECTION_STATUS_STEP = {
     rowSpan: 1,
 };
 
-const stepsMap = {
+const stepsMap: Record<string, TourStep[]> = {
     live: [
         WELCOME_STEP,
         { ...NAV_MENU_STEP, spotlightRadius: 400, spotlightGridColumn: 5.5, spotlightGridRow: 1, gradientIntensity: 0.7 },
@@ -201,7 +228,7 @@ const stepsMap = {
     ],
 };
 
-function Spotlight({ target, padding = 10 }) {
+function Spotlight({ target, padding = 10 }: { target: Element | null; padding?: number }) {
     if (!target) return null;
 
     const rect = target.getBoundingClientRect();
@@ -221,9 +248,14 @@ function Spotlight({ target, padding = 10 }) {
     );
 }
 
-export default function QuickStartOverlay({ onChangeOverlay, activeView = 'live' }) {
+interface QuickStartOverlayProps {
+    onChangeOverlay: (overlay: string | null) => void;
+    activeView?: string;
+}
+
+export default function QuickStartOverlay({ onChangeOverlay, activeView = 'live' }: QuickStartOverlayProps) {
     const [currentStep, setCurrentStep] = useState(0);
-    const [targetElement, setTargetElement] = useState(null);
+    const [targetElement, setTargetElement] = useState<Element | null>(null);
     const { breakpoints, width } = useBreakpoint();
 
     const allSteps = stepsMap[activeView] || stepsMap.live;
@@ -271,7 +303,7 @@ export default function QuickStartOverlay({ onChangeOverlay, activeView = 'live'
         return () => clearTimeout(timer);
     }, [currentStep, steps, isLargeScreen]);
 
-    const getGridPosition = (step) => {
+    const getGridPosition = (step: TourStep) => {
         // Choose small or large screen values based on breakpoint
         const gridColumn = isLargeScreen 
             ? step.gridColumn || step.gridColumnSmall || 4

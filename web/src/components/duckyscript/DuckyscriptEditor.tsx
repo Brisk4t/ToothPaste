@@ -1,24 +1,29 @@
 /**
- * components/duckyscript/DuckyscriptEditor.jsx
+ * components/duckyscript/DuckyscriptEditor.tsx
  * 
  * UI component for editing and managing duckyscript files
  */
 
-import React, { useState, useContext, useRef, useEffect } from 'react';
+import { useState, useContext, useRef, useEffect } from 'react';
+import type { ChangeEvent } from 'react';
 import { Button, Typography, Spinner } from '@material-tailwind/react';
 import {
     DocumentPlusIcon,
     DocumentArrowUpIcon,
     DocumentArrowDownIcon,
     TrashIcon,
-    XMarkIcon,
     CheckIcon,
     ExclamationTriangleIcon,
     ArrowLeftIcon
 } from '@heroicons/react/24/outline';
 import { DuckyscriptContext } from '../../context/DuckyscriptContext';
+import type { ScriptMetadata, ScriptSummary } from '../../services/duckyscript/DuckyscriptService';
 
-const DuckyscriptEditor = ({ onScriptSelected }) => {
+interface DuckyscriptEditorProps {
+    onScriptSelected?: (script: ScriptMetadata) => void;
+}
+
+const DuckyscriptEditor = ({ onScriptSelected }: DuckyscriptEditorProps) => {
     const {
         scripts,
         currentScript,
@@ -37,12 +42,12 @@ const DuckyscriptEditor = ({ onScriptSelected }) => {
         exportScript,
         closeScript,
         getEstimatedTime,
-    } = useContext(DuckyscriptContext);
+    } = useContext(DuckyscriptContext)!;
 
     const [scriptName, setScriptName] = useState('');
     const [showSaveDialog, setShowSaveDialog] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const fileInputRef = useRef(null);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     // Update name when script changes
     useEffect(() => {
@@ -57,11 +62,11 @@ const DuckyscriptEditor = ({ onScriptSelected }) => {
         setShowSaveDialog(false);
     };
 
-    const handleImportFile = (e) => {
+    const handleImportFile = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        importScript(file).catch(err => {
+        importScript(file).catch((err: unknown) => {
             console.error('Import failed:', err);
         });
 
@@ -106,7 +111,7 @@ const DuckyscriptEditor = ({ onScriptSelected }) => {
         }
     };
 
-    const handleSelectScript = async (script) => {
+    const handleSelectScript = async (script: ScriptSummary) => {
         // Load the full script content
         const loadedScript = await openScript(script.id);
         // Notify parent with the fully loaded script so it has content property
@@ -116,7 +121,7 @@ const DuckyscriptEditor = ({ onScriptSelected }) => {
     };
 
     const estimatedTime = getEstimatedTime();
-    const hasErrors = parseResult?.errors?.length > 0;
+    const hasErrors = (parseResult?.errors?.length ?? 0) > 0;
 
     return (
         <div className="flex flex-col gap-4 w-full h-full flex-1">
@@ -203,9 +208,9 @@ const DuckyscriptEditor = ({ onScriptSelected }) => {
                             </div>
 
                             {/* Right side - Error message (pinned to right) */}
-                            {parseResult?.errors?.length > 0 && (
+                            {(parseResult?.errors?.length ?? 0) > 0 && (
                                 <Typography type="small" className="text-dust flex-shrink-0">
-                                    {parseResult.errors[0].message}
+                                    {parseResult!.errors[0].message}
                                 </Typography>
                             )}
 
@@ -215,7 +220,7 @@ const DuckyscriptEditor = ({ onScriptSelected }) => {
                                     <>
                                         <ExclamationTriangleIcon className="h-4 w-4 text-orange flex-shrink-0" />
                                         <Typography type="small" className="text-orange font-semibold">
-                                            {parseResult.errors.length} error{parseResult.errors.length !== 1 ? 's' : ''}
+                                            {parseResult!.errors.length} error{parseResult!.errors.length !== 1 ? 's' : ''}
                                         </Typography>
                                     </>
                                 ) : (

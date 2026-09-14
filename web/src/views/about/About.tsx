@@ -1,16 +1,16 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import ModelContainer from './sections/ModelContainer';
 import HeroSection from './sections/HeroSection';
 import WhySection from './sections/WhySection';
 import SecuritySection from './sections/SecuritySection';
 import CTASection from './sections/CTASection';
 import GridBackground from '../../components/shared/GridBackground';
-import { Typography } from "@material-tailwind/react";
+import type { FilledSquare, GridDimensions } from '../../components/shared/GridBackground';
 import { appColors } from '../../styles/colors';
 import { useBreakpoint } from '../../services/useBreakpoint';
 
 
-const star = [
+const star: FilledSquare[] = [
     { row: 1, col: 0, color: appColors.primary },
     { row: 1, col: 3, color: appColors.primary },
     { row: 1, col: 6, color: appColors.primary },
@@ -66,7 +66,7 @@ const bluetoothSquares = [
 ];
 
 // Generate repeating pattern of 3 stars with equal spacing
-const generateRepeatingStars = (cols, rowOffset = 8) => {
+const generateRepeatingStars = (cols: number, rowOffset = 8): FilledSquare[] => {
     const starWidth = 7;
     const colors = [appColors.secondary, appColors.orange, appColors.primary];
     const groupSpacing = 12;
@@ -98,10 +98,10 @@ const generateRepeatingStars = (cols, rowOffset = 8) => {
 
 export default function About() {
     const [currentSlide, setCurrentSlide] = useState(0);
-    const [gridDimensions, setGridDimensions] = useState({ rows: 0, cols: 0, width: 0, height: 0 });
+    const [gridDimensions, setGridDimensions] = useState<GridDimensions>({ rows: 0, cols: 0, width: 0, height: 0 });
     const { isMobile } = useBreakpoint();
     const scrollDeltaRef = useRef(0);
-    const containerRef = useRef(null);
+    const containerRef = useRef<HTMLDivElement | null>(null);
     const maxSlides = 4;
     const scrollThreshold = useRef(0);
     const scrollSensitivity = 500; // How many pixels of scroll to trigger slide change
@@ -112,12 +112,12 @@ export default function About() {
     const slideChangeCooldownRef = useRef(500); // Cooldown in milliseconds
 
     // Define filled squares for each section and screen size
-    const getSquaresForScreenSize = () => {
+    const getSquaresForScreenSize = (): { hero: FilledSquare[]; why: FilledSquare[]; security: FilledSquare[]; cta: FilledSquare[] } => {
         const { rows, cols } = gridDimensions;
         if (rows === 0 || cols === 0) return { hero: [], why: [], security: [], cta: [] };
 
         // Generate white squares for right half of grid
-        const whiteSquaresRightHalf = [];
+        const whiteSquaresRightHalf: FilledSquare[] = [];
         const halfCol = Math.ceil(cols / 2);
         for (let row = 0; row < rows; row++) {
             for (let col = halfCol; col < cols; col++) {
@@ -196,7 +196,7 @@ export default function About() {
         // scrollAmount: raw input value (pixels moved)
         // slideChangeThreshold: minimum pixels needed to trigger slide change
         // modelRotationScale: multiplier for 3D model rotation (separate from slide changes)
-        const handleScrollInput = (scrollAmount, slideChangeThreshold, modelRotationScale = 1) => {
+        const handleScrollInput = (scrollAmount: number, slideChangeThreshold: number, modelRotationScale = 1) => {
             // Apply scroll amount to 3D model rotation
             scrollDeltaRef.current += scrollAmount * modelRotationScale;
 
@@ -222,12 +222,12 @@ export default function About() {
         };
 
         // Unified touch events handler
-        const handleTouchStart = (event) => {
+        const handleTouchStart = (event: TouchEvent) => {
             pointerStartYRef.current = event.touches[0].clientY;
             isPointerDownRef.current = true;
         };
 
-        const handleTouchMove = (event) => {
+        const handleTouchMove = (event: TouchEvent) => {
             if (isPointerDownRef.current) {
                 const currentY = event.touches[0].clientY;
                 const touchDelta = pointerStartYRef.current - currentY;
@@ -241,7 +241,7 @@ export default function About() {
             isPointerDownRef.current = false;
         };
 
-        const handleWheel = (event) => {
+        const handleWheel = (event: WheelEvent) => {
             event.preventDefault();
             // Wheel: normal model rotation (1x), high slide threshold
             handleScrollInput(event.deltaY, scrollSensitivity, 1);
@@ -261,7 +261,7 @@ export default function About() {
     }, []);
 
     // Calculate which section should be visible based on current slide
-    const getSectionOpacity = (sectionIndex) => {
+    const getSectionOpacity = (sectionIndex: number): number => {
         return currentSlide === sectionIndex ? 1 : 0;
     };
 
@@ -270,10 +270,11 @@ export default function About() {
         <div ref={containerRef} className="relative flex-1 w-full bg-transparent text-text overflow-hidden" style={{ touchAction: 'none' }}>
             {/* Colored squares overlay - no grid lines */}
 
+            {/* appColors has no "hover" entry — that property access was always undefined,
+                which is what GridBackground's own borderColor default already falls back to. */}
             <GridBackground
                 filledSquares={currentSectionSquares}
                 squareSize={25}
-                borderColor={appColors.hover}
                 borderWidth={0}
                 onDimensionsChange={setGridDimensions}
             />

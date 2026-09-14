@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { IconButton, Badge, Card, Typography, Input, Progress, Button } from "@material-tailwind/react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import type { Dispatch, SetStateAction, ChangeEvent, KeyboardEvent } from "react";
+import { Typography, Input, Button } from "@material-tailwind/react";
 import {
-    HomeIcon,
     PlayCircleIcon,
     Bars3Icon,
     XMarkIcon,
@@ -21,11 +21,11 @@ import ToothPaste from "../../assets/ToothPaste.png";
 import { createRenamePacket } from "../../services/packetService/packetFunctions";
 
 export function useClickOrLongPress(longPressTime = 2000) {
-    const timerRef = useRef(null);
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [longPressed, setLongPressed] = useState(false);
 
     const start = useCallback(
-        (onLongPress) => {
+        (onLongPress?: () => void) => {
             setLongPressed(false);
             // Start a timeout for long press
             timerRef.current = setTimeout(() => {
@@ -37,13 +37,13 @@ export function useClickOrLongPress(longPressTime = 2000) {
     );
 
     const cancel = useCallback(() => {
-        clearTimeout(timerRef.current);
+        if (timerRef.current) clearTimeout(timerRef.current);
         timerRef.current = null;
     }, []);
 
     const end = useCallback(
-        (onClick) => {
-            clearTimeout(timerRef.current);
+        (onClick?: () => void) => {
+            if (timerRef.current) clearTimeout(timerRef.current);
             timerRef.current = null;
             if (!longPressed && onClick) {
                 onClick();
@@ -55,14 +55,22 @@ export function useClickOrLongPress(longPressTime = 2000) {
     return { start, cancel, end, longPressed };
 }
 
-function EditableDeviceName({ name, setName, isEditing, setIsEditing, isHovering}) {
+interface EditableDeviceNameProps {
+    name: string;
+    setName: Dispatch<SetStateAction<string>>;
+    isEditing: boolean;
+    setIsEditing: Dispatch<SetStateAction<boolean>>;
+    isHovering: boolean;
+}
+
+function EditableDeviceName({ name, setName, isEditing, setIsEditing, isHovering}: EditableDeviceNameProps) {
     // Once user unfocuses from editing
     const handleBlur = () => {
         setIsEditing(false);
     };
 
     // Once user presses "Enter" while editing
-    const handleKeyPress = (e) => {
+    const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter") {
             setIsEditing(false);
         }
@@ -71,20 +79,27 @@ function EditableDeviceName({ name, setName, isEditing, setIsEditing, isHovering
     return (
         <>
             {isEditing ? (
+                // This material-tailwind version's Input has no `label` prop, and its `color`
+                // union doesn't include "white" (present in some other version's docs) —
+                // pre-existing usage kept as-is.
                 <Input
                     label={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                     onBlur={handleBlur}
                     onKeyDown={handleKeyPress}
                     className="text-text font-header font-medium normal-case"
+                    // @ts-expect-error
                     color="white"
                     size="md"
                     autoFocus
                 />
             ) : (
                 <div className="relative">
+                    {/* This material-tailwind version's Typography `color` union has no "text"
+                        (present in some other version's docs) — pre-existing usage kept as-is. */}
                     <Typography
                         type="h6"
+                        // @ts-expect-error
                         color="text"
                         className={`text-lg font-header font-medium normal-case transition-opacity duration-1000 ${isHovering ? "opacity-0" : "opacity-100"}`}
                         style={{ cursor: "pointer" }}
@@ -93,6 +108,7 @@ function EditableDeviceName({ name, setName, isEditing, setIsEditing, isHovering
                     </Typography>
                     <Typography
                         type="h6"
+                        // @ts-expect-error
                         color="text"
                         className={`text-lg text-text font-header font-medium normal-case transition-opacity duration-1000 absolute inset-0 flex items-center ${isHovering ? "opacity-100" : "opacity-0"}`}
                         style={{ cursor: "pointer" }}
@@ -105,16 +121,22 @@ function EditableDeviceName({ name, setName, isEditing, setIsEditing, isHovering
     );
 }
 
+interface ConnectionButtonProps {
+    showAuthOverlay: boolean;
+    setShowAuthOverlay: Dispatch<SetStateAction<boolean>>;
+    authState: AuthState | null;
+}
+
 // Status icon for a given device
-function ConnectionButton({ showAuthOverlay, setShowAuthOverlay, authState }) {
+function ConnectionButton({ showAuthOverlay, setShowAuthOverlay, authState }: ConnectionButtonProps) {
     const LONG_PRESS_DURATION = 2000;
-    const { connectToDevice, status, device, sendEncrypted } = useBLEContext();
+    const { connectToDevice, status, device, sendEncrypted } = useBLEContext()!;
     const { start, end, cancel, longPressed } = useClickOrLongPress(LONG_PRESS_DURATION);
     const [progress, setProgress] = useState(0);
     const [isEditing, setIsEditing] = useState(false);
     const [isHovering, setIsHovering] = useState(false);
     const [wasLongPressed, setWasLongPressed] = useState(false);
-    const intervalRef = useRef(null); // track interval across renders
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null); // track interval across renders
     const longPressTriggered = useRef(false);
 
 
@@ -149,7 +171,7 @@ function ConnectionButton({ showAuthOverlay, setShowAuthOverlay, authState }) {
     }, [isEditing, device?.name, name, sendEncrypted]); // Trigger whenever these change
 
     // Wrapper for start that also increments progress
-    const handleStart = (callback) => {
+    const handleStart = (callback: () => void) => {
         if (!device) return;
 
         setProgress(0);
@@ -162,7 +184,7 @@ function ConnectionButton({ showAuthOverlay, setShowAuthOverlay, authState }) {
             setProgress(percentage);
 
             if (elapsed >= LONG_PRESS_DURATION) {
-                clearInterval(intervalRef.current);
+                clearInterval(intervalRef.current!);
                 intervalRef.current = null;
                 longPressTriggered.current = true;
                 setWasLongPressed(true);
@@ -172,7 +194,7 @@ function ConnectionButton({ showAuthOverlay, setShowAuthOverlay, authState }) {
     };
 
     // On cancel or end
-    const handleEnd = (clickFn) => {
+    const handleEnd = (clickFn?: () => void) => {
         if (intervalRef.current) {
             clearInterval(intervalRef.current);
             intervalRef.current = null;
@@ -224,8 +246,6 @@ function ConnectionButton({ showAuthOverlay, setShowAuthOverlay, authState }) {
                     <div className="mr-10">
                         {/* If a device is connected get its name */}
                         <EditableDeviceName
-                            color="text"
-                            device={device}
                             isEditing={isEditing}
                             setIsEditing={setIsEditing}
                             name={name}
@@ -242,11 +262,18 @@ function ConnectionButton({ showAuthOverlay, setShowAuthOverlay, authState }) {
     );
 }
 
-export default function Navbar({ onChangeOverlay, onNavigate, activeView, activeOverlay }) {
+interface NavbarProps {
+    onChangeOverlay: (overlay: string | null) => void;
+    onNavigate: (view: string) => void;
+    activeView: string;
+    activeOverlay: string | null;
+}
+
+export default function Navbar({ onChangeOverlay, onNavigate, activeView, activeOverlay }: NavbarProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [showAuthOverlay, setShowAuthOverlay] = useState(false);
-    const [authState, setAuthState] = useState(null);
-    const { status, device, connectToDevice } = useBLEContext();
+    const [authState, setAuthState] = useState<AuthState | null>(null);
+    const { status, device, connectToDevice } = useBLEContext()!;
 
     // Subscribe to auth state
     useEffect(() => {
@@ -396,6 +423,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                         aria-label="Toggle menu"
                     >
                         <div className="flex flex-col min-w-0 flex-1 p-1">
+                            {/* @ts-expect-error - "text" isn't in material-tailwind's Typography `color` union */}
                             <Typography variant="h6" color="text" className="text-md font-header font-medium normal-case truncate">
                                 {device?.name || "Not Connected"}
                             </Typography>

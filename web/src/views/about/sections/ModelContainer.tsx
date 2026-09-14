@@ -1,10 +1,20 @@
-import React, { useRef } from 'react';
+import { useRef } from 'react';
+import type { RefObject } from 'react';
 import { Canvas, useLoader, useFrame, useThree } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { AxesHelper } from 'three';
+import { AxesHelper, Group } from 'three';
+
+interface SlideConfig {
+    ambient: number;
+    directional: number;
+    translateXPercent: number;
+    translateYPercent: number;
+    translateZ: number;
+    autorotate: boolean;
+}
 
 // Per-slide configuration: lighting intensity, translation (as % of viewport), and autorotation
-const SLIDE_CONFIG = {
+const SLIDE_CONFIG: { mobile: SlideConfig[]; desktop: SlideConfig[] } = {
     mobile: [
         { ambient: 0.2, directional: 0.5, translateXPercent: 0, translateYPercent: 0, translateZ: 0, autorotate: true },      // Slide 0 - Hero
         { ambient: 0.3, directional: 0.15, translateXPercent: 0, translateYPercent: 0, translateZ: 0, autorotate: true },     // Slide 1 - Why
@@ -19,15 +29,24 @@ const SLIDE_CONFIG = {
     ]
 };
 
-const Model = ({ url, scrollDeltaRef, translateXPercent, translateYPercent, translateZ, autorotate = true }) => {
-    const groupRef = useRef();
-    const axesHelperRef = useRef(null);
+interface ModelProps {
+    url: string;
+    scrollDeltaRef: RefObject<number>;
+    translateXPercent: number;
+    translateYPercent: number;
+    translateZ: number;
+    autorotate?: boolean;
+}
+
+const Model = ({ url, scrollDeltaRef, translateXPercent, translateYPercent, translateZ, autorotate = true }: ModelProps) => {
+    const groupRef = useRef<Group>(null);
+    const axesHelperRef = useRef<AxesHelper | null>(null);
     const gltf = useLoader(GLTFLoader, url);
     const targetRotation = useRef(0);
     const autorotationDirection = useRef(1);
     const rotationSpeed = 0.005;
     const { viewport } = useThree();
-    
+
     // Position interpolation
     const currentPos = useRef([0, 0, 0]);
     const targetX = useRef(0);
@@ -110,7 +129,13 @@ const Model = ({ url, scrollDeltaRef, translateXPercent, translateYPercent, tran
     );
 };
 
-export default function ModelContainer({ currentSlide, scrollDeltaRef, isMobile }) {
+interface ModelContainerProps {
+    currentSlide: number;
+    scrollDeltaRef: RefObject<number>;
+    isMobile: boolean;
+}
+
+export default function ModelContainer({ currentSlide, scrollDeltaRef, isMobile }: ModelContainerProps) {
     const config = isMobile ? SLIDE_CONFIG.mobile : SLIDE_CONFIG.desktop;
     const slideConfig = config[currentSlide] || config[0];
 

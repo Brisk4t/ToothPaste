@@ -13,12 +13,16 @@ import {
     ChevronLeftIcon,
     ChevronRightIcon,
 } from "@heroicons/react/24/outline";
+import type { Dispatch, SetStateAction } from "react";
 import { MediaToggleButton, IconToggleButton } from "../shared/buttons";
+import type { KeySequenceButton } from "../shared/buttons";
 import { keyboardHandler } from "../../services/inputHandlers/keyboardHandler";
+import type { SendEncrypted } from "../../services/inputHandlers/mouseHandler";
 import { createMouseJigglePacket } from "../../services/packetService/packetFunctions";
+import type { ConnectionStatus } from "../../context/BLEContext";
 
 // Shortcut definitions
-export const SHORTCUTS_MENU = [
+export const SHORTCUTS_MENU: KeySequenceButton[] = [
     { label: "Ctrl+A", keys: ["Control", "a"] },
     { label: "Ctrl+C", keys: ["Control", "c"] },
     { label: "Ctrl+V", keys: ["Control", "v"] },
@@ -36,8 +40,14 @@ export const SHORTCUTS_MENU = [
     { label: "Enter", keys: ["Enter"] },
 ];
 
+interface KeyComposerButton {
+    label: string;
+    key: string;
+    type: "modifier" | "common" | "navigation";
+}
+
 // Key composition buttons for building custom key combos
-export const KEY_COMPOSER_BUTTONS = [
+export const KEY_COMPOSER_BUTTONS: KeyComposerButton[] = [
     // Pg1
     { label: "Ctrl", key: "Control", type: "modifier" },
     { label: "Shift", key: "Shift", type: "modifier" },
@@ -68,11 +78,11 @@ export const KEY_COMPOSER_BUTTONS = [
  * by selecting modifier and navigation keys, then sending them
  * Uses carousel-style swiping to limit buttons per slide
  */
-export function KeyComposer({ onSendKeyboardShortcut }) {
-    const [selectedKeys, setSelectedKeys] = React.useState([]);
+export function KeyComposer({ onSendKeyboardShortcut }: { onSendKeyboardShortcut: (keySequence: string[]) => void }) {
+    const [selectedKeys, setSelectedKeys] = React.useState<string[]>([]);
     const [currentSlide, setCurrentSlide] = React.useState(0);
     const pointerStart = React.useRef({ x: 0, y: 0 });
-    const composerRef = React.useRef(null);
+    const composerRef = React.useRef<HTMLDivElement | null>(null);
     const wasSwipe = React.useRef(false);
     const SWIPE_THRESHOLD = 50;
     const ASPECT_RATIO = 2;
@@ -80,14 +90,14 @@ export function KeyComposer({ onSendKeyboardShortcut }) {
 
     // Organize buttons into slides
     const buttonSlides = React.useMemo(() => {
-        const slides = [];
+        const slides: KeyComposerButton[][] = [];
         for (let i = 0; i < KEY_COMPOSER_BUTTONS.length; i += BUTTONS_PER_SLIDE) {
             slides.push(KEY_COMPOSER_BUTTONS.slice(i, i + BUTTONS_PER_SLIDE));
         }
         return slides;
     }, []);
 
-    const toggleKey = (key) => {
+    const toggleKey = (key: string) => {
         setSelectedKeys(prev => {
             if (prev.includes(key)) {
                 return prev.filter(k => k !== key);
@@ -108,37 +118,37 @@ export function KeyComposer({ onSendKeyboardShortcut }) {
         }
     };
 
-    const getDisplayLabel = (key) => {
+    const getDisplayLabel = (key: string) => {
         const button = KEY_COMPOSER_BUTTONS.find(b => b.key === key);
         return button?.label || key;
     };
 
-    const compositionDisplay = selectedKeys.length > 0 
+    const compositionDisplay = selectedKeys.length > 0
         ? selectedKeys.map(getDisplayLabel).join("+")
         : "No keys selected";
 
-    const handlePointerDown = (e) => {
+    const handlePointerDown = (e: PointerEvent) => {
         pointerStart.current = {
-            x: e.clientX || e.touches?.[0].clientX,
-            y: e.clientY || e.touches?.[0].clientY
+            x: e.clientX,
+            y: e.clientY
         };
         wasSwipe.current = false;
     };
 
-    const handlePointerMove = (e) => {
-        const currentX = e.clientX || e.touches?.[0].clientX;
-        const currentY = e.clientY || e.touches?.[0].clientY;
-        
+    const handlePointerMove = (e: PointerEvent) => {
+        const currentX = e.clientX;
+        const currentY = e.clientY;
+
         const deltaX = Math.abs(currentX - pointerStart.current.x);
         const deltaY = Math.abs(currentY - pointerStart.current.y);
-        
+
         if (deltaX > SWIPE_THRESHOLD && deltaX > deltaY * ASPECT_RATIO) {
             wasSwipe.current = true;
         }
     };
 
-    const handlePointerUp = (e) => {
-        const endX = e.clientX || e.changedTouches?.[0].clientX;
+    const handlePointerUp = (e: PointerEvent) => {
+        const endX = e.clientX;
         const diff = pointerStart.current.x - endX;
 
         if (wasSwipe.current) {
@@ -268,7 +278,12 @@ export function KeyComposer({ onSendKeyboardShortcut }) {
     );
 }
 
-export function LeftButtonColumn({ status, sendEncrypted }) {
+interface LeftButtonColumnProps {
+    status: ConnectionStatus;
+    sendEncrypted: SendEncrypted;
+}
+
+export function LeftButtonColumn({ status, sendEncrypted }: LeftButtonColumnProps) {
     return (
         <div className="flex flex-col space-y-2">
             <div>
@@ -339,6 +354,18 @@ export function LeftButtonColumn({ status, sendEncrypted }) {
     );
 }
 
+interface RightButtonColumnProps {
+    captureMouse: boolean;
+    setCaptureMouse: Dispatch<SetStateAction<boolean>>;
+    commandPassthrough: boolean;
+    setCommandPassthrough: Dispatch<SetStateAction<boolean>>;
+    jiggling: boolean;
+    setJiggling: Dispatch<SetStateAction<boolean>>;
+    status: ConnectionStatus;
+    sendEncrypted: SendEncrypted;
+    sendKeyboardShortcut: (keySequence: string[]) => void;
+}
+
 export function RightButtonColumn({
     captureMouse,
     setCaptureMouse,
@@ -349,7 +376,7 @@ export function RightButtonColumn({
     status,
     sendEncrypted,
     sendKeyboardShortcut,
-}) {
+}: RightButtonColumnProps) {
     const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
     function CaptureMouseButton() {

@@ -1,11 +1,13 @@
-import React from 'react';
 import { Typography } from "@material-tailwind/react";
-import { ArrowDownIcon, QuestionMarkCircleIcon, DevicePhoneMobileIcon, 
-    ExclamationTriangleIcon, CogIcon, EyeSlashIcon, HeartIcon } from "@heroicons/react/24/outline";
-import GridBackground from '../../../components/shared/GridBackground';
+import { ArrowDownIcon, CogIcon, EyeSlashIcon, HeartIcon } from "@heroicons/react/24/outline";
 import { appColors } from '../../../styles/colors';
 
-export default function WhySection({ currentSlide, getSectionOpacity }) {
+interface SectionProps {
+    currentSlide: number;
+    getSectionOpacity: (index: number) => number;
+}
+
+export default function WhySection({ currentSlide, getSectionOpacity }: SectionProps) {
     return (
         <section
             className="absolute inset-0 flex flex-col py-0 md:py-8 xl:py-0 z-2 items-center justify-start overflow-hidden"

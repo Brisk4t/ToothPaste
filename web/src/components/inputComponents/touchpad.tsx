@@ -1,8 +1,23 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
+import type { ReactNode } from "react";
 import { Typography } from "@material-tailwind/react";
 import { ClickButtonGroup } from "../shared/buttons";
+import type { ClickButtonConfig } from "../shared/buttons";
 import { KeyComposer } from "./sharedComponents";
 import { ArrowUpOnSquareStackIcon, CursorArrowRaysIcon } from "@heroicons/react/24/outline";
+
+interface TouchpadProps {
+    captureMouse: boolean;
+    commandPassthrough: boolean;
+    onTouchStart: (e: TouchEvent) => void;
+    onTouchMove: (e: TouchEvent) => void;
+    onTouchEnd: (e: TouchEvent) => void;
+    onSendMouseClick: (leftClick: number, rightClick: number) => void;
+    onSendKeyboardShortcut: (keySequence: string[]) => void;
+    onSendScroll?: (delta: number) => void;
+    leftButtonColumn?: ReactNode;
+    rightButtonColumn?: ReactNode;
+}
 
 export default function Touchpad({
     captureMouse,
@@ -15,70 +30,70 @@ export default function Touchpad({
     onSendScroll,
     leftButtonColumn,
     rightButtonColumn,
-}) {
+}: TouchpadProps) {
     // Multi-touch tracking for scroll
-    const lastTwoFingerDistanceRef = useRef(null);
-    const touchSurfaceRef = useRef(null);
+    const lastTwoFingerDistanceRef = useRef<number | null>(null);
+    const touchSurfaceRef = useRef<HTMLDivElement | null>(null);
     const SCROLL_SENSITIVITY = 5; // pixels per scroll unit
 
     // Mouse button configuration and handlers
-    const MOUSE_BUTTONS = [
+    const MOUSE_BUTTONS: ClickButtonConfig[] = [
         { id: 'left', label: 'Left', flex: 2, rounded: 'rounded-bl-xl' },
         { id: 'mid', label: 'Mid', flex: 1, rounded: '' },
         { id: 'right', label: 'Right', flex: 2, rounded: 'rounded-br-xl' }
     ];
 
-    const MOUSE_PRESS_MAP = {
+    const MOUSE_PRESS_MAP: Record<string, [number, number]> = {
         'left': [1, 0],
         'mid': [0, 0],
         'right': [0, 1]
     };
 
-    const MOUSE_RELEASE_MAP = {
+    const MOUSE_RELEASE_MAP: Record<string, [number, number]> = {
         'left': [2, 0],
         'mid': [0, 0],
         'right': [0, 2]
     };
 
-    const handleMouseButtonPress = (buttonId) => {
+    const handleMouseButtonPress = (buttonId: string | number) => {
         if (!captureMouse) return;
         const [leftClick, rightClick] = MOUSE_PRESS_MAP[buttonId];
         onSendMouseClick(leftClick, rightClick);
     };
 
-    const handleMouseButtonRelease = (buttonId) => {
+    const handleMouseButtonRelease = (buttonId: string | number) => {
         if (!captureMouse) return;
         const [leftClick, rightClick] = MOUSE_RELEASE_MAP[buttonId];
         onSendMouseClick(leftClick, rightClick);
     };
 
-    const getFingerDistance = (touches) => {
+    const getFingerDistance = (touches: TouchList): number | null => {
         if (touches.length < 2) return null;
         const dx = touches[1].clientX - touches[0].clientX;
         const dy = touches[1].clientY - touches[0].clientY;
         return Math.sqrt(dx * dx + dy * dy);
     };
 
-    const handleTouchStart = (e) => {
+    const handleTouchStart = (e: TouchEvent) => {
         lastTwoFingerDistanceRef.current = null;
         onTouchStart(e);
     };
 
-    const handleTouchMove = (e) => {
+    const handleTouchMove = (e: TouchEvent) => {
         // Handle 2-finger scroll
         if (e.touches.length === 2 && onSendScroll && captureMouse) {
             e.preventDefault();
-            const currentDistance = getFingerDistance(e.touches);
-            
+            const currentDistance = getFingerDistance(e.touches)!;
+
             if (lastTwoFingerDistanceRef.current !== null) {
                 const delta = lastTwoFingerDistanceRef.current - currentDistance;
                 const scrollAmount = Math.round(delta / SCROLL_SENSITIVITY);
-                
+
                 if (scrollAmount !== 0) {
                     onSendScroll(scrollAmount);
                 }
             }
-            
+
             lastTwoFingerDistanceRef.current = currentDistance;
         } else {
             // Single touch - normal cursor movement
@@ -88,7 +103,7 @@ export default function Touchpad({
         }
     };
 
-    const handleTouchEnd = (e) => {
+    const handleTouchEnd = (e: TouchEvent) => {
         lastTwoFingerDistanceRef.current = null;
         onTouchEnd(e);
     };

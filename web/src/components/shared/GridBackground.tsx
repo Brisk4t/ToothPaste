@@ -1,13 +1,23 @@
-import React, { useMemo, useRef, useState, useEffect } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
+
+export interface FilledSquare {
+  row: number;
+  col: number;
+  color?: string;
+  opacity?: number;
+}
+
+export interface GridDimensions {
+  rows: number;
+  cols: number;
+  width: number;
+  height: number;
+}
 
 /**
  * Gets grid dimensions (rows and columns) for a given container element
- * @param {HTMLElement} element - The container element to measure
- * @param {number} squareSize - Size of each grid square in pixels
- * @param {Array} filledSquares - Optional array of filled squares to account for max bounds
- * @returns {Object} Object with { rows, cols, width, height }
  */
-export function getGridDimensions(element, squareSize, filledSquares = []) {
+export function getGridDimensions(element: HTMLElement | null, squareSize: number, filledSquares: FilledSquare[] = []): GridDimensions {
   if (!element) {
     return { rows: 0, cols: 0, width: 0, height: 0 };
   }
@@ -28,14 +38,19 @@ export function getGridDimensions(element, squareSize, filledSquares = []) {
   return { rows, cols, width, height };
 }
 
+export interface GridBackgroundProps {
+  filledSquares?: FilledSquare[];
+  squareSize?: number;
+  borderColor?: string;
+  borderWidth?: number;
+  backgroundColor?: string;
+  onDimensionsChange?: (dimensions: GridDimensions) => void;
+  // Accepted but currently unused, like `backgroundColor` above — some callers pass it.
+  className?: string;
+}
+
 /**
  * GridBackground - Renders a grid overlay with selective square coloring
- * @param {Array} filledSquares - Array of objects: [{row: 0, col: 0, color: '#00A878', opacity: 0.5}, ...]
- * @param {number} squareSize - Size of each grid square in pixels (default: 50)
- * @param {string} borderColor - Color of grid lines (default: rgba(255, 255, 255, 0.05))
- * @param {number} borderWidth - Width of grid lines in pixels (default: 1)
- * @param {string} backgroundColor - Background fill color (default: transparent)
- * @param {Function} onDimensionsChange - Callback fired with grid dimensions { rows, cols, width, height }
  */
 export default function GridBackground({
   filledSquares = [],
@@ -44,8 +59,8 @@ export default function GridBackground({
   borderWidth = 1,
   backgroundColor = 'transparent',
   onDimensionsChange
-}) {
-  const containerRef = useRef(null);
+}: GridBackgroundProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
   // Update dimensions when container size changes

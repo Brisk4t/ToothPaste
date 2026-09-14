@@ -1,15 +1,33 @@
-import React from "react";
+import type {
+    Dispatch,
+    SetStateAction,
+    ReactNode,
+    RefObject,
+    KeyboardEvent,
+    ClipboardEvent,
+    ChangeEvent,
+    CompositionEvent,
+    InputEvent as ReactInputEvent,
+    MouseEventHandler,
+    PointerEventHandler,
+    WheelEventHandler,
+} from "react";
 import { Typography } from "@material-tailwind/react";
-import { LeftButtonColumn, RightButtonColumn, SHORTCUTS_MENU } from "./sharedComponents";
+import { LeftButtonColumn, RightButtonColumn } from "./sharedComponents";
+import type { ConnectionStatus } from "../../context/BLEContext";
 import {
     CursorArrowRaysIcon,
     ArrowUpOnSquareStackIcon,
     CursorArrowRippleIcon,
     ArrowDownOnSquareStackIcon,
-    EllipsisVerticalIcon,
 } from "@heroicons/react/24/outline";
 
-const STATUS_MESSAGES = {
+interface StatusMessage {
+    text: string;
+    icon: ReactNode;
+}
+
+const STATUS_MESSAGES: Record<string, StatusMessage> = {
     MOUSE_CAPTURE: {
         text: "Mouse capture is enabled, hold CTRL to pause tracking (hint: use this like 'lifting your finger off a touchpad')",
         icon: <CursorArrowRaysIcon className="w-5 h-5 text-white" />
@@ -27,6 +45,35 @@ const STATUS_MESSAGES = {
         icon: <CursorArrowRippleIcon className="w-5 h-5 text-white" />
     }
 };
+
+interface KeyboardMouseProps {
+    inputRef: RefObject<HTMLInputElement | null>;
+    handleKeyDown: (e: KeyboardEvent<HTMLInputElement>) => void;
+    handleKeyUp: (e: KeyboardEvent<HTMLInputElement>) => void;
+    handlePaste: (e: ClipboardEvent<HTMLInputElement>) => void;
+    handleOnBeforeInput: (e: ReactInputEvent<HTMLInputElement>) => void;
+    handleCompositionStart: (e: CompositionEvent<HTMLInputElement>) => void;
+    handleCompositionEnd: (e: CompositionEvent<HTMLInputElement>) => void;
+    handleOnChange: (e: ChangeEvent<HTMLInputElement>) => void;
+    captureMouse: boolean;
+    setCaptureMouse: Dispatch<SetStateAction<boolean>>;
+    commandPassthrough: boolean;
+    setCommandPassthrough: Dispatch<SetStateAction<boolean>>;
+    jiggling: boolean;
+    setJiggling: Dispatch<SetStateAction<boolean>>;
+    isFocused: boolean;
+    setIsFocused: Dispatch<SetStateAction<boolean>>;
+    status: ConnectionStatus;
+    sendEncrypted: (payload: unknown, prefix?: number) => Promise<void>;
+    onMouseDown: MouseEventHandler<HTMLInputElement>;
+    onMouseUp: MouseEventHandler<HTMLInputElement>;
+    onPointerCancel: PointerEventHandler<HTMLInputElement>;
+    onPointerMove: PointerEventHandler<HTMLInputElement>;
+    onWheel: WheelEventHandler<HTMLInputElement>;
+    ctrlPressed: RefObject<boolean>;
+    sendKeyboardShortcut: (keySequence: string[]) => void;
+    sendMouseReport: (leftClick: number, rightClick: number, scrollDelta?: number) => void;
+}
 
 export default function KeyboardMouse({
     inputRef,
@@ -55,9 +102,9 @@ export default function KeyboardMouse({
     ctrlPressed,
     sendKeyboardShortcut,
     sendMouseReport,
-}) {
+}: KeyboardMouseProps) {
     const StatusMessagesDisplay = () => {
-        const messages = [];
+        const messages: StatusMessage[] = [];
         
         if (captureMouse) {
             messages.push(STATUS_MESSAGES.MOUSE_CAPTURE);

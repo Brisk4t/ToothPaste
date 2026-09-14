@@ -1,8 +1,12 @@
-import React from 'react';
 import { Typography, Button } from "@material-tailwind/react";
 import { FaGithub } from 'react-icons/fa';
 
-export default function CTASection({ currentSlide, getSectionOpacity }) {
+interface SectionProps {
+    currentSlide: number;
+    getSectionOpacity: (index: number) => number;
+}
+
+export default function CTASection({ currentSlide, getSectionOpacity }: SectionProps) {
     return (
         <section
             className="absolute inset-0 flex flex-col items-center justify-center px-6 md:px-12 z-50"
