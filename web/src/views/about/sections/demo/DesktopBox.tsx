@@ -62,7 +62,7 @@ export default function DesktopBox({
                 onMouseMove={onScreenMouseMove}
                 onMouseLeave={onScreenMouseLeave}
                 onMouseDown={onScreenMouseDown}
-                className={`relative overflow-hidden select-none rounded-lg border border-ash bg-gradient-to-br from-ink to-black w-full aspect-[16/10] ${showCursor ? 'cursor-none' : ''}`}
+                className={`relative overflow-hidden select-none rounded-lg border border-dust bg-gradient-to-br from-ink to-black w-full aspect-[16/10] max-h-[70vh] ${showCursor ? 'cursor-none' : ''}`}
             >
                 {/* Desktop icon */}
                 <button
