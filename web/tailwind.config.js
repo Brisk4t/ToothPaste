@@ -28,9 +28,14 @@ export default {
           '90%': { opacity: '1' },
           '100%': { opacity: '0' },
         },
+        clickPing: {
+          '0%': { transform: 'translate(-50%, -50%) scale(0.4)', opacity: '0.9' },
+          '100%': { transform: 'translate(-50%, -50%) scale(2)', opacity: '0' },
+        },
       },
       animation: {
         fadeout: 'fadeout linear forwards',
+        clickPing: 'clickPing 450ms ease-out forwards',
       },
     },
   },

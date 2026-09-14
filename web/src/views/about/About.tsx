@@ -3,6 +3,7 @@ import ModelContainer from './sections/ModelContainer';
 import HeroSection from './sections/HeroSection';
 import WhySection from './sections/WhySection';
 import SecuritySection from './sections/SecuritySection';
+import DemoSection from './sections/DemoSection';
 import CTASection from './sections/CTASection';
 import GridBackground from '../../components/shared/GridBackground';
 import type { FilledSquare, GridDimensions } from '../../components/shared/GridBackground';
@@ -102,7 +103,7 @@ export default function About() {
     const { isMobile } = useBreakpoint();
     const scrollDeltaRef = useRef(0);
     const containerRef = useRef<HTMLDivElement | null>(null);
-    const maxSlides = 4;
+    const maxSlides = 5;
     const scrollThreshold = useRef(0);
     const scrollSensitivity = 500; // How many pixels of scroll to trigger slide change
     const touchSensitivity = 100; // Pixels of swipe to trigger slide change
@@ -112,9 +113,9 @@ export default function About() {
     const slideChangeCooldownRef = useRef(500); // Cooldown in milliseconds
 
     // Define filled squares for each section and screen size
-    const getSquaresForScreenSize = (): { hero: FilledSquare[]; why: FilledSquare[]; security: FilledSquare[]; cta: FilledSquare[] } => {
+    const getSquaresForScreenSize = (): { hero: FilledSquare[]; why: FilledSquare[]; security: FilledSquare[]; demo: FilledSquare[]; cta: FilledSquare[] } => {
         const { rows, cols } = gridDimensions;
-        if (rows === 0 || cols === 0) return { hero: [], why: [], security: [], cta: [] };
+        if (rows === 0 || cols === 0) return { hero: [], why: [], security: [], demo: [], cta: [] };
 
         // Generate white squares for right half of grid
         const whiteSquaresRightHalf: FilledSquare[] = [];
@@ -144,6 +145,10 @@ export default function About() {
                     { row: twoThirdRow + 1, col: startCol + 3, color: appColors.secondary },
 
                 ],
+                demo: [
+                    { row: thirdRow, col: startCol + 2, color: appColors.blueish },
+                    { row: thirdRow + 1, col: startCol + 3, color: appColors.primary },
+                ],
                 cta: [
                     { row: twoThirdRow, col: twoThirdCol, color: appColors.primary },
                     { row: twoThirdRow + 1, col: twoThirdCol + 1, color: appColors.secondary }
@@ -170,6 +175,10 @@ export default function About() {
                     { row: twoThirdRow, col: thirdCol + 4, color: appColors.primary },
                     { row: twoThirdRow + 1, col: thirdCol + 5, color: appColors.secondary },
                 ],
+                demo: [
+                    { row: thirdRow, col: thirdCol + 4, color: appColors.blueish },
+                    { row: thirdRow + 1, col: thirdCol + 5, color: appColors.primary },
+                ],
                 cta: [
                     { row: twoThirdRow, col: twoThirdCol, color: appColors.primary },
                     { row: twoThirdRow + 1, col: twoThirdCol + 1, color: appColors.secondary }
@@ -187,6 +196,7 @@ export default function About() {
             case 1: return sectionSquares.why;
             case 2: return sectionSquares.security;
             case 3: return sectionSquares.cta;
+            case 4: return sectionSquares.demo;
             default: return [];
         }
     })();
@@ -299,8 +309,12 @@ export default function About() {
                 currentSlide={currentSlide} 
                 getSectionOpacity={getSectionOpacity}
             />
-            <CTASection 
-                currentSlide={currentSlide} 
+            <CTASection
+                currentSlide={currentSlide}
+                getSectionOpacity={getSectionOpacity}
+            />
+            <DemoSection
+                currentSlide={currentSlide}
                 getSectionOpacity={getSectionOpacity}
             />
 
