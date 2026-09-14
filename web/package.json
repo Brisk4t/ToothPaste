@@ -40,14 +40,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "protoc": "npx protoc --es_out=./src/services/packetService/toothpacket --proto_path=./shared ./shared/toothpacket.proto",
     "deploy": "gh-pages -d dist --repo https://github.com/Brisk4t/ToothPasteWeb.git"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
   },
   "browserslist": {
     "production": [
@@ -63,12 +58,19 @@
   },
   "devDependencies": {
     "@bufbuild/protoc-gen-es": "^2.10.2",
+    "@types/crypto-js": "^4.2.2",
+    "@types/elliptic": "^6.4.18",
+    "@types/node": "^26.5.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/web-bluetooth": "^0.0.21",
     "@vitejs/plugin-react": "^5.1.2",
     "autoprefixer": "^10.4.23",
     "gh-pages": "^6.3.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.19",
     "ts-protoc-gen": "^0.15.0",
+    "typescript": "^7.0.2",
     "vite": "^7.3.0",
     "vite-plugin-pwa": "^1.2.0"
   }
