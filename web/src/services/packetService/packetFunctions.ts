@@ -8,7 +8,7 @@ export interface MouseFrameLike {
 }
 
 // Create an unencrypted DataPacket from an input string
-export function createUnencryptedPacket(inputString: string): Uint8Array {
+export function createUnencryptedPacket(inputString: string): Uint8Array<ArrayBuffer> {
     const encoder = new TextEncoder();
     const textData = encoder.encode(inputString); // Encode the input string into a byte array
 

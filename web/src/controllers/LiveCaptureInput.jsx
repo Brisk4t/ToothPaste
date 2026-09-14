@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback, useContext } from 'react';
-import { BLEContext } from "../context/BLEContext.jsx";
-import { ECDHContext } from "../context/ECDHContext.jsx";
+import { BLEContext } from "../context/BLEContext";
+import { ECDHContext } from "../context/ECDHContext";
 
 import * as ToothPacketPB from '../services/packetService/toothpacket/toothpacket_pb.js';
 // const KeyboardPacket = new ToothPacketPB.proto.toothpaste.KeyboardPacket();

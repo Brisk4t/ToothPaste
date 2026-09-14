@@ -1,25 +1,56 @@
 /**
- * context/DuckyscriptContext.jsx
- * 
+ * context/DuckyscriptContext.tsx
+ *
  * Context for managing duckyscript state and operations
  * Similar to BLEContext and ECDHContext
  */
 
-import React, { createContext, useState, useCallback, useEffect } from 'react';
+import { createContext, useState, useCallback, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import * as DuckyscriptService from '../services/duckyscript/DuckyscriptService';
+import type { ScriptMetadata, ScriptSummary } from '../services/duckyscript/DuckyscriptService';
 import * as EncryptedStorage from '../services/localSecurity/EncryptedStorage';
 import { parseDuckyscript, estimateExecutionTime } from '../services/duckyscript/DuckyscriptParser';
+import type { ParseResult } from '../services/duckyscript/DuckyscriptParser';
 
-export const DuckyscriptContext = createContext(null);
+function getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+}
 
-export const DuckyscriptProvider = ({ children }) => {
+export interface DuckyscriptContextValue {
     // State
-    const [scripts, setScripts] = useState([]);
-    const [currentScript, setCurrentScript] = useState(null);
+    scripts: ScriptSummary[];
+    currentScript: ScriptMetadata | null;
+    isLoading: boolean;
+    error: string | null;
+    editingContent: string;
+    parseResult: ParseResult | null;
+    isUnlocked: boolean;
+    isEditing: boolean;
+
+    // Methods
+    loadScripts: () => Promise<void>;
+    openScript: (scriptId: string) => Promise<ScriptMetadata | null>;
+    createNewScript: () => void;
+    updateContent: (content: string) => void;
+    saveCurrentScript: (name: string) => Promise<ScriptMetadata>;
+    deleteCurrentScript: () => Promise<void>;
+    importScript: (file: File) => Promise<ScriptMetadata>;
+    exportScript: (scriptId: string) => Promise<void>;
+    closeScript: () => void;
+    getEstimatedTime: () => number;
+}
+
+export const DuckyscriptContext = createContext<DuckyscriptContextValue | null>(null);
+
+export const DuckyscriptProvider = ({ children }: { children: ReactNode }) => {
+    // State
+    const [scripts, setScripts] = useState<ScriptSummary[]>([]);
+    const [currentScript, setCurrentScript] = useState<ScriptMetadata | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const [editingContent, setEditingContent] = useState('');
-    const [parseResult, setParseResult] = useState(null);
+    const [parseResult, setParseResult] = useState<ParseResult | null>(null);
     const [isUnlocked, setIsUnlocked] = useState(EncryptedStorage.isUnlocked());
     const [isEditing, setIsEditing] = useState(false);
 
@@ -41,7 +72,7 @@ export const DuckyscriptProvider = ({ children }) => {
                 }
             }
         }, 500); // Check every 500ms
-        
+
         return () => clearInterval(checkAuthInterval);
     }, [isUnlocked]);
 
@@ -56,7 +87,7 @@ export const DuckyscriptProvider = ({ children }) => {
             setError(null);
         } catch (err) {
             console.error('[DuckyscriptContext] Error loading scripts:', err);
-            setError(err.message);
+            setError(getErrorMessage(err));
         } finally {
             setIsLoading(false);
         }
@@ -65,19 +96,19 @@ export const DuckyscriptProvider = ({ children }) => {
     /**
      * Open a script for editing
      */
-    const openScript = useCallback(async (scriptId) => {
+    const openScript = useCallback(async (scriptId: string) => {
         try {
             setIsLoading(true);
             const script = await DuckyscriptService.loadScript(scriptId);
             setCurrentScript(script);
-            setEditingContent(script.content);
-            setParseResult(parseDuckyscript(script.content));
+            setEditingContent(script!.content);
+            setParseResult(parseDuckyscript(script!.content));
             setIsEditing(true);
             setError(null);
             return script;
         } catch (err) {
             console.error('[DuckyscriptContext] Error opening script:', err);
-            setError(err.message);
+            setError(getErrorMessage(err));
             return null;
         } finally {
             setIsLoading(false);
@@ -98,7 +129,7 @@ export const DuckyscriptProvider = ({ children }) => {
     /**
      * Update editing content and parse
      */
-    const updateContent = useCallback((content) => {
+    const updateContent = useCallback((content: string) => {
         setEditingContent(content);
         const result = parseDuckyscript(content);
         setParseResult(result);
@@ -107,20 +138,20 @@ export const DuckyscriptProvider = ({ children }) => {
     /**
      * Save the current script
      */
-    const saveCurrentScript = useCallback(async (name) => {
+    const saveCurrentScript = useCallback(async (name: string) => {
         try {
             setIsLoading(true);
             const scriptId = currentScript?.id || null;
             const saved = await DuckyscriptService.saveScript(name, editingContent, scriptId);
-            
+
             setCurrentScript(saved);
             await loadScripts();
             setError(null);
-            
+
             return saved;
         } catch (err) {
             console.error('[DuckyscriptContext] Error saving script:', err);
-            setError(err.message);
+            setError(getErrorMessage(err));
             throw err;
         } finally {
             setIsLoading(false);
@@ -133,7 +164,7 @@ export const DuckyscriptProvider = ({ children }) => {
     const deleteCurrentScript = useCallback(async () => {
         try {
             if (!currentScript) return;
-            
+
             setIsLoading(true);
             await DuckyscriptService.deleteScript(currentScript.id);
             setCurrentScript(null);
@@ -142,7 +173,7 @@ export const DuckyscriptProvider = ({ children }) => {
             setError(null);
         } catch (err) {
             console.error('[DuckyscriptContext] Error deleting script:', err);
-            setError(err.message);
+            setError(getErrorMessage(err));
             throw err;
         } finally {
             setIsLoading(false);
@@ -152,7 +183,7 @@ export const DuckyscriptProvider = ({ children }) => {
     /**
      * Import a script file
      */
-    const importScript = useCallback(async (file) => {
+    const importScript = useCallback(async (file: File) => {
         try {
             setIsLoading(true);
             const imported = await DuckyscriptService.importScriptFile(file);
@@ -161,7 +192,7 @@ export const DuckyscriptProvider = ({ children }) => {
             return imported;
         } catch (err) {
             console.error('[DuckyscriptContext] Error importing script:', err);
-            setError(err.message);
+            setError(getErrorMessage(err));
             throw err;
         } finally {
             setIsLoading(false);
@@ -171,14 +202,14 @@ export const DuckyscriptProvider = ({ children }) => {
     /**
      * Export current script as file
      */
-    const exportScript = useCallback(async (scriptId) => {
+    const exportScript = useCallback(async (scriptId: string) => {
         try {
             setIsLoading(true);
             await DuckyscriptService.exportScriptFile(scriptId);
             setError(null);
         } catch (err) {
             console.error('[DuckyscriptContext] Error exporting script:', err);
-            setError(err.message);
+            setError(getErrorMessage(err));
             throw err;
         } finally {
             setIsLoading(false);
@@ -205,7 +236,7 @@ export const DuckyscriptProvider = ({ children }) => {
     }, [parseResult]);
 
     // Context value
-    const value = {
+    const value: DuckyscriptContextValue = {
         // State
         scripts,
         currentScript,
@@ -215,7 +246,7 @@ export const DuckyscriptProvider = ({ children }) => {
         parseResult,
         isUnlocked,
         isEditing,
-        
+
         // Methods
         loadScripts,
         openScript,

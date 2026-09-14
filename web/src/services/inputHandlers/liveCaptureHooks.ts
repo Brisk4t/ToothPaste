@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback, useContext } from 'react';
 import type { KeyboardEvent, ClipboardEvent, ChangeEvent, CompositionEvent } from 'react';
-import { BLEContext } from "../../context/BLEContext.jsx";
-import { ECDHContext } from "../../context/ECDHContext.jsx";
+import { BLEContext } from "../../context/BLEContext";
+import { ECDHContext } from "../../context/ECDHContext";
 
 import { createKeyboardStream } from '../packetService/packetFunctions';
 import { keyboardHandler } from './keyboardHandler';
@@ -9,10 +9,8 @@ import { keyboardHandler } from './keyboardHandler';
 
 export function useInputController() {
     // BLE and ECDH contexts
-    const { pktCharacteristic, status, readyToReceive, sendEncrypted } = useContext(BLEContext);
-    // ECDHContextType's JSDoc (in ECDHContext.jsx) doesn't yet list createEncryptedPackets;
-    // full context typing lands in Phase 3. Cast narrowly here rather than editing that file.
-    const { createEncryptedPackets } = useContext(ECDHContext) as unknown as { createEncryptedPackets: unknown };
+    const { pktCharacteristic, status, readyToReceive, sendEncrypted } = useContext(BLEContext)!;
+    const { createEncryptedPackets } = useContext(ECDHContext)!;
 
     // Text input handler variables
     const DEBOUNCE_INTERVAL_MS = 20; // Interval to wait before sending input data
