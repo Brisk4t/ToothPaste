@@ -1,6 +1,6 @@
 /**
- * Storage.js - Simple IndexedDB storage (no encryption)
- * 
+ * Storage.ts - Simple IndexedDB storage (no encryption)
+ *
  * Provides basic CRUD operations for storing key-value pairs per client
  */
 
@@ -8,13 +8,18 @@ const DB_NAME = "ToothPasteDB";
 const STORE_NAME = "deviceKeys";
 const DB_VERSION = 3;
 
+interface ClientRecord {
+    clientID: string;
+    data: Record<string, string>;
+}
+
 // Open or create a new DB store and set the primary key to clientID
-export function openDB() {
+export function openDB(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-        request.onupgradeneeded = (event) => {
-            const db = event.target.result;
+        request.onupgradeneeded = () => {
+            const db = request.result;
             if (!db.objectStoreNames.contains(STORE_NAME)) {
                 db.createObjectStore(STORE_NAME, { keyPath: "clientID" });
             }
@@ -22,16 +27,16 @@ export function openDB() {
 
         request.onsuccess = () => {
             const db = request.result;
-            
+
             // Verify all required stores exist
             const hasDeviceKeyStore = db.objectStoreNames.contains(STORE_NAME);
-                        
+
             if (hasDeviceKeyStore) {
                 resolve(db);
             } else {
                 // Store is missing - database may be corrupted or was deleted
                 db.close();
-                
+
                 // Delete the database completely and recreate it
                 const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
                 deleteRequest.onsuccess = () => {
@@ -55,14 +60,14 @@ export function openDB() {
 }
 
 // Save value under a given key in the store for a specific client
-export async function saveBase64(clientID, key, value) {
+export async function saveBase64(clientID: string, key: string, value: string): Promise<boolean> {
     // Open the database
     const db = await openDB();
     const tx = db.transaction(STORE_NAME, "readwrite");
-    const store = await tx.objectStore(STORE_NAME);
+    const store = tx.objectStore(STORE_NAME);
 
     // Wrap the IDbRequest in a promise and get the clientID key's value
-    const existing = await new Promise((resolve, reject) => {
+    const existing = await new Promise<ClientRecord>((resolve, reject) => {
         const request = store.get(clientID);
         request.onsuccess = () =>
             resolve(request.result ?? { clientID, data: {} });
@@ -71,7 +76,7 @@ export async function saveBase64(clientID, key, value) {
 
     // Put the new value into the clientID key
     existing.data[key] = value;
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
         const request = store.put(existing);
         request.onsuccess = () => resolve();
         request.onerror = () => reject(request.error);
@@ -84,7 +89,7 @@ export async function saveBase64(clientID, key, value) {
 }
 
 // Load value for a given client and key
-export async function loadBase64(clientID, key) {
+export async function loadBase64(clientID: string, key: string): Promise<string | null> {
     const db = await openDB();
     const tx = db.transaction(STORE_NAME, "readonly");
     const store = tx.objectStore(STORE_NAME);
@@ -92,8 +97,8 @@ export async function loadBase64(clientID, key) {
 
     return new Promise((resolve, reject) => {
         req.onsuccess = () => {
-            const data = req.result?.data?.[key] ?? null;
-            resolve(data);
+            const data: ClientRecord | undefined = req.result;
+            resolve(data?.data?.[key] ?? null);
         };
         req.onerror = () => reject(req.error);
     });
@@ -101,22 +106,21 @@ export async function loadBase64(clientID, key) {
 
 /**
  * Delete the entire IndexedDB database
- * @returns {Promise<void>}
  */
-export function deleteDatabase() {
+export function deleteDatabase(): Promise<void> {
     return new Promise((resolve, reject) => {
         const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
-        
+
         deleteRequest.onsuccess = () => {
             console.log("[Storage] Database deleted successfully");
             resolve();
         };
-        
+
         deleteRequest.onerror = () => {
             console.error("[Storage] Failed to delete database:", deleteRequest.error);
             reject(new Error("Failed to delete database: " + deleteRequest.error));
         };
-        
+
         deleteRequest.onblocked = () => {
             console.warn("[Storage] Database deletion blocked - close all connections");
         };
@@ -124,13 +128,13 @@ export function deleteDatabase() {
 }
 
 // Delete a specific key from a client's data
-export async function deleteBase64(clientID, key) {
+export async function deleteBase64(clientID: string, key: string): Promise<boolean> {
     const db = await openDB();
     const tx = db.transaction(STORE_NAME, "readwrite");
     const store = tx.objectStore(STORE_NAME);
 
     // Get existing data
-    const existing = await new Promise((resolve, reject) => {
+    const existing = await new Promise<ClientRecord>((resolve, reject) => {
         const request = store.get(clientID);
         request.onsuccess = () =>
             resolve(request.result ?? { clientID, data: {} });
@@ -141,7 +145,7 @@ export async function deleteBase64(clientID, key) {
     delete existing.data[key];
 
     // Put the updated object back
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
         const request = store.put(existing);
         request.onsuccess = () => resolve();
         request.onerror = () => reject(request.error);
@@ -154,7 +158,7 @@ export async function deleteBase64(clientID, key) {
 }
 
 // Check if device keys exist for a client
-export async function keyExists(clientID) {
+export async function keyExists(clientID: string): Promise<boolean> {
     try {
         const selfPublicKey = await loadBase64(clientID, "SelfPublicKey");
         const sharedSecret = await loadBase64(clientID, "sharedSecret");
@@ -168,7 +172,7 @@ export async function keyExists(clientID) {
 }
 
 // Helper: Convert ArrayBuffer to Base64
-export function arrayBufferToBase64(buffer) {
+export function arrayBufferToBase64(buffer: ArrayBufferLike): string {
     let binary = '';
     const bytes = new Uint8Array(buffer);
     for (let i = 0; i < bytes.byteLength; i++) {
@@ -178,7 +182,7 @@ export function arrayBufferToBase64(buffer) {
 }
 
 // Helper: Convert Base64 to ArrayBuffer
-export function base64ToArrayBuffer(base64) {
+export function base64ToArrayBuffer(base64: string): ArrayBufferLike {
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) {
@@ -188,12 +192,11 @@ export function base64ToArrayBuffer(base64) {
 }
 
 // Helper: Convert URL-safe Base64 to ArrayBuffer
-export function base64urlToArrayBuffer(base64url) {
+export function base64urlToArrayBuffer(base64url: string): ArrayBufferLike {
     // Convert URL-safe base64 to standard base64
     const standardBase64 = base64url
         .replace(/-/g, '+')
         .replace(/_/g, '/');
-    
+
     return base64ToArrayBuffer(standardBase64);
 }
-

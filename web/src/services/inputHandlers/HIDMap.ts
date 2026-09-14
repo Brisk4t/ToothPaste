@@ -1,5 +1,5 @@
 // Mapping from JS keyboard event codes to TinyUSB cod masks
-export const HIDMap = {
+export const HIDMap: Record<string, number> = {
     "Control"         : 0x80,
     "Meta"            : 0x83,
     "Shift"           : 0x81,

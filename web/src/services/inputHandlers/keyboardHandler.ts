@@ -1,6 +1,6 @@
-import { createKeyboardStream, createKeyCodePacket } from '../packetService/packetFunctions';
+import { createKeyboardStream, createKeyCodePacket, createConsumerControlPacket } from '../packetService/packetFunctions';
 import { HIDMap } from './HIDMap';
-import { createConsumerControlPacket } from '../packetService/packetFunctions';
+import type { SendEncrypted } from './mouseHandler';
 
 /**
  * Keyboard input handler service
@@ -10,21 +10,17 @@ import { createConsumerControlPacket } from '../packetService/packetFunctions';
 export const keyboardHandler = {
     /**
      * Send keyboard string input
-     * @param {string} input - Text to send
-     * @param {Function} sendEncrypted - Function to send encrypted packets
      */
-    sendKeyboardString(input, sendEncrypted) {
+    sendKeyboardString(input: string | string[], sendEncrypted: SendEncrypted) {
         const packets = createKeyboardStream(input);
         sendEncrypted(packets);
     },
 
     /**
      * Send keyboard key code with optional modifiers
-     * @param {string} key - The key to send
-     * @param {Array<string>} modifiers - Array of modifier keys (e.g., ['Control', 'Shift'])
-     * @param {Function} sendEncrypted - Function to send encrypted packets
+     * @param modifiers - e.g. ['Control', 'Shift']
      */
-    sendKeyCode(key, modifiers = [], sendEncrypted) {
+    sendKeyCode(key: string, modifiers: string[] = [], sendEncrypted: SendEncrypted) {
         const keycode = new Uint8Array(8);
 
         // Add modifiers (up to 5) at indices 0-4
@@ -52,27 +48,22 @@ export const keyboardHandler = {
 
     /**
      * Send special key (Backspace, Enter, Tab, Escape, etc.)
-     * @param {string} specialKey - The special key name
-     * @param {Array<string>} modifiers - Optional modifier keys
-     * @param {Function} sendEncrypted - Function to send encrypted packets
      */
-    sendSpecialKey(specialKey, modifiers = [], sendEncrypted) {
+    sendSpecialKey(specialKey: string, modifiers: string[] = [], sendEncrypted: SendEncrypted) {
         return this.sendKeyCode(specialKey, modifiers, sendEncrypted);
     },
 
     /**
      * Send a keyboard shortcut (combination of keys)
-     * @param {Array<string>} keySequence - Array of keys to send in sequence
-     * @param {Function} sendEncrypted - Function to send encrypted packets
      */
-    sendKeyboardShortcut(keySequence, sendEncrypted) {
+    sendKeyboardShortcut(keySequence: string[], sendEncrypted: SendEncrypted) {
         if (!Array.isArray(keySequence) || keySequence.length === 0) {
             return false;
         }
 
         // Separate modifiers from the main key
-        const modifiers = [];
-        const keys = [];
+        const modifiers: string[] = [];
+        const keys: string[] = [];
 
         for (const key of keySequence) {
             if (['Control', 'Shift', 'Alt', 'Meta'].includes(key)) {
@@ -92,11 +83,9 @@ export const keyboardHandler = {
 
     /**
      * Send a consumer control code (media controls, power, etc.)
-     * @param {number} controlCode - The control code to send
-     * @param {Function} sendEncrypted - Function to send encrypted packets
-     * @param {boolean} hold - Whether to hold the key (default: false)
+     * @param hold - Whether to hold the key (default: false)
      */
-    sendControlCode(controlCode, sendEncrypted, hold = false) {
+    sendControlCode(controlCode: number, sendEncrypted: SendEncrypted, hold = false) {
         const controlPacket = createConsumerControlPacket(controlCode);
         sendEncrypted(controlPacket);
 

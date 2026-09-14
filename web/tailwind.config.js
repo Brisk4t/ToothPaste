@@ -1,6 +1,6 @@
 // tailwind.config.js
 import { mtConfig } from "@material-tailwind/react";
-import { appColors } from "./src/styles/colors.js";
+import { appColors } from "./src/styles/colors.ts";
 
 /** @type {import('tailwindcss').Config} */
 export default {
