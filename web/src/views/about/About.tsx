@@ -1,9 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import ModelContainer from './sections/ModelContainer';
 import HeroSection from './sections/HeroSection';
 import WhySection from './sections/WhySection';
 import SecuritySection from './sections/SecuritySection';
-import DemoSection from './sections/DemoSection';
 import CTASection from './sections/CTASection';
 import GridBackground from '../../components/shared/GridBackground';
 import type { FilledSquare, GridDimensions } from '../../components/shared/GridBackground';
@@ -101,9 +99,8 @@ export default function About() {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [gridDimensions, setGridDimensions] = useState<GridDimensions>({ rows: 0, cols: 0, width: 0, height: 0 });
     const { isMobile } = useBreakpoint();
-    const scrollDeltaRef = useRef(0);
     const containerRef = useRef<HTMLDivElement | null>(null);
-    const maxSlides = 5;
+    const maxSlides = 4;
     const scrollThreshold = useRef(0);
     const scrollSensitivity = 500; // How many pixels of scroll to trigger slide change
     const touchSensitivity = 100; // Pixels of swipe to trigger slide change
@@ -113,9 +110,9 @@ export default function About() {
     const slideChangeCooldownRef = useRef(500); // Cooldown in milliseconds
 
     // Define filled squares for each section and screen size
-    const getSquaresForScreenSize = (): { hero: FilledSquare[]; why: FilledSquare[]; security: FilledSquare[]; demo: FilledSquare[]; cta: FilledSquare[] } => {
+    const getSquaresForScreenSize = (): { hero: FilledSquare[]; why: FilledSquare[]; security: FilledSquare[]; cta: FilledSquare[] } => {
         const { rows, cols } = gridDimensions;
-        if (rows === 0 || cols === 0) return { hero: [], why: [], security: [], demo: [], cta: [] };
+        if (rows === 0 || cols === 0) return { hero: [], why: [], security: [], cta: [] };
 
         // Generate white squares for right half of grid
         const whiteSquaresRightHalf: FilledSquare[] = [];
@@ -145,10 +142,6 @@ export default function About() {
                     { row: twoThirdRow + 1, col: startCol + 3, color: appColors.secondary },
 
                 ],
-                demo: [
-                    { row: thirdRow, col: startCol + 2, color: appColors.blueish },
-                    { row: thirdRow + 1, col: startCol + 3, color: appColors.primary },
-                ],
                 cta: [
                     { row: twoThirdRow, col: twoThirdCol, color: appColors.primary },
                     { row: twoThirdRow + 1, col: twoThirdCol + 1, color: appColors.secondary }
@@ -175,10 +168,6 @@ export default function About() {
                     { row: twoThirdRow, col: thirdCol + 4, color: appColors.primary },
                     { row: twoThirdRow + 1, col: thirdCol + 5, color: appColors.secondary },
                 ],
-                demo: [
-                    { row: thirdRow, col: thirdCol + 4, color: appColors.blueish },
-                    { row: thirdRow + 1, col: thirdCol + 5, color: appColors.primary },
-                ],
                 cta: [
                     { row: twoThirdRow, col: twoThirdCol, color: appColors.primary },
                     { row: twoThirdRow + 1, col: twoThirdCol + 1, color: appColors.secondary }
@@ -196,7 +185,6 @@ export default function About() {
             case 1: return sectionSquares.why;
             case 2: return sectionSquares.security;
             case 3: return sectionSquares.cta;
-            case 4: return sectionSquares.demo;
             default: return [];
         }
     })();
@@ -205,11 +193,7 @@ export default function About() {
         // Common handler for scroll input (pointer and wheel)
         // scrollAmount: raw input value (pixels moved)
         // slideChangeThreshold: minimum pixels needed to trigger slide change
-        // modelRotationScale: multiplier for 3D model rotation (separate from slide changes)
-        const handleScrollInput = (scrollAmount: number, slideChangeThreshold: number, modelRotationScale = 1) => {
-            // Apply scroll amount to 3D model rotation
-            scrollDeltaRef.current += scrollAmount * modelRotationScale;
-
+        const handleScrollInput = (scrollAmount: number, slideChangeThreshold: number) => {
             // Check if cooldown has expired
             const now = Date.now();
             const isOnCooldown = now - lastSlideChangeTimeRef.current < slideChangeCooldownRef.current;
@@ -241,8 +225,7 @@ export default function About() {
             if (isPointerDownRef.current) {
                 const currentY = event.touches[0].clientY;
                 const touchDelta = pointerStartYRef.current - currentY;
-                // Touch: reduced model rotation (0.5x), normal slide threshold
-                handleScrollInput(touchDelta, touchSensitivity, 5);
+                handleScrollInput(touchDelta, touchSensitivity);
                 pointerStartYRef.current = currentY;
             }
         };
@@ -253,8 +236,7 @@ export default function About() {
 
         const handleWheel = (event: WheelEvent) => {
             event.preventDefault();
-            // Wheel: normal model rotation (1x), high slide threshold
-            handleScrollInput(event.deltaY, scrollSensitivity, 1);
+            handleScrollInput(event.deltaY, scrollSensitivity);
         };
 
         window.addEventListener('wheel', handleWheel, { passive: false });
@@ -289,13 +271,6 @@ export default function About() {
                 onDimensionsChange={setGridDimensions}
             />
 
-            {/* 3D Model Container */}
-            <ModelContainer 
-                currentSlide={currentSlide} 
-                scrollDeltaRef={scrollDeltaRef}
-                isMobile={isMobile}
-            />
-
             {/* Sections */}
             <HeroSection 
                 currentSlide={currentSlide} 
@@ -310,10 +285,6 @@ export default function About() {
                 getSectionOpacity={getSectionOpacity}
             />
             <CTASection
-                currentSlide={currentSlide}
-                getSectionOpacity={getSectionOpacity}
-            />
-            <DemoSection
                 currentSlide={currentSlide}
                 getSectionOpacity={getSectionOpacity}
             />
