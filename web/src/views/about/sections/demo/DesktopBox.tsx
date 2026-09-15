@@ -1,12 +1,25 @@
+import { useState } from 'react';
 import type { ClipboardEvent, KeyboardEvent, MouseEvent, Ref } from 'react';
-import { DocumentTextIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { DocumentTextIcon, XMarkIcon, Squares2X2Icon } from '@heroicons/react/24/outline';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card';
 import { Textarea } from '../../../../components/ui/textarea';
 import { Button } from '../../../../components/ui/button';
+import MediaOverlay from './MediaOverlay';
+import type { MediaOverlayState } from './MediaOverlay';
 
 interface CursorPos {
     x: number; // percentage, 0-100
     y: number; // percentage, 0-100
+}
+
+// This box is a "remote screen" - only the mock cursor (driven from the paired box,
+// dispatched via element.click()/.focus() and therefore untrusted) should be able to
+// trigger these. A real click/tap on this box is a trusted browser event, so ignore it.
+function remoteOnly(handler: () => void) {
+    return (e: { isTrusted: boolean }) => {
+        if (e.isTrusted) return;
+        handler();
+    };
 }
 
 interface DesktopBoxProps {
@@ -20,6 +33,9 @@ interface DesktopBoxProps {
     cursorPos?: CursorPos | null;
     // Incremented once per click on the paired box - used to fire a one-shot ripple here.
     clickPulse?: number;
+    mediaOverlay?: MediaOverlayState | null;
+    // Bumped on every press so the HUD remounts (restarting its fadeout) even on repeat presses.
+    mediaOverlayKey?: number;
     notepadOpen: boolean;
     onNotepadOpenChange: (open: boolean) => void;
     notepadValue: string;
@@ -39,6 +55,8 @@ export default function DesktopBox({
     screenRef,
     cursorPos,
     clickPulse,
+    mediaOverlay,
+    mediaOverlayKey,
     notepadOpen,
     onNotepadOpenChange,
     notepadValue,
@@ -48,6 +66,7 @@ export default function DesktopBox({
     notepadRef,
 }: DesktopBoxProps) {
     const showCursor = !!cursorPos;
+    const [startMenuOpen, setStartMenuOpen] = useState(false);
 
     return (
         <div className="flex-1 flex flex-col gap-2 min-w-0">
@@ -62,13 +81,16 @@ export default function DesktopBox({
                 onMouseMove={onScreenMouseMove}
                 onMouseLeave={onScreenMouseLeave}
                 onMouseDown={onScreenMouseDown}
-                className={`relative overflow-hidden select-none rounded-lg border border-dust bg-gradient-to-br from-ink to-black w-full aspect-[16/10] max-h-[70vh] ${showCursor ? 'cursor-none' : ''}`}
+                className={`relative overflow-hidden select-none rounded-lg border border-dust bg-gradient-to-br from-purple-600/20 via-ink to-blue-500/20 w-full aspect-[16/10] max-h-[70vh] ${showCursor ? 'cursor-none' : ''}`}
             >
                 {/* Desktop icon */}
                 <button
                     type="button"
-                    onClick={() => onNotepadOpenChange(true)}
-                    className="absolute top-4 left-4 flex flex-col items-center gap-1 w-20 rounded p-1 hover:bg-white/10 data-[fake-hover=true]:bg-white/10 focus-visible:outline-none focus-visible:bg-white/10"
+                    onClick={remoteOnly(() => {
+                        onNotepadOpenChange(true);
+                        setStartMenuOpen(false);
+                    })}
+                    className="absolute top-4 left-4 flex flex-col items-center gap-1 w-20 rounded p-1 data-[fake-hover=true]:bg-white/10 focus-visible:outline-none focus-visible:bg-white/10"
                 >
                     <DocumentTextIcon className="h-10 w-10 md:h-12 md:w-12 text-blueish" />
                     <span className="font-body text-xs text-text leading-tight text-center">Notepad.txt</span>
@@ -83,7 +105,7 @@ export default function DesktopBox({
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => onNotepadOpenChange(false)}
+                                onClick={remoteOnly(() => onNotepadOpenChange(false))}
                                 aria-label="Close Notepad"
                             >
                                 <XMarkIcon className="h-4 w-4" />
@@ -103,12 +125,50 @@ export default function DesktopBox({
                     </Card>
                 )}
 
+                {/* Start menu */}
+                {startMenuOpen && (
+                    <div className="absolute bottom-14 left-2 z-30 w-48 rounded-md border border-zinc-800 bg-zinc-950 shadow-lg py-2">
+                        <button
+                            type="button"
+                            onClick={remoteOnly(() => {
+                                onNotepadOpenChange(true);
+                                setStartMenuOpen(false);
+                            })}
+                            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-base font-body text-text data-[fake-hover=true]:bg-white/10"
+                        >
+                            <DocumentTextIcon className="h-5 w-5 text-blueish" />
+                            Notepad
+                        </button>
+                    </div>
+                )}
+
                 {/* Taskbar */}
-                <div className="absolute bottom-0 inset-x-0 h-6 bg-black/50 border-t border-ash flex items-center px-2 gap-2">
-                    <div className="h-2 w-2 rounded-full bg-primary" />
-                    {notepadOpen && (
-                        <span className="font-body text-[10px] text-dust truncate">Notepad</span>
-                    )}
+                <div className="absolute bottom-0 inset-x-0 h-14 bg-black/70 border-t border-ash flex items-center gap-3 px-3">
+                    <button
+                        type="button"
+                        aria-label="Start"
+                        onClick={remoteOnly(() => setStartMenuOpen(prev => !prev))}
+                        className={`h-10 w-10 flex items-center justify-center rounded data-[fake-hover=true]:bg-white/10 ${startMenuOpen ? 'bg-white/10' : ''}`}
+                    >
+                        <Squares2X2Icon className="h-6 w-6 text-primary" />
+                    </button>
+
+                    <div className="w-px self-stretch my-3 bg-ash" />
+
+                    {/* The only app running in this environment */}
+                    <button
+                        type="button"
+                        onClick={remoteOnly(() => {
+                            onNotepadOpenChange(!notepadOpen);
+                            setStartMenuOpen(false);
+                        })}
+                        className={`h-10 flex items-center gap-2 px-4 rounded text-base font-body data-[fake-hover=true]:bg-white/10 ${
+                            notepadOpen ? 'bg-white/10 border-b-2 border-primary text-text' : 'text-dust'
+                        }`}
+                    >
+                        <DocumentTextIcon className="h-5 w-5" />
+                        Notepad
+                    </button>
                 </div>
 
                 {/* Simulated cursor, driven by the paired box's mouse tracking */}
@@ -136,6 +196,9 @@ export default function DesktopBox({
                         style={{ left: `${cursorPos.x}%`, top: `${cursorPos.y}%` }}
                     />
                 )}
+
+                {/* Media key HUD - shown here since this is the device actually being controlled */}
+                {mediaOverlay && <MediaOverlay key={mediaOverlayKey} state={mediaOverlay} />}
             </div>
         </div>
     );

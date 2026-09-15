@@ -18,14 +18,20 @@ export function useMockLiveCaptureInput(value: string, onChange: (next: string) 
     const { bufferRef, commit } = useTextBuffer(value, onChange);
 
     function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
-        e.preventDefault();
-
         if (e.key === 'Control') {
             ctrlPressed.current = true;
             return;
         }
-        // Ignore shortcuts (Ctrl+C, Cmd+V, etc.) entirely - don't touch the buffer.
-        if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+        // Mirrors liveCaptureHooks.ts's handleCombo: with passthrough off, leave modifier
+        // combos un-prevented so the browser's own action (e.g. a real paste for Ctrl+V)
+        // fires normally; with it on, swallow them here (they'd go to the remote device).
+        if (e.ctrlKey || e.metaKey || e.altKey) {
+            if (commandPassthrough) e.preventDefault();
+            return;
+        }
+
+        e.preventDefault();
 
         switch (e.key) {
             case 'Backspace':

@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react';
 import DesktopBox from './demo/DesktopBox';
 import LiveCaptureBox from './demo/LiveCaptureBox';
+import { OVERLAY_DURATION_MS } from './demo/MediaOverlay';
+import type { MediaOverlayState } from './demo/MediaOverlay';
 
 interface SectionProps {
     currentSlide: number;
@@ -15,6 +17,10 @@ interface Point {
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 const DEMO_SLIDE_INDEX = 4;
+// Keep the cursor a few px off the true edge (so its icon doesn't get clipped), rather than
+// a fixed percentage - a percentage bound stops reaching fixed-height chrome like the
+// taskbar once the box (and so the taskbar's share of its height) grows.
+const CURSOR_EDGE_PADDING_PX = 4;
 
 export default function DemoSection({ currentSlide, getSectionOpacity }: SectionProps) {
     // Shared notepad text - box A (the real LiveCapture UI) owns it, box B just mirrors it
@@ -29,6 +35,21 @@ export default function DemoSection({ currentSlide, getSectionOpacity }: Section
     const cursorPosRef = useRef<Point>({ x: 50, y: 50 });
     const hoveredElRef = useRef<HTMLElement | null>(null);
     const boxBScreenRef = useRef<HTMLDivElement | null>(null);
+
+    // Media key HUD - box A just reports what was pressed, it's shown on the paired device.
+    const [mediaOverlay, setMediaOverlay] = useState<MediaOverlayState | null>(null);
+    // Bumped on every press so DesktopBox can remount the HUD (via key=) even when it's
+    // already showing - otherwise the fadeout animation just keeps playing from wherever
+    // it was instead of popping back to full opacity.
+    const [mediaOverlayKey, setMediaOverlayKey] = useState(0);
+    const mediaOverlayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    function flashMediaOverlay(next: MediaOverlayState) {
+        setMediaOverlay(next);
+        setMediaOverlayKey(prev => prev + 1);
+        if (mediaOverlayTimeoutRef.current) clearTimeout(mediaOverlayTimeoutRef.current);
+        mediaOverlayTimeoutRef.current = setTimeout(() => setMediaOverlay(null), OVERLAY_DURATION_MS);
+    }
 
     // Find the real interactive element sitting under the mirrored cursor in box B.
     function elementAtCursor(pos: Point): HTMLElement | null {
@@ -62,13 +83,22 @@ export default function DemoSection({ currentSlide, getSectionOpacity }: Section
         if (!screenEl) return;
 
         const rect = screenEl.getBoundingClientRect();
+        const minXPercent = (CURSOR_EDGE_PADDING_PX / rect.width) * 100;
+        const minYPercent = (CURSOR_EDGE_PADDING_PX / rect.height) * 100;
         const next = {
-            x: clamp(cursorPosRef.current.x + (displacementX / rect.width) * 100, 1, 97),
-            y: clamp(cursorPosRef.current.y + (displacementY / rect.height) * 100, 3, 94),
+            x: clamp(cursorPosRef.current.x + (displacementX / rect.width) * 100, minXPercent, 100 - minXPercent),
+            y: clamp(cursorPosRef.current.y + (displacementY / rect.height) * 100, minYPercent, 100 - minYPercent),
         };
         cursorPosRef.current = next;
         setCursorPos(next);
         updateHoverTarget(next);
+    }
+
+    // Only let typed text reach the notepad while it's actually open on the paired device -
+    // otherwise closing it and typing would silently pre-fill it for whenever it reopens.
+    function handleNotepadValueChange(next: string) {
+        if (!notepadOpenB) return;
+        setNotepadValue(next);
     }
 
     function handleRemoteClick() {
@@ -107,9 +137,10 @@ export default function DemoSection({ currentSlide, getSectionOpacity }: Section
                 <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10 w-full">
                     <LiveCaptureBox
                         value={notepadValue}
-                        onValueChange={setNotepadValue}
+                        onValueChange={handleNotepadValueChange}
                         onCursorDelta={handleCursorDelta}
                         onRemoteClick={handleRemoteClick}
+                        onMediaOverlay={flashMediaOverlay}
                     />
                     <DesktopBox
                         label="Paired Device"
@@ -117,6 +148,8 @@ export default function DemoSection({ currentSlide, getSectionOpacity }: Section
                         screenRef={boxBScreenRef}
                         cursorPos={cursorPos}
                         clickPulse={clickPulse}
+                        mediaOverlay={mediaOverlay}
+                        mediaOverlayKey={mediaOverlayKey}
                         notepadOpen={notepadOpenB}
                         onNotepadOpenChange={setNotepadOpenB}
                         notepadValue={notepadValue}

@@ -3,8 +3,11 @@ import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, 
 import Keyboard from '../../../../components/Keyboard/Keyboard';
 import KeyboardMouse from '../../../../components/inputComponents/keyboardMouse';
 import { ConnectionStatus } from '../../../../context/BLEContext';
+import { EncryptedData_PacketType } from '../../../../services/packetService/toothpacket/toothpacket_pb.js';
+import type { EncryptedData } from '../../../../services/packetService/toothpacket/toothpacket_pb.js';
 import { useMockLiveCaptureInput } from './useMockLiveCaptureInput';
 import MockNavbar from './MockNavbar';
+import type { MediaOverlayState } from './MediaOverlay';
 
 interface Point {
     x: number;
@@ -16,18 +19,29 @@ interface LiveCaptureBoxProps {
     onValueChange: (next: string) => void;
     onCursorDelta: (dx: number, dy: number) => void;
     onRemoteClick: () => void;
+    // The media HUD is shown on the paired device (box B), not here - this just reports
+    // what would be shown.
+    onMediaOverlay: (state: MediaOverlayState) => void;
 }
+
+// The consumer-control HID usage codes LeftButtonColumn sends (components/inputComponents/sharedComponents.tsx).
+const CONTROL_CODE = {
+    playPause: 0x00cd,
+    volumeUp: 0x00e9,
+    volumeDown: 0x00ea,
+    next: 0x00b5,
+    previous: 0x00b6,
+};
 
 // The Keyboard/KeyboardMouse/button-column components below are the real LiveCapture UI -
 // only the transport is fake. A "connected" status is hardcoded purely for the visuals
-// (no greyed-out buttons), and these no-ops stand in for the real BLE send functions so
-// nothing actually leaves the browser.
-const SIMULATED_STATUS = ConnectionStatus.connected;
-const noopSendEncrypted = async (_payload: unknown, _prefix?: number) => {};
+// (no greyed-out buttons), and sendKeyboardShortcut/sendMouseReport are no-ops so nothing
+// actually leaves the browser.
+const SIMULATED_STATUS = ConnectionStatus.ready;
 const noopSendKeyboardShortcut = (_keys: string[]) => {};
 const noopSendMouseReport = (_leftClick: number, _rightClick: number, _scrollDelta?: number) => {};
 
-export default function LiveCaptureBox({ value, onValueChange, onCursorDelta, onRemoteClick }: LiveCaptureBoxProps) {
+export default function LiveCaptureBox({ value, onValueChange, onCursorDelta, onRemoteClick, onMediaOverlay }: LiveCaptureBoxProps) {
     const {
         inputRef,
         ctrlPressed,
@@ -46,8 +60,53 @@ export default function LiveCaptureBox({ value, onValueChange, onCursorDelta, on
     const [jiggling, setJiggling] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
 
+    const [volumeLevel, setVolumeLevel] = useState(50);
+    const [isPlaying, setIsPlaying] = useState(true);
+
     const mouseStartPos = useRef<Point | null>(null);
     const isMouseTracking = useRef(false);
+
+    // The real sendEncrypted transport, replaced with a function that just reads the packet
+    // it would have sent and reports a mock OS media HUD event instead - nothing is
+    // transmitted. The HUD itself renders on the paired device (box B), not here.
+    async function mockSendEncrypted(payload: unknown, _prefix?: number) {
+        const packet = payload as EncryptedData | undefined;
+        if (packet?.packetType !== EncryptedData_PacketType.CONSUMER_CONTROL) return;
+        if (packet.packetData.case !== 'consumerControlPacket') return;
+
+        const code = packet.packetData.value.code[0];
+        switch (code) {
+            case CONTROL_CODE.playPause:
+                setIsPlaying(prev => {
+                    const next = !prev;
+                    onMediaOverlay({ type: 'playpause', playing: next });
+                    return next;
+                });
+                break;
+            case CONTROL_CODE.volumeUp:
+                setVolumeLevel(prev => {
+                    const next = Math.min(100, prev + 10);
+                    onMediaOverlay({ type: 'volume', level: next });
+                    return next;
+                });
+                break;
+            case CONTROL_CODE.volumeDown:
+                setVolumeLevel(prev => {
+                    const next = Math.max(0, prev - 10);
+                    onMediaOverlay({ type: 'volume', level: next });
+                    return next;
+                });
+                break;
+            case CONTROL_CODE.next:
+                onMediaOverlay({ type: 'track', direction: 'next' });
+                break;
+            case CONTROL_CODE.previous:
+                onMediaOverlay({ type: 'track', direction: 'prev' });
+                break;
+            default:
+                break;
+        }
+    }
 
     // Recycled from LiveCapture.tsx's own onMouseDown/onPointerMove: relative-displacement
     // tracking gated by focus + capture + Ctrl-to-pause - just forwarded to the paired box
@@ -129,7 +188,7 @@ export default function LiveCaptureBox({ value, onValueChange, onCursorDelta, on
                             isFocused={isFocused}
                             setIsFocused={setIsFocused}
                             status={SIMULATED_STATUS}
-                            sendEncrypted={noopSendEncrypted}
+                            sendEncrypted={mockSendEncrypted}
                             onMouseDown={onMouseDown}
                             onMouseUp={onMouseUp}
                             onPointerCancel={onPointerCancel}
