@@ -156,8 +156,11 @@ export default function LiveCaptureBox({ value, onValueChange, onCursorDelta, on
                 <span className="font-body text-[10px] md:text-xs text-dust">Live Capture</span>
             </div>
 
+            {/* Size container: the capture pad's hint text (material-tailwind h5s, a fixed 24px on
+                large viewports) is resized off this box's width via cqw, so it scales with the demo
+                instead of overflowing it. Scoped here so the real LiveCapture page is unaffected. */}
             <div
-                className="relative w-full aspect-[16/10] rounded-lg border-2 border-text bg-background overflow-hidden"
+                className="relative w-full aspect-[16/10] rounded-lg [container-type:inline-size] [&_h5]:!text-[length:clamp(10px,1.9cqw,20px)] [&_h5]:!leading-snug border-2 border-text bg-background overflow-hidden"
                 style={{
                     backgroundImage:
                         'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
