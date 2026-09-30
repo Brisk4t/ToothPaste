@@ -32,6 +32,9 @@ jobs:
         working-directory: web
       - run: npm run build
         working-directory: web
+        env:
+          # Used by scripts/fetch-firmware.mjs to pull the latest release's binaries
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/upload-pages-artifact@v3
         with:

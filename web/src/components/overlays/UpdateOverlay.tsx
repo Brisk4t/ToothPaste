@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ESPLoader, Transport } from "esptool-js";
 import { Progress, Typography, Button, Menu } from "@material-tailwind/react";
 import { LinkIcon, ArrowUpCircleIcon } from "@heroicons/react/24/outline";
@@ -20,6 +20,19 @@ const UpdateStatus = {
   ERROR: 'Error',
 } as const;
 
+// One firmware image from the latest GitHub release. The list is written to
+// public/firmware/manifest.json at build time by scripts/fetch-firmware.mjs.
+interface FirmwareBoard {
+  label: string;
+  url: string;
+  flashSize: string;
+}
+
+interface FirmwareManifest {
+  tag: string;
+  boards: FirmwareBoard[];
+}
+
 interface UpdateOverlayProps {
   onChangeOverlay: (overlay: string | null) => void;
 }
@@ -29,27 +42,22 @@ export default function UpdateController({ onChangeOverlay }: UpdateOverlayProps
   const [status, setStatus] = useState<string>(UpdateStatus.IDLE);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [selectedBoard, setSelectedBoard] = useState<string | null>(null);
+  const [manifest, setManifest] = useState<FirmwareManifest | null>(null);
+  const [selectedBoard, setSelectedBoard] = useState<FirmwareBoard | null>(null);
 
   const esploaderRef = useRef<ESPLoader | null>(null);
   const transportRef = useRef<Transport | null>(null);
 
 
-  const boardUrls: Record<string, string> = {
-    "4M Flash (Supermini)": "/ToothPasteFirmware_4M.bin",
-    "8M Flash Devkit": "/ToothPasteFirmware_8M_Dev.bin",
-    "8M Flash ToothPaste PCBv1": "/ToothPasteFirmware_8M_PCBv1.bin",
-  };
-
-  const handleBoardSelect = (board: string) => {
-    setSelectedBoard(board);
-
-    const url = boardUrls[board];
-    console.log("URL:", url);
-
-    // optional: open link
-    // window.open(url, "_blank");
-  };
+  useEffect(() => {
+    fetch("/firmware/manifest.json")
+      .then((res) => {
+        if (!res.ok) throw new Error(`Failed to load firmware list (${res.status})`);
+        return res.json() as Promise<FirmwareManifest>;
+      })
+      .then(setManifest)
+      .catch((err: unknown) => setError(getErrorMessage(err)));
+  }, []);
 
   // Connect to ESP32
   const connect = async () => {
@@ -89,10 +97,11 @@ export default function UpdateController({ onChangeOverlay }: UpdateOverlayProps
   const flashFirmware = async () => {
     try {
       if (!esploaderRef.current) throw new Error("Device not connected");
+      if (!selectedBoard) throw new Error("Select a board first");
       const progressBars: unknown[] = [];
 
       setStatus(UpdateStatus.DOWNLOADING);
-      const result = await fetch(boardUrls[selectedBoard!]);
+      const result = await fetch(selectedBoard.url);
       if (!result.ok) throw new Error("Failed to download firmware");
 
       const arrayBuffer = await result.arrayBuffer();
@@ -112,7 +121,7 @@ export default function UpdateController({ onChangeOverlay }: UpdateOverlayProps
       // @ts-expect-error
       await esploaderRef.current.writeFlash({
         fileArray: [{ data: binaryStr, address: 0x00000 }],
-        flashSize: "8MB",
+        flashSize: selectedBoard.flashSize,
         eraseAll: false,
         compress: true,
         reportProgress: (_: number, written: number, total: number) =>
@@ -153,6 +162,10 @@ export default function UpdateController({ onChangeOverlay }: UpdateOverlayProps
           <span className="text-text">Update Your ToothPaste</span>
         </Typography>
 
+        {manifest && (
+          <Typography className="text-dust text-sm -mt-2 mb-4">Latest firmware: {manifest.tag}</Typography>
+        )}
+
         {/* This material-tailwind version's Progress has no `barProps`/`label` props
             (present in some other version's docs) — pre-existing usage kept as-is. */}
         {/* @ts-expect-error */}
@@ -164,13 +177,13 @@ export default function UpdateController({ onChangeOverlay }: UpdateOverlayProps
         {/* @ts-expect-error */}
         <Menu className="bg-ink">
           <Menu.Trigger as={Button} className="bg-dust border-none">
-            {selectedBoard || "Select Board"}
+            {selectedBoard?.label || "Select Board"}
           </Menu.Trigger>
 
           <Menu.Content className="z-[10000] text-white bg-ink border-dust">
-            {Object.keys(boardUrls).map((board) => (
-              <Menu.Item className="text-text" key={board} onClick={() => handleBoardSelect(board)}>
-                {board}
+            {manifest?.boards.map((board) => (
+              <Menu.Item className="text-text" key={board.url} onClick={() => setSelectedBoard(board)}>
+                {board.label}
               </Menu.Item>
             ))}
           </Menu.Content>

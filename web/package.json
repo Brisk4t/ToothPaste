@@ -40,7 +40,10 @@
     "web-vitals": "^5.1.0"
   },
   "scripts": {
+    "fetch-firmware": "node --dns-result-order=ipv4first scripts/fetch-firmware.mjs",
+    "predev": "npm run fetch-firmware",
     "dev": "vite",
+    "prebuild": "npm run fetch-firmware",
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",

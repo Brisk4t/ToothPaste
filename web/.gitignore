@@ -27,3 +27,6 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# downloaded from the latest GitHub release by scripts/fetch-firmware.mjs
+/public/firmware
