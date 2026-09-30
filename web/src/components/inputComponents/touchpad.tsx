@@ -116,11 +116,13 @@ export default function Touchpad({
         element.addEventListener("touchstart", handleTouchStart, { passive: false });
         element.addEventListener("touchmove", handleTouchMove, { passive: false });
         element.addEventListener("touchend", handleTouchEnd, { passive: false });
+        element.addEventListener("touchcancel", handleTouchEnd, { passive: false });
 
         return () => {
             element.removeEventListener("touchstart", handleTouchStart);
             element.removeEventListener("touchmove", handleTouchMove);
             element.removeEventListener("touchend", handleTouchEnd);
+            element.removeEventListener("touchcancel", handleTouchEnd);
         };
     }, [captureMouse, onTouchStart, onTouchMove, onTouchEnd, onSendScroll]);
 
@@ -151,7 +153,7 @@ export default function Touchpad({
                     className="flex items-center justify-center mt-2 opacity-70 pointer-events-none select-none text-text whitespace-pre-wrap font-light absolute left-0 right-0 top-1/2 translate-y-3 w-full z-10 text-center"
                     aria-hidden="true"
                 >
-                    Double Tap to Click
+                    Tap to Click
                 </Typography>
             )}
 

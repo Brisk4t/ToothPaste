@@ -52,10 +52,12 @@ export default function LiveCapture() {
     // Touch Vars
     const touchStartPos = useRef<Point | null>(null);
     const isTouching = useRef(false);
-    const lastTapTime = useRef(0);
-    const lastTapPos = useRef<Point | null>(null);
-    const DOUBLE_TAP_THRESHOLD = 300; // ms
-    const DOUBLE_TAP_DISTANCE = 50; // pixels
+    const gestureStartPos = useRef<Point | null>(null); // Where the finger first landed
+    const gestureStartTime = useRef(0);
+    const gestureMoved = useRef(false); // Finger travelled past TAP_MOVE_TOLERANCE, so it's a drag
+    const gestureMultiTouch = useRef(false); // A second finger joined, so it's a scroll
+    const TAP_MAX_DURATION = 250; // ms - longer presses aren't taps
+    const TAP_MOVE_TOLERANCE = 10; // pixels - finger jitter within this still counts as a tap
 
 
 
@@ -148,35 +150,22 @@ export default function LiveCapture() {
         mouseHandler.sendMouseScroll(reportDelta, sendEncrypted);
     }
 
-    // Touch event handlers for mobile touchpad
+    // Touch event handlers for mobile touchpad.
+    // Works like a laptop touchpad: each tap sends one click, so two quick taps reach the
+    // host as a double click. A tap is one finger, lifted quickly, that barely moved.
     function onTouchStart(e: TouchEvent) {
-        const touch = e.touches[0];
-        const currentTime = Date.now();
-        const currentPos = { x: touch.clientX, y: touch.clientY };
-
-        // Check if this is a double tap
-        const timeSinceLastTap = currentTime - lastTapTime.current;
-        const distanceFromLastTap = lastTapPos.current
-            ? Math.sqrt(
-                Math.pow(currentPos.x - lastTapPos.current.x, 2) +
-                Math.pow(currentPos.y - lastTapPos.current.y, 2)
-            )
-            : Infinity;
-
-        if (timeSinceLastTap < DOUBLE_TAP_THRESHOLD && distanceFromLastTap < DOUBLE_TAP_DISTANCE) {
-            // Double tap detected - send left click
-            if (captureMouse) {
-                mouseHandler.sendMouseClick(1, 0, sendEncrypted); // Left click down
-                setTimeout(() => mouseHandler.sendMouseClick(2, 0, sendEncrypted), 50); // Left click up
-            }
-            lastTapTime.current = 0; // Reset to prevent triple tap
-        } else {
-            // Normal tap - prepare for potential movement
-            touchStartPos.current = currentPos;
-            lastTapTime.current = currentTime;
-            lastTapPos.current = currentPos;
+        if (e.touches.length > 1) {
+            gestureMultiTouch.current = true; // Second finger down: a scroll, never a tap
+            return;
         }
 
+        const touch = e.touches[0];
+        const currentPos = { x: touch.clientX, y: touch.clientY };
+        touchStartPos.current = currentPos;
+        gestureStartPos.current = currentPos;
+        gestureStartTime.current = Date.now();
+        gestureMoved.current = false;
+        gestureMultiTouch.current = false;
         isTouching.current = true;
     }
 
@@ -185,6 +174,20 @@ export default function LiveCapture() {
         e.preventDefault();
 
         const touch = e.touches[0];
+
+        // Hold the cursor still until the finger clearly leaves its landing spot, so jitter
+        // during a tap doesn't nudge the cursor (which would also break double-click detection)
+        if (!gestureMoved.current) {
+            const distanceFromStart = Math.hypot(
+                touch.clientX - gestureStartPos.current!.x,
+                touch.clientY - gestureStartPos.current!.y
+            );
+            if (distanceFromStart < TAP_MOVE_TOLERANCE) return;
+            gestureMoved.current = true;
+        }
+
+        // touchStartPos is still the landing spot on the first move past the tolerance,
+        // so the held-back distance is sent here in one go
         const displacementX = touch.clientX - touchStartPos.current.x;
         const displacementY = touch.clientY - touchStartPos.current.y;
 
@@ -195,9 +198,24 @@ export default function LiveCapture() {
         touchStartPos.current = { x: touch.clientX, y: touch.clientY };
     }
 
-    function onTouchEnd(_e: TouchEvent) {
+    function onTouchEnd(e: TouchEvent) {
+        if (e.touches.length > 0) return; // Wait until every finger is lifted
+
+        const isTap =
+            e.type === "touchend" && // A cancelled touch is never a tap
+            isTouching.current &&
+            !gestureMoved.current &&
+            !gestureMultiTouch.current &&
+            Date.now() - gestureStartTime.current <= TAP_MAX_DURATION;
+
         isTouching.current = false;
         touchStartPos.current = null;
+        gestureStartPos.current = null;
+
+        if (isTap && captureMouse) {
+            mouseHandler.sendMouseClick(1, 0, sendEncrypted); // Left click down
+            setTimeout(() => mouseHandler.sendMouseClick(2, 0, sendEncrypted), 50); // Left click up
+        }
     }
 
     // Make a mouse packet and send it
