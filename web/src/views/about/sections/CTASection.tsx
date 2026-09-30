@@ -11,9 +11,9 @@ export default function CTASection({ currentSlide, getSectionOpacity }: SectionP
         <section
             className="absolute inset-0 flex flex-col items-center justify-center px-6 md:px-12 z-50"
             style={{
-                opacity: getSectionOpacity(3),
+                opacity: getSectionOpacity(2),
                 transition: 'opacity 0.3s ease-in-out',
-                pointerEvents: getSectionOpacity(3) > 0.5 ? 'auto' : 'none'
+                pointerEvents: getSectionOpacity(2) > 0.5 ? 'auto' : 'none'
             }}
         >
             {/* Title */}
