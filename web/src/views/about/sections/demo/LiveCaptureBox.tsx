@@ -160,18 +160,13 @@ export default function LiveCaptureBox({ value, onValueChange, onCursorDelta, on
                 large viewports) is resized off this box's width via cqw, so it scales with the demo
                 instead of overflowing it. Scoped here so the real LiveCapture page is unaffected. */}
             <div
-                className="relative w-full aspect-[16/10] rounded-lg [container-type:inline-size] [&_h5]:!text-[length:clamp(10px,1.9cqw,20px)] [&_h5]:!leading-snug border-2 border-text bg-background overflow-hidden"
-                style={{
-                    backgroundImage:
-                        'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-                    backgroundSize: '25px 25px',
-                }}
+                className="relative w-full aspect-[16/10] rounded-lg [container-type:inline-size] [&_h5]:!text-[length:clamp(10px,1.9cqw,20px)] [&_h5]:!leading-snug border-2 border-ash bg-background overflow-hidden"
             >
                 <div className="absolute inset-0 flex flex-col">
                     <MockNavbar />
 
-                    <div className="flex-1 flex flex-col p-3 min-h-0">
-                        <Keyboard listenerRef={inputRef} deviceStatus={SIMULATED_STATUS} />
+                    <div className="flex-1 flex flex-col p-4 min-h-0">
+                        <Keyboard listenerRef={inputRef} deviceStatus={SIMULATED_STATUS} showKeyboardToggle={false} />
 
                         <KeyboardMouse
                             inputRef={inputRef}

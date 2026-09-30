@@ -163,13 +163,13 @@ export default function KeyboardMouse({
 
             <Typography
                 type="h5"
-                className="flex items-center justify-center opacity-70 pointer-events-none select-none text-white p-4 whitespace-pre-wrap font-light font-header absolute inset-0 z-0 group-focus-within:hidden"
+                className="flex items-center justify-center opacity-70 pointer-events-none select-none text-white py-4 px-14 whitespace-pre-wrap font-light font-header absolute inset-0 z-0 group-focus-within:hidden"
                 aria-hidden="true"
             >
                 Click here to start sending keystrokes in real time (kinda...)
             </Typography>
 
-            <div className="hidden group-focus-within:flex opacity-70 items-center justify-center pointer-events-none select-none text-white p-4 whitespace-pre-wrap absolute inset-0 z-0 text-center flex-col gap-16">
+            <div className="hidden group-focus-within:flex opacity-70 items-center justify-center pointer-events-none select-none text-white py-4 px-14 whitespace-pre-wrap absolute inset-0 z-0 text-center flex-col gap-16">
                 <Typography
                     type="h5"
                     className="font-light font-header"
@@ -179,7 +179,7 @@ export default function KeyboardMouse({
                 </Typography>
             </div>
 
-            <div className="flex opacity-70 items-center justify-center pointer-events-none select-none text-white p-4 whitespace-pre-wrap absolute bottom-4 left-4 right-4 z-20 text-center flex-col gap-2">
+            <div className="flex opacity-70 items-center justify-center pointer-events-none select-none text-white py-4 whitespace-pre-wrap absolute bottom-4 left-14 right-14 z-20 text-center flex-col gap-8">
                 <StatusMessagesDisplay />
             </div>
             

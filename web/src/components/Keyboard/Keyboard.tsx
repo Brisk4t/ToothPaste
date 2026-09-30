@@ -139,9 +139,11 @@ interface HistoryEntry {
 interface KeyboardProps {
     listenerRef: RefObject<HTMLElement | null>;
     deviceStatus: ConnectionStatus;
+    // Whether to show the "Keyboard" button that toggles the on-screen keyboard layout.
+    showKeyboardToggle?: boolean;
 }
 
-const Keyboard = ({ listenerRef, deviceStatus }: KeyboardProps) => {
+const Keyboard = ({ listenerRef, deviceStatus, showKeyboardToggle = true }: KeyboardProps) => {
     const [activeKeys, setActiveKeys] = useState<Set<string>>(new Set());
     const [history, setHistory] = useState<HistoryEntry[]>([]);
     const timeoutsRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
@@ -355,9 +357,10 @@ const Keyboard = ({ listenerRef, deviceStatus }: KeyboardProps) => {
     const isKeyActive = (eventCode: string) => activeKeys.has(eventCode);
 
     return (
-        <div id="keyboard-container" className="bg-transparent text-white flex flex-col w-full items-center justify-center space-y-6 mt-4">
-            {/* Keyboard Layouts */}
-            <div className={`flex flex-row justify-center space-x-8 ${showKeyboard ? "" : "hidden"}`}>
+        <div id="keyboard-container" className="bg-transparent text-white flex flex-col w-full items-center justify-center">
+            {/* Keyboard Layouts - the spacing below lives here (not a space-y on the parent) so it
+                disappears with the layout; space-y ignores the `hidden` class and would leave a gap. */}
+            <div className={`flex flex-row justify-center space-x-8 mb-6 ${showKeyboard ? "" : "hidden"}`}>
                 
                 {/* TKL keys */}
                 <div className="flex flex-col space-y-2">
@@ -421,10 +424,10 @@ const Keyboard = ({ listenerRef, deviceStatus }: KeyboardProps) => {
             </div>
 
             {/* Command History Container Styling */}
-            <div className="rounded-lg bg-ink px-2 py-2 mt-4 min-h-12 w-full max-w-full overflow-x-hidden">
+            <div className="rounded-lg bg-ink px-2 py-2 min-h-12 w-full max-w-full overflow-x-hidden">
                 {/* Command History Container Function */}
                 <div className="flex flex-nowrap space-x-2">
-                    <ShowKeyboardButton/>
+                    {showKeyboardToggle && <ShowKeyboardButton/>}
                     {history.map((entry) => (
                         <div
                             key={entry.id}
