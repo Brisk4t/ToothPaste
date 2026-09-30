@@ -143,11 +143,11 @@ export default function KeyboardMouse({
         focus-within:border-ash focus-within:bg-background 
         relative group">
 
-            <div className="absolute top-2 left-2 z-10">
+            <div className="absolute top-2 left-2 z-30">
                 <LeftButtonColumn status={status} sendEncrypted={sendEncrypted} />
             </div>
 
-            <div className="absolute top-2 right-2 z-10">
+            <div className="absolute top-2 right-2 z-30">
                 <RightButtonColumn
                     captureMouse={captureMouse}
                     setCaptureMouse={setCaptureMouse}

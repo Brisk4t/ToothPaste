@@ -2,8 +2,7 @@ import React from "react";
 import {
     PowerIcon,
     PlayPauseIcon,
-    ChevronDoubleUpIcon,
-    ChevronDoubleDownIcon,
+    SpeakerXMarkIcon,
     ForwardIcon,
     BackwardIcon,
     CursorArrowRaysIcon,
@@ -21,23 +20,40 @@ import type { SendEncrypted } from "../../services/inputHandlers/mouseHandler";
 import { createMouseJigglePacket } from "../../services/packetService/packetFunctions";
 import type { ConnectionStatus } from "../../context/BLEContext";
 
+// Heroicons has no volume up/down icons, so these draw its speaker (from SpeakerXMarkIcon)
+// with a plus or minus in place of the X
+const SPEAKER_PATH = "M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z";
+
+function SpeakerIcon({ className, symbolPath }: { className?: string; symbolPath: string }) {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true" className={className}>
+            <path strokeLinecap="round" strokeLinejoin="round" d={`${symbolPath}${SPEAKER_PATH}`} />
+        </svg>
+    );
+}
+
+function SpeakerPlusIcon({ className }: { className?: string }) {
+    return <SpeakerIcon className={className} symbolPath="M19.5 9.75v4.5M17.25 12h4.5" />;
+}
+
+function SpeakerMinusIcon({ className }: { className?: string }) {
+    return <SpeakerIcon className={className} symbolPath="M17.25 12h4.5" />;
+}
+
 // Shortcut definitions
 export const SHORTCUTS_MENU: KeySequenceButton[] = [
     { label: "Ctrl+A", keys: ["Control", "a"] },
     { label: "Ctrl+C", keys: ["Control", "c"] },
     { label: "Ctrl+V", keys: ["Control", "v"] },
     { label: "Ctrl+X", keys: ["Control", "x"] },
-    { label: "Delete", keys: ["Delete"] },
     { label: "Ctrl+Z", keys: ["Control", "z"] },
     { label: "Ctrl+Y", keys: ["Control", "y"] },
     { label: "Ctrl+S", keys: ["Control", "s"] },
-    { label: "Alt+Tab", keys: ["Alt", "Tab"] },
-    { label: "Esc", keys: ["Escape"] },
     { label: "Ctrl+Alt+Del", keys: ["Control", "Alt", "Delete"] },
     { label: "Ctrl+Shift+Esc", keys: ["Control", "Shift", "Escape"] },
+    { label: "Alt+Tab", keys: ["Alt", "Tab"] },
     { label: "Win+V", keys: ["Meta", "v"] },
     { label: "Win+Shift+S", keys: ["Meta", "Shift", "s"] },
-    { label: "Enter", keys: ["Enter"] },
 ];
 
 interface KeyComposerButton {
@@ -334,7 +350,7 @@ export function LeftButtonColumn({ status, sendEncrypted }: LeftButtonColumnProp
                     onClick={() => {
                         keyboardHandler.sendControlCode(0x00e9, sendEncrypted);
                     }}
-                    Icon={ChevronDoubleUpIcon}
+                    Icon={SpeakerPlusIcon}
                     expandDirection="right"
                     connectionStatus={status}
                 />
@@ -345,7 +361,18 @@ export function LeftButtonColumn({ status, sendEncrypted }: LeftButtonColumnProp
                     onClick={() => {
                         keyboardHandler.sendControlCode(0x00ea, sendEncrypted);
                     }}
-                    Icon={ChevronDoubleDownIcon}
+                    Icon={SpeakerMinusIcon}
+                    expandDirection="right"
+                    connectionStatus={status}
+                />
+            </div>
+            <div>
+                <MediaToggleButton
+                    title="Mute"
+                    onClick={() => {
+                        keyboardHandler.sendControlCode(0x00e2, sendEncrypted);
+                    }}
+                    Icon={SpeakerXMarkIcon}
                     expandDirection="right"
                     connectionStatus={status}
                 />

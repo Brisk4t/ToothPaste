@@ -128,11 +128,11 @@ export default function Touchpad({
 
     return (
         <div className="xl:hidden flex flex-col flex-1 my-4 rounded-xl transition-all border border-ash bg-ink relative group overflow-hidden">
-            <div className="absolute top-2 left-2 z-10">
+            <div className="absolute top-2 left-2 z-30">
                 {leftButtonColumn}
             </div>
             
-            <div className="absolute top-2 right-2 z-10">
+            <div className="absolute top-2 right-2 z-30">
                 {rightButtonColumn}
             </div>
 
