@@ -23,6 +23,14 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 // taskbar once the box (and so the taskbar's share of its height) grows.
 const CURSOR_EDGE_PADDING_PX = 4;
 
+// Each demo box is a 16:10 screen plus a label row above it. Size them off whichever runs
+// out first - half the demo area's width, or its height (minus the label row) at 16:10 -
+// so the pair always fits without squashing or clipping, whatever the viewport shape.
+// cqw/cqh resolve against the demo area, which is a size container (see below).
+const DEMO_GAP = 'clamp(1.5rem, 2.5cqw, 2.5rem)';
+const DEMO_LABEL_ROW = '2.25rem';
+const DEMO_BOX_WIDTH = `min((100cqw - ${DEMO_GAP}) / 2, (100cqh - ${DEMO_LABEL_ROW}) * 1.6)`;
+
 export default function HeroSection({ currentSlide, getSectionOpacity }: SectionProps) {
     // Shared notepad text - the live capture box (the real LiveCapture UI) owns it, the
     // paired device box just mirrors it.
@@ -120,7 +128,7 @@ export default function HeroSection({ currentSlide, getSectionOpacity }: Section
 
     return (
         <section
-            className="absolute inset-0 flex flex-col px-6 xl:px-12 py-6 z-50"
+            className="absolute inset-0 flex flex-col px-4 sm:px-6 xl:px-12 py-4 sm:py-6 xl:pt-2 z-50"
             style={{
                 opacity: getSectionOpacity(0),
                 transition: 'opacity 0.3s ease-in-out',
@@ -129,17 +137,18 @@ export default function HeroSection({ currentSlide, getSectionOpacity }: Section
         >
             {/* Desktop */}
             <div className="hidden xl:flex flex-col flex-1 min-h-0">
-                <div className="flex flex-row items-center justify-center gap-8 flex-shrink-0 mt-10">
+                {/* Header tightens up on short viewports so the demo keeps most of the height */}
+                <div className="flex flex-row items-center justify-center gap-8 2xl:gap-12 flex-shrink-0 mt-4 [@media(max-height:760px)]:mt-1">
                     <div className="flex-shrink-0">
-                        <Typography className="font-header text-6xl font-bold text-primary mb-2">ToothPaste</Typography>
-                        <Typography style={{ fontFamily: '"Libre Barcode 39 Extended", system-ui' }} className="text-xl leading-relaxed">ToothPaste</Typography>
-                        <Typography className="font-body text-3xl font-light italic leading-relaxed">
+                        <Typography className="font-header text-5xl [@media(max-height:760px)]:text-4xl font-bold text-primary mb-1 [@media(max-height:760px)]:mb-0">ToothPaste</Typography>
+                        <Typography style={{ fontFamily: '"Libre Barcode 39 Extended", system-ui' }} className="text-lg leading-snug [@media(max-height:760px)]:hidden">ToothPaste</Typography>
+                        <Typography className="font-body text-2xl [@media(max-height:760px)]:text-xl font-light italic leading-snug">
                             <span className="text-secondary">Plug In.</span> <span className="text-orange">Pair.</span> <span className="text-primary">Paste.</span>
                         </Typography>
                     </div>
 
-                    <div className="flex flex-col gap-3">
-                        <Typography type="h5" className="font-body text-white leading-relaxed">
+                    <div className="flex flex-col gap-1.5 [@media(max-height:760px)]:gap-0.5 min-w-0">
+                        <Typography type="h6" className="font-body text-white leading-snug">
                             Because sometimes you just want to type
                         </Typography>
                         <TypingAnimation
@@ -151,40 +160,45 @@ export default function HeroSection({ currentSlide, getSectionOpacity }: Section
                             typingSpeed={10}
                             pauseTime={1000}
                             repeat={true}
-                            className="font-body font-light text-2xl text-dust block my-0"
+                            className="font-body font-light text-xl [@media(max-height:760px)]:text-lg text-dust block my-0"
                         />
-                        <Typography type="h5" className="font-body text-white leading-relaxed">
+                        <Typography type="h6" className="font-body text-white leading-snug">
                             and you're in a rush.......
                         </Typography>
                     </div>
                 </div>
 
-                <div className="flex-1 flex items-center justify-center min-h-0">
-                    <div className="flex flex-row items-center gap-10 w-full">
-                        <LiveCaptureBox
-                            value={notepadValue}
-                            onValueChange={handleNotepadValueChange}
-                            onCursorDelta={handleCursorDelta}
-                            onRemoteClick={handleRemoteClick}
-                            onMediaOverlay={flashMediaOverlay}
-                        />
-                        <DesktopBox
-                            label="Paired Device"
-                            statusText="receiving"
-                            screenRef={boxBScreenRef}
-                            cursorPos={cursorPos}
-                            clickPulse={clickPulse}
-                            mediaOverlay={mediaOverlay}
-                            mediaOverlayKey={mediaOverlayKey}
-                            notepadOpen={notepadOpenB}
-                            onNotepadOpenChange={setNotepadOpenB}
-                            notepadValue={notepadValue}
-                            notepadReadOnly
-                        />
+                {/* Size container - the boxes measure themselves against this area via cqw/cqh */}
+                <div className="flex-1 min-h-0 mt-4 [@media(max-height:760px)]:mt-2 [container-type:size]">
+                    <div className="h-full flex flex-row items-center justify-center" style={{ gap: DEMO_GAP }}>
+                        <div className="flex" style={{ width: DEMO_BOX_WIDTH }}>
+                            <LiveCaptureBox
+                                value={notepadValue}
+                                onValueChange={handleNotepadValueChange}
+                                onCursorDelta={handleCursorDelta}
+                                onRemoteClick={handleRemoteClick}
+                                onMediaOverlay={flashMediaOverlay}
+                            />
+                        </div>
+                        <div className="flex" style={{ width: DEMO_BOX_WIDTH }}>
+                            <DesktopBox
+                                label="Paired Device"
+                                statusText="receiving"
+                                screenRef={boxBScreenRef}
+                                cursorPos={cursorPos}
+                                clickPulse={clickPulse}
+                                mediaOverlay={mediaOverlay}
+                                mediaOverlayKey={mediaOverlayKey}
+                                notepadOpen={notepadOpenB}
+                                onNotepadOpenChange={setNotepadOpenB}
+                                notepadValue={notepadValue}
+                                notepadReadOnly
+                            />
+                        </div>
                     </div>
                 </div>
 
-                <div className="flex items-center justify-center gap-2 text-white mt-4 flex-shrink-0">
+                <div className="flex items-center justify-center gap-2 text-white mt-4 [@media(max-height:760px)]:mt-2 flex-shrink-0">
                     <ArrowDownIcon className="h-5 w-5 animate-bounce" />
                     {/* "medium" isn't in material-tailwind's Typography `type` union (h1-h6|lead|p|small) —
                         pre-existing usage, kept as-is rather than guessing the intended styling. */}
@@ -194,16 +208,17 @@ export default function HeroSection({ currentSlide, getSectionOpacity }: Section
             </div>
 
             {/* Mobile - the live capture demo needs xl+ (KeyboardMouse itself is desktop-only), so just show the hero copy */}
-            <div className="w-full xl:hidden flex flex-col flex-1 justify-center">
-                <div>
-                    <div className="mb-40">
-                        <Typography className="font-header text-6xl font-bold text-primary ">ToothPaste</Typography>
-                        <Typography style={{ fontFamily: '"Libre Barcode 39 Extended", system-ui' }} className="text-2xl leading-relaxed">ToothPaste</Typography>
-                        <Typography className="font-body text-2xl font-light italic leading-relaxed ">
+            {/* Spacing is viewport-relative (not fixed rem) so short phones / landscape don't overflow */}
+            <div className="w-full xl:hidden flex flex-col flex-1 justify-center min-h-0">
+                <div className="max-w-2xl">
+                    <div className="mb-[12vh]">
+                        <Typography className="font-header text-5xl sm:text-6xl font-bold text-primary">ToothPaste</Typography>
+                        <Typography style={{ fontFamily: '"Libre Barcode 39 Extended", system-ui' }} className="text-xl sm:text-2xl leading-relaxed">ToothPaste</Typography>
+                        <Typography className="font-body text-xl sm:text-2xl font-light italic leading-relaxed">
                             <span className="text-secondary">Plug In.</span> <span className="text-orange">Pair.</span> <span className="text-primary">Paste</span>
                         </Typography>
                     </div>
-                    <div className="flex flex-col gap-4 mr-12">
+                    <div className="flex flex-col gap-2 sm:gap-4">
                         <Typography type="h5" className="font-body text-white leading-relaxed mb-0">
                             Because sometimes you just want to type
                         </Typography>
@@ -216,14 +231,14 @@ export default function HeroSection({ currentSlide, getSectionOpacity }: Section
                             typingSpeed={10}
                             pauseTime={1000}
                             repeat={true}
-                            className="font-body font-light text-2xl text-dust block my-0"
+                            className="font-body font-light text-xl sm:text-2xl text-dust block my-0 break-words"
                         />
                         <Typography type="h5" className="font-body text-white leading-relaxed">
                             and you're in a rush.......
                         </Typography>
                     </div>
                 </div>
-                <div className="flex items-center gap-2 text-white mt-20">
+                <div className="flex items-center gap-2 text-white mt-[8vh]">
                     <ArrowDownIcon className="h-5 w-5 animate-bounce" />
                     {/* @ts-expect-error */}
                     <Typography type="medium">Scroll to explore</Typography>

@@ -157,7 +157,7 @@ export default function LiveCaptureBox({ value, onValueChange, onCursorDelta, on
             </div>
 
             <div
-                className="relative w-full aspect-[16/10] max-h-[70vh] rounded-lg border-4 border-text bg-background overflow-hidden"
+                className="relative w-full aspect-[16/10] rounded-lg border-2 border-text bg-background overflow-hidden"
                 style={{
                     backgroundImage:
                         'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
