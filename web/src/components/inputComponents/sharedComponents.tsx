@@ -77,9 +77,11 @@ export const KEY_COMPOSER_BUTTONS: KeyComposerButton[] = [
  * Key composition component that allows users to build custom key combinations
  * by selecting modifier and navigation keys, then sending them
  * Uses carousel-style swiping to limit buttons per slide
+ * In direct mode each tap sends its key immediately instead of adding it to the combination
  */
 export function KeyComposer({ onSendKeyboardShortcut }: { onSendKeyboardShortcut: (keySequence: string[]) => void }) {
     const [selectedKeys, setSelectedKeys] = React.useState<string[]>([]);
+    const [directMode, setDirectMode] = React.useState(false);
     const [currentSlide, setCurrentSlide] = React.useState(0);
     const pointerStart = React.useRef({ x: 0, y: 0 });
     const composerRef = React.useRef<HTMLDivElement | null>(null);
@@ -109,6 +111,20 @@ export function KeyComposer({ onSendKeyboardShortcut }: { onSendKeyboardShortcut
 
     const clearKeys = () => {
         setSelectedKeys([]);
+    };
+
+    const handleKeyTap = (key: string) => {
+        if (wasSwipe.current) return; // Changing slides shouldn't also press the key under the finger
+        if (directMode) {
+            onSendKeyboardShortcut([key]);
+        } else {
+            toggleKey(key);
+        }
+    };
+
+    const toggleDirectMode = () => {
+        setDirectMode(prev => !prev);
+        clearKeys(); // A half-built combination has no meaning in direct mode
     };
 
     const sendCombination = () => {
@@ -205,11 +221,11 @@ export function KeyComposer({ onSendKeyboardShortcut }: { onSendKeyboardShortcut
                             {slide.map((button, btnIdx) => (
                                 <React.Fragment key={button.key}>
                                     <button
-                                        onClick={() => toggleKey(button.key)}
+                                        onClick={() => handleKeyTap(button.key)}
                                         className={`min-h-14 flex justify-center items-center flex-1 min-w-0 transition-colors cursor-pointer select-none overflow-hidden ${
                                             selectedKeys.includes(button.key)
                                                 ? "bg-primary text-white"
-                                                : "bg-none text-text hover:bg-white hover:text-ink"
+                                                : `bg-none text-text hover:bg-white hover:text-ink ${directMode ? "active:bg-primary active:text-white" : ""}`
                                         }`}
                                     >
                                         <span className="text-sm font-medium text-center px-1 line-clamp-1">{button.label}</span>
@@ -251,28 +267,43 @@ export function KeyComposer({ onSendKeyboardShortcut }: { onSendKeyboardShortcut
 
             {/* Composition Display with Controls */}
             <div className="flex border-t border-ash rounded-b-xl">
+                {/* Direct mode toggle */}
                 <button
-                    onClick={clearKeys}
-                    disabled={selectedKeys.length === 0}
-                    className="h-12 px-4 flex justify-center items-center font-medium bg-ash disabled:opacity-50 disabled:cursor-not-allowed text-text hover:bg-white hover:text-ink transition-colors">Clear
+                    onClick={toggleDirectMode}
+                    aria-pressed={directMode}
+                    className={`h-12 px-4 flex justify-center items-center font-medium border-r border-ink transition-colors ${
+                        directMode ? "bg-primary text-white" : "bg-ash text-text hover:bg-white hover:text-ink"
+                    }`}>Direct
                 </button>
 
-                {/* Composition Text */}
-                <div className="flex-1 flex items-center justify-center px-3 py-2 bg-none text-text font-mono text-md overflow-x-auto whitespace-nowrap">
-                    {compositionDisplay}
-                </div>
+                {directMode ? (
+                    <div className="flex-1 flex items-center justify-center px-3 py-2 bg-none text-dust font-mono text-md overflow-x-auto whitespace-nowrap">
+                        Tap a key to send it
+                    </div>
+                ) : (
+                    <>
+                        <button
+                            onClick={clearKeys}
+                            disabled={selectedKeys.length === 0}
+                            className="h-12 px-4 flex justify-center items-center font-medium bg-ash disabled:opacity-50 disabled:cursor-not-allowed text-text hover:bg-white hover:text-ink transition-colors">Clear
+                        </button>
 
-                
-                <button
-                    onClick={sendCombination}
-                    disabled={selectedKeys.length === 0}
-                    className={`h-12 px-5 flex justify-center items-center font-medium transition-colors ${
-                        selectedKeys.length > 0
-                            ? "bg-primary text-white hover:bg-blue-700 cursor-pointer"
-                            : "bg-ash text-text cursor-not-allowed opacity-50"
-                    }`}>Send
-                </button>
+                        {/* Composition Text */}
+                        <div className="flex-1 flex items-center justify-center px-3 py-2 bg-none text-text font-mono text-md overflow-x-auto whitespace-nowrap">
+                            {compositionDisplay}
+                        </div>
 
+                        <button
+                            onClick={sendCombination}
+                            disabled={selectedKeys.length === 0}
+                            className={`h-12 px-5 flex justify-center items-center font-medium transition-colors ${
+                                selectedKeys.length > 0
+                                    ? "bg-primary text-white hover:bg-blue-700 cursor-pointer"
+                                    : "bg-ash text-text cursor-not-allowed opacity-50"
+                            }`}>Send
+                        </button>
+                    </>
+                )}
             </div>
         </div>
     );
