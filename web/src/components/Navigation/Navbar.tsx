@@ -8,6 +8,8 @@ import {
     ClipboardIcon,
     PlayIcon,
     LinkIcon,
+    ArrowPathIcon,
+    ExclamationTriangleIcon,
     QuestionMarkCircleIcon,
     CpuChipIcon,
     SignalSlashIcon,
@@ -19,7 +21,6 @@ import AuthenticationOverlay from "../overlays/AuthenticationOverlay";
 import { authStateManager, AuthState } from "../../services/localSecurity/AuthStateManager";
 import ToothPaste from "../../assets/ToothPaste.png";
 import { createRenamePacket } from "../../services/packetService/packetFunctions";
-
 export function useClickOrLongPress(longPressTime = 2000) {
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [longPressed, setLongPressed] = useState(false);
@@ -121,6 +122,106 @@ function EditableDeviceName({ name, setName, isEditing, setIsEditing, isHovering
     );
 }
 
+// Border colour for each connection status, shared by the device button and
+// the mobile menu toggle
+function statusBorderClass(status: ConnectionStatus): string {
+    return (
+        {
+            [ConnectionStatus.disconnected]: "border-secondary",
+            [ConnectionStatus.ready]: "border-primary",
+            [ConnectionStatus.connected]: "border-orange",
+            [ConnectionStatus.unsupported]: "border-orange",
+            [ConnectionStatus.verifying]: "border-blueish animate-pulse",
+            [ConnectionStatus.mismatch]: "border-secondary",
+        }[status] || "border-orange"
+    );
+}
+
+interface ConnectionBannerProps {
+    onChangeOverlay: (overlay: string | null) => void;
+}
+
+// Persistent banner for states that need user action: key mismatch (VERIFY
+// timeout or DECRYPT_FAILED) and unpaired device
+function ConnectionBanner({ onChangeOverlay }: ConnectionBannerProps) {
+    const { status, retryVerify } = useBLEContext()!;
+
+    if (status === ConnectionStatus.mismatch) {
+        return (
+            <div className="w-full bg-secondary/20 border-b border-secondary px-4 py-2 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                    <ExclamationTriangleIcon className="h-5 w-5 text-secondary shrink-0" />
+                    <Typography className="text-text text-sm font-body break-words">
+                        Key mismatch — the device may have regenerated its keys. Please re-pair.
+                    </Typography>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                        onClick={retryVerify}
+                        className="text-text normal-case font-header border border-ash p-2"
+                    >
+                        <ArrowPathIcon className="h-4 w-4 mr-1 inline" />
+                        Retry verification
+                    </Button>
+                    <Button
+                        onClick={() => onChangeOverlay("pair")}
+                        className="bg-secondary text-text normal-case font-header p-2"
+                    >
+                        <LinkIcon className="h-4 w-4 mr-1 inline" />
+                        Re-pair
+                    </Button>
+                </div>
+            </div>
+        );
+    }
+
+    if (status === ConnectionStatus.connected) {
+        return (
+            <div className="w-full bg-orange/20 border-b border-orange px-4 py-2 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                    <ExclamationTriangleIcon className="h-5 w-5 text-orange shrink-0" />
+                    <Typography className="text-text text-sm font-body break-words">
+                        This device doesn't recognize this browser. Pair the device to continue.
+                    </Typography>
+                </div>
+                <Button
+                    onClick={() => onChangeOverlay("pair")}
+                    className="bg-orange text-text normal-case font-header p-2 shrink-0"
+                >
+                    <LinkIcon className="h-4 w-4 mr-1 inline" />
+                    Pair Device
+                </Button>
+            </div>
+        );
+    }
+
+    return null;
+}
+
+// One-shot toast for the first send failure of a connection (sends are
+// write-without-response, so failures are otherwise invisible)
+function SendErrorToast() {
+    const { lastSendError, dismissSendError } = useBLEContext()!;
+
+    useEffect(() => {
+        if (!lastSendError) return;
+        const timer = setTimeout(dismissSendError, 6000);
+        return () => clearTimeout(timer);
+    }, [lastSendError, dismissSendError]);
+
+    if (!lastSendError) return null;
+
+    return (
+        <div
+            className="fixed bottom-4 right-4 z-[10000] bg-ash border border-orange text-text text-sm font-body rounded-md px-4 py-3 shadow-lg cursor-pointer max-w-xs"
+            onClick={dismissSendError}
+            role="alert"
+        >
+            {lastSendError}
+        </div>
+    );
+}
+
 interface ConnectionButtonProps {
     showAuthOverlay: boolean;
     setShowAuthOverlay: Dispatch<SetStateAction<boolean>>;
@@ -146,14 +247,7 @@ function ConnectionButton({ showAuthOverlay, setShowAuthOverlay, authState }: Co
         setName(device?.name || "Connect to Device");
     }, [device]);
 
-    const borderClass =
-        {
-            [ConnectionStatus.disconnected]: "border-secondary",
-            [ConnectionStatus.ready]: "border-primary",
-            [ConnectionStatus.connected]: "border-orange",
-            [ConnectionStatus.unsupported]: "border-orange",
-        }[status] || "border-orange"; // fallback if undefined
-    
+    const borderClass = statusBorderClass(status);
 
 
     // Once isEditing becmes false, if the device name was changed by the user, notify the device
@@ -293,29 +387,35 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
         return unsubscribe;
     }, [showAuthOverlay]);
 
-    const borderClass =
-        {
-            [ConnectionStatus.disconnected]: "border-secondary",
-            [ConnectionStatus.ready]: "border-primary",
-            [ConnectionStatus.connected]: "border-orange",
-            [ConnectionStatus.unsupported]: "border-orange",
-        }[status] || "border-orange"; // fallback if undefined
+    const borderClass = statusBorderClass(status);
 
+    // Input views are only usable once the connection is verified (ready);
+    // connected/unsupported/verifying/mismatch all mean "can't send yet"
+    const inputsBlocked = status === ConnectionStatus.connected
+        || status === ConnectionStatus.unsupported
+        || status === ConnectionStatus.verifying
+        || status === ConnectionStatus.mismatch;
+
+    // Auto-close the pair overlay when pairing just succeeded or the device
+    // dropped — but NOT when it was opened while already ready (Re-pair
+    // entry), so only act on a status change, not on the status at open time
+    const prevStatusRef = useRef(status);
     useEffect(() => {
-        if(activeOverlay == "pair")
-        switch(status){
-            case ConnectionStatus.ready:
-                onChangeOverlay(null);
-                break;
-            
-            case ConnectionStatus.disconnected:
-                onChangeOverlay(null);
-                break;
+        const prevStatus = prevStatusRef.current;
+        prevStatusRef.current = status;
+
+        if (activeOverlay !== "pair") return;
+
+        const becameReady = prevStatus !== ConnectionStatus.ready && status === ConnectionStatus.ready;
+        const becameDisconnected = prevStatus !== ConnectionStatus.disconnected && status === ConnectionStatus.disconnected;
+        if (becameReady || becameDisconnected) {
+            onChangeOverlay(null);
         }
     }, [activeOverlay, status, onChangeOverlay]);
     return (
         <>
         <div id="navbar" className="w-full bg-ink text-white">
+            <ConnectionBanner onChangeOverlay={onChangeOverlay} />
             <div className="relative flex justify-between h-24 items-center px-4">
                 {/* Left: Logo */}
                 <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setIsOpen(false)}>
@@ -332,7 +432,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                 <div className="hidden xl:flex absolute left-1/2 transform -translate-x-1/2 space-x-5 items-center">
                     <div className="flex items-center space-x-5">
                         <button
-                            disabled={status === ConnectionStatus.connected || status === ConnectionStatus.unsupported}
+                            disabled={inputsBlocked}
                             className={`flex items-center space-x-1 p-2 gap-2 rounded disabled:text-ash disabled:hover:bg-transparent ${
                                 activeView === "live" ? "disabled:border-ash border border-text" : "hover:bg-ash"
                             }`}
@@ -343,7 +443,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                         </button>
 
                         <button
-                            disabled={status === ConnectionStatus.connected || status === ConnectionStatus.unsupported}
+                            disabled={inputsBlocked}
                             className={`flex items-center space-x-1 p-2 gap-2 rounded disabled:text-ash disabled:hover:bg-transparent ${
                                 activeView === "paste" ? "disabled:border-ash border border-text" : "hover:bg-ash"
                             }`}
@@ -352,7 +452,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                             <ClipboardIcon className="h-5 w-5" />
                             <Typography className="font-header">Paste</Typography>
                         </button>
-                        
+
                         <button
                             disabled={false}
                             className={`flex items-center space-x-1 p-2 gap-2 rounded disabled:text-ash disabled:hover:bg-transparent ${
@@ -370,7 +470,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
 
                     <div className="flex items-center space-x-5">
                         <button
-                            disabled={status === ConnectionStatus.connected}
+                            disabled={inputsBlocked}
                             className={`flex items-center space-x-1 p-2 gap-2 rounded disabled:text-ash disabled:hover:bg-transparent ${
                                 activeView === "update" ? "disabled:border-ash border border-text" : "hover:bg-ash"
                             }`}
@@ -382,7 +482,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
 
                         <button
                             disabled={false}
-                            className="flex items-center space-x-1 p-2 gap-2 rounded hover:bg-ash"
+                            className={`flex items-center space-x-1 p-2 gap-2 rounded hover:bg-ash`}
                             onClick={() => onChangeOverlay("quickstart")}
                             title="Show Quick Start Guide"
                         >
@@ -390,14 +490,20 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                             <Typography className="font-header">Quick Start</Typography>
                         </button>
 
-                        {status === ConnectionStatus.connected && (
+                        {/* Visible whenever a device is connected, in any state —
+                            the escape hatch when stored keys go stale (mismatch) */}
+                        {device !== null && (
                             <button
                                 className="flex items-center space-x-1 p-2 gap-2 rounded hover:bg-ash"
                                 onClick={() => onChangeOverlay("pair")}
                             >
-                                <LinkIcon className="h-5 w-5" />
+                                {status === ConnectionStatus.connected ? (
+                                    <LinkIcon className="h-5 w-5" />
+                                ) : (
+                                    <ArrowPathIcon className="h-5 w-5" />
+                                )}
                                 <Typography className="font-header">
-                                    Pair Device
+                                    {status === ConnectionStatus.connected ? "Pair Device" : "Re-pair Device"}
                                 </Typography>
                             </button>
                         )}
@@ -438,7 +544,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                 <div className="xl:hidden flex flex-col space-y-2 px-4 pb-4">
                     <div className="flex flex-col space-y-2">
                         <button
-                            disabled={status === ConnectionStatus.connected || status === ConnectionStatus.unsupported}
+                            disabled={inputsBlocked}
                             className={`flex font-header items-center space-x-1 px-3 py-2 gap-1 rounded disabled:text-ash disabled:hover:bg-transparent ${
                                 activeView === "live" ? "bg-ash" : "hover:bg-ash"
                             }`}
@@ -452,7 +558,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                         </button>
 
                         <button
-                            disabled={status === ConnectionStatus.connected || status === ConnectionStatus.unsupported}
+                            disabled={inputsBlocked}
                             className={`flex font-header items-center space-x-1 px-3 py-2 gap-1 rounded hover:bg-ash disabled:text-ash disabled:hover:bg-transparent ${
                                 activeView === "paste" ? "bg-ash" : "hover:bg-ash"
                             }`}
@@ -485,7 +591,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
 
                     <div className="flex flex-col space-y-2">
                         <button
-                            disabled={status === ConnectionStatus.connected}
+                            disabled={inputsBlocked}
                             className={`flex font-header items-center space-x-1 px-3 py-2 gap-1 rounded disabled:text-ash disabled:hover:bg-transparent ${
                                 activeView === "update" ? "bg-ash" : "hover:bg-ash"
                             }`}
@@ -500,7 +606,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
 
                         <button
                             disabled={false}
-                            className="flex font-header items-center space-x-1 px-3 py-2 gap-1 rounded hover:bg-ash"
+                            className={`flex font-header items-center space-x-1 px-3 py-2 gap-1 rounded hover:bg-ash`}
                             onClick={() => {
                                 onChangeOverlay("quickstart");
                                 setIsOpen(false);
@@ -510,7 +616,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                             <span>Quick Start</span>
                         </button>
 
-                        {status === ConnectionStatus.connected && (
+                        {device !== null && (
                             <button
                                 className="flex font-header items-center space-x-1 px-3 py-2 rounded hover:bg-ash"
                                 onClick={() => {
@@ -518,8 +624,12 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                                     setIsOpen(false);
                                 }}
                             >
-                                <LinkIcon className="h-5 w-5" />
-                                <span>Pair Device</span>
+                                {status === ConnectionStatus.connected ? (
+                                    <LinkIcon className="h-5 w-5" />
+                                ) : (
+                                    <ArrowPathIcon className="h-5 w-5" />
+                                )}
+                                <span>{status === ConnectionStatus.connected ? "Pair Device" : "Re-pair Device"}</span>
                             </button>
                         )}
                     </div>
@@ -534,7 +644,7 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
         </div>
 
         {showAuthOverlay && (
-            <AuthenticationOverlay 
+            <AuthenticationOverlay
                 onAuthSuccess={() => {
                     setShowAuthOverlay(false);
                     connectToDevice();
@@ -542,6 +652,8 @@ export default function Navbar({ onChangeOverlay, onNavigate, activeView, active
                 onClose={() => setShowAuthOverlay(false)}
             />
         )}
+
+        <SendErrorToast />
         </>
     );
 }

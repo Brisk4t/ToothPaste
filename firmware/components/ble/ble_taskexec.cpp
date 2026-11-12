@@ -23,6 +23,12 @@ void decryptSendString(toothpaste_DataPacket* packet, SecureSession* session)
 
   if (ret != 0) {
     ESP_LOGE(TAG, "Decryption failed (err %d)", ret);
+    // Tell the client its key doesn't match ours; only notify once per
+    // connection, key-mismatch traffic comes in bursts when keys disagree
+    if (!decryptFailedNotified) {
+      decryptFailedNotified = true;
+      notifyResponsePacket(toothpaste_ResponsePacket_ResponseType_DECRYPT_FAILED, nullptr, 0);
+    }
     stateManager->setState(DROP);
     return;
   }
@@ -82,6 +88,16 @@ void decryptSendString(toothpaste_DataPacket* packet, SecureSession* session)
       bool enable = decrypted.packetData.mouseJigglePacket.enable;
       ESP_LOGD(TAG, "JIGGLE    decrypt=%lldus  state=%s", decryptUs, enable ? "ON" : "OFF");
       enable ? startJiggle() : stopJiggle();
+      break;
+    }
+
+    case toothpaste_EncryptedData_verifyPacket_tag:
+    {
+      auto& vp = decrypted.packetData.verifyPacket;
+      ESP_LOGD(TAG, "VERIFY    decrypt=%lldus  nonce=%ub", decryptUs, vp.nonce.size);
+      // GCM success already proves both sides derived the same key, so the
+      // nonce is echoed in the clear — it only signals "decryption works"
+      notifyResponsePacket(toothpaste_ResponsePacket_ResponseType_PONG, vp.nonce.bytes, vp.nonce.size);
       break;
     }
 

@@ -168,6 +168,12 @@ const Keyboard = ({ listenerRef, deviceStatus, showKeyboardToggle = true }: Keyb
             case 2:
                 setBackgroundColor("bg-orange");
                 break;
+            case 4: // verifying: waiting for the VERIFY/PONG round trip
+                setBackgroundColor("bg-blueish");
+                break;
+            case 5: // mismatch: key verification failed
+                setBackgroundColor("bg-secondary");
+                break;
             default:
                 setBackgroundColor("bg-dust");
         }

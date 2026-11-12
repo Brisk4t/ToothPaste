@@ -9,10 +9,7 @@
 
 import * as Storage from '../Storage';
 import argon2 from 'argon2-wasm-esm';
-
-function getErrorMessage(error: unknown): string {
-    return error instanceof Error ? error.message : String(error);
-}
+import { getErrorMessage } from '../../lib/utils';
 
 // Session-based encryption key and salt (salt is used for key re-derivation, not secret)
 let sessionEncryptionKey: CryptoKey | null = null;

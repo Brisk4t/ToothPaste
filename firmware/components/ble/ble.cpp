@@ -15,6 +15,10 @@ bool          manualDisconnect = false;
 char   clientPubKey[70];
 size_t clientPubKeyLen = 0;
 
+// Set when a DECRYPT_FAILED notification has been sent for the current
+// connection; reset on disconnect so the next connection can report again
+bool decryptFailedNotified = false;
+
 static const char* TAG = "BLE";
 
 static void createPacketTask(SecureSession* sec) {
@@ -50,6 +54,7 @@ void DeviceServerCallbacks::onDisconnect(BLEServer* bluServer)
 {
   // getConnectedCount() hasn't decremented yet when this fires, so still shows 1 at true disconnect
   if (bluServer->getConnectedCount() <= 1) {
+    decryptFailedNotified = false; // re-arm the per-connection DECRYPT_FAILED throttle
     if (manualDisconnect) {
       manualDisconnect = false;
       stateManager->setState(NOT_CONNECTED);

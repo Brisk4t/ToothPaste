@@ -44,6 +44,7 @@ message EncryptedData{
         RenamePacket  renamePacket = 5;
         ConsumerControlPacket consumerControlPacket = 6;
         MouseJigglePacket mouseJigglePacket = 7;
+        VerifyPacket verifyPacket = 8;
     }
 
 }
@@ -57,6 +58,8 @@ message ResponsePacket{
         PEER_UNKNOWN = 1;
         PEER_KNOWN = 2;
         CHALLENGE = 3;
+        DECRYPT_FAILED = 4; // received a packet but GCM authentication failed (key mismatch)
+        PONG = 5;           // VERIFY packet decrypted OK, nonce echoed back in challengeData
     }
 
     ResponseType responseType = 1;
@@ -105,6 +108,12 @@ message ConsumerControlPacket{
 // Consumer Control Device Data (Volume, Playback, etc.)
 message MouseJigglePacket{
     bool enable = 1;
+}
+
+// Connection verification: sent encrypted right after key derivation,
+// firmware echoes the nonce back in a PONG ResponsePacket
+message VerifyPacket{
+    bytes nonce = 1; // 16 bytes
 }
 
 

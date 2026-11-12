@@ -31,7 +31,9 @@ typedef enum _toothpaste_ResponsePacket_ResponseType {
     toothpaste_ResponsePacket_ResponseType_KEEPALIVE = 0,
     toothpaste_ResponsePacket_ResponseType_PEER_UNKNOWN = 1,
     toothpaste_ResponsePacket_ResponseType_PEER_KNOWN = 2,
-    toothpaste_ResponsePacket_ResponseType_CHALLENGE = 3
+    toothpaste_ResponsePacket_ResponseType_CHALLENGE = 3,
+    toothpaste_ResponsePacket_ResponseType_DECRYPT_FAILED = 4, /* received a packet but GCM authentication failed (key mismatch) */
+    toothpaste_ResponsePacket_ResponseType_PONG = 5 /* VERIFY packet decrypted OK, nonce echoed back in challengeData */
 } toothpaste_ResponsePacket_ResponseType;
 
 /* Struct definitions */
@@ -105,6 +107,13 @@ typedef struct _toothpaste_MouseJigglePacket {
     bool enable;
 } toothpaste_MouseJigglePacket;
 
+typedef PB_BYTES_ARRAY_T(16) toothpaste_VerifyPacket_nonce_t;
+/* Connection verification: sent encrypted right after key derivation,
+ firmware echoes the nonce back in a PONG ResponsePacket */
+typedef struct _toothpaste_VerifyPacket {
+    toothpaste_VerifyPacket_nonce_t nonce; /* 16 bytes */
+} toothpaste_VerifyPacket;
+
 typedef struct _toothpaste_EncryptedData {
     toothpaste_EncryptedData_PacketType packetType;
     pb_size_t which_packetData;
@@ -115,6 +124,7 @@ typedef struct _toothpaste_EncryptedData {
         toothpaste_RenamePacket renamePacket;
         toothpaste_ConsumerControlPacket consumerControlPacket;
         toothpaste_MouseJigglePacket mouseJigglePacket;
+        toothpaste_VerifyPacket verifyPacket;
     } packetData;
 } toothpaste_EncryptedData;
 
@@ -133,14 +143,15 @@ extern "C" {
 #define _toothpaste_EncryptedData_PacketType_ARRAYSIZE ((toothpaste_EncryptedData_PacketType)(toothpaste_EncryptedData_PacketType_COMPOSITE+1))
 
 #define _toothpaste_ResponsePacket_ResponseType_MIN toothpaste_ResponsePacket_ResponseType_KEEPALIVE
-#define _toothpaste_ResponsePacket_ResponseType_MAX toothpaste_ResponsePacket_ResponseType_CHALLENGE
-#define _toothpaste_ResponsePacket_ResponseType_ARRAYSIZE ((toothpaste_ResponsePacket_ResponseType)(toothpaste_ResponsePacket_ResponseType_CHALLENGE+1))
+#define _toothpaste_ResponsePacket_ResponseType_MAX toothpaste_ResponsePacket_ResponseType_PONG
+#define _toothpaste_ResponsePacket_ResponseType_ARRAYSIZE ((toothpaste_ResponsePacket_ResponseType)(toothpaste_ResponsePacket_ResponseType_PONG+1))
 
 #define toothpaste_DataPacket_packetID_ENUMTYPE toothpaste_DataPacket_PacketID
 
 #define toothpaste_EncryptedData_packetType_ENUMTYPE toothpaste_EncryptedData_PacketType
 
 #define toothpaste_ResponsePacket_responseType_ENUMTYPE toothpaste_ResponsePacket_ResponseType
+
 
 
 
@@ -161,6 +172,7 @@ extern "C" {
 #define toothpaste_MousePacket_init_default      {0, 0, {toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default, toothpaste_Frame_init_default}, 0, 0, 0}
 #define toothpaste_ConsumerControlPacket_init_default {0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0}
 #define toothpaste_MouseJigglePacket_init_default {0}
+#define toothpaste_VerifyPacket_init_default     {{0, {0}}}
 #define toothpaste_DataPacket_init_zero          {_toothpaste_DataPacket_PacketID_MIN, 0, 0, 0, {0, {0}}, 0, {0, {0}}, {0, {0}}}
 #define toothpaste_EncryptedData_init_zero       {_toothpaste_EncryptedData_PacketType_MIN, 0, {toothpaste_KeyboardPacket_init_zero}}
 #define toothpaste_ResponsePacket_init_zero      {_toothpaste_ResponsePacket_ResponseType_MIN, {0, {0}}, ""}
@@ -171,6 +183,7 @@ extern "C" {
 #define toothpaste_MousePacket_init_zero         {0, 0, {toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero, toothpaste_Frame_init_zero}, 0, 0, 0}
 #define toothpaste_ConsumerControlPacket_init_zero {0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0}
 #define toothpaste_MouseJigglePacket_init_zero   {0}
+#define toothpaste_VerifyPacket_init_zero        {{0, {0}}}
 
 /* Field tags (for use in manual encoding/decoding) */
 #define toothpaste_DataPacket_packetID_tag       1
@@ -200,6 +213,7 @@ extern "C" {
 #define toothpaste_ConsumerControlPacket_code_tag 1
 #define toothpaste_ConsumerControlPacket_length_tag 2
 #define toothpaste_MouseJigglePacket_enable_tag  1
+#define toothpaste_VerifyPacket_nonce_tag        1
 #define toothpaste_EncryptedData_packetType_tag  1
 #define toothpaste_EncryptedData_keyboardPacket_tag 2
 #define toothpaste_EncryptedData_keycodePacket_tag 3
@@ -207,6 +221,7 @@ extern "C" {
 #define toothpaste_EncryptedData_renamePacket_tag 5
 #define toothpaste_EncryptedData_consumerControlPacket_tag 6
 #define toothpaste_EncryptedData_mouseJigglePacket_tag 7
+#define toothpaste_EncryptedData_verifyPacket_tag 8
 
 /* Struct field encoding specification for nanopb */
 #define toothpaste_DataPacket_FIELDLIST(X, a) \
@@ -228,7 +243,8 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (packetData,keycodePacket,packetData.keycodeP
 X(a, STATIC,   ONEOF,    MESSAGE,  (packetData,mousePacket,packetData.mousePacket),   4) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (packetData,renamePacket,packetData.renamePacket),   5) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (packetData,consumerControlPacket,packetData.consumerControlPacket),   6) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (packetData,mouseJigglePacket,packetData.mouseJigglePacket),   7)
+X(a, STATIC,   ONEOF,    MESSAGE,  (packetData,mouseJigglePacket,packetData.mouseJigglePacket),   7) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (packetData,verifyPacket,packetData.verifyPacket),   8)
 #define toothpaste_EncryptedData_CALLBACK NULL
 #define toothpaste_EncryptedData_DEFAULT NULL
 #define toothpaste_EncryptedData_packetData_keyboardPacket_MSGTYPE toothpaste_KeyboardPacket
@@ -237,6 +253,7 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (packetData,mouseJigglePacket,packetData.mous
 #define toothpaste_EncryptedData_packetData_renamePacket_MSGTYPE toothpaste_RenamePacket
 #define toothpaste_EncryptedData_packetData_consumerControlPacket_MSGTYPE toothpaste_ConsumerControlPacket
 #define toothpaste_EncryptedData_packetData_mouseJigglePacket_MSGTYPE toothpaste_MouseJigglePacket
+#define toothpaste_EncryptedData_packetData_verifyPacket_MSGTYPE toothpaste_VerifyPacket
 
 #define toothpaste_ResponsePacket_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UENUM,    responseType,      1) \
@@ -290,6 +307,11 @@ X(a, STATIC,   SINGULAR, BOOL,     enable,            1)
 #define toothpaste_MouseJigglePacket_CALLBACK NULL
 #define toothpaste_MouseJigglePacket_DEFAULT NULL
 
+#define toothpaste_VerifyPacket_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, BYTES,    nonce,             1)
+#define toothpaste_VerifyPacket_CALLBACK NULL
+#define toothpaste_VerifyPacket_DEFAULT NULL
+
 extern const pb_msgdesc_t toothpaste_DataPacket_msg;
 extern const pb_msgdesc_t toothpaste_EncryptedData_msg;
 extern const pb_msgdesc_t toothpaste_ResponsePacket_msg;
@@ -300,6 +322,7 @@ extern const pb_msgdesc_t toothpaste_Frame_msg;
 extern const pb_msgdesc_t toothpaste_MousePacket_msg;
 extern const pb_msgdesc_t toothpaste_ConsumerControlPacket_msg;
 extern const pb_msgdesc_t toothpaste_MouseJigglePacket_msg;
+extern const pb_msgdesc_t toothpaste_VerifyPacket_msg;
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
 #define toothpaste_DataPacket_fields &toothpaste_DataPacket_msg
@@ -312,6 +335,7 @@ extern const pb_msgdesc_t toothpaste_MouseJigglePacket_msg;
 #define toothpaste_MousePacket_fields &toothpaste_MousePacket_msg
 #define toothpaste_ConsumerControlPacket_fields &toothpaste_ConsumerControlPacket_msg
 #define toothpaste_MouseJigglePacket_fields &toothpaste_MouseJigglePacket_msg
+#define toothpaste_VerifyPacket_fields &toothpaste_VerifyPacket_msg
 
 /* Maximum encoded size of messages (where known) */
 #define TOOTHPASTE_TOOTHPACKET_PB_H_MAX_SIZE     toothpaste_EncryptedData_size
@@ -325,6 +349,7 @@ extern const pb_msgdesc_t toothpaste_MouseJigglePacket_msg;
 #define toothpaste_MousePacket_size              519
 #define toothpaste_RenamePacket_size             198
 #define toothpaste_ResponsePacket_size           206
+#define toothpaste_VerifyPacket_size             18
 
 #ifdef __cplusplus
 } /* extern "C" */

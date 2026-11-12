@@ -10,7 +10,7 @@
 #include "SecureSession.h"
 #include "toothpacket.pb.h"
 
-#define FIRMWARE_VERSION            "0.9.0"
+#define FIRMWARE_VERSION            "0.10.0"
 #define BLE_DEVICE_DEFAULT_NAME     "Toothpaste"
 #define SERVICE_UUID                "19b10000-e8f2-537e-4f6c-d104768a1214"
 #define TX_TO_TOOTHPASTE_CHARACTERISTIC "6856e119-2c7b-455a-bf42-cf7ddd2c5907"
@@ -30,6 +30,7 @@ extern BLECharacteristic* responseCharacteristic;
 extern QueueHandle_t      packetQueue;
 extern char               clientPubKey[70];
 extern size_t             clientPubKeyLen;
+extern bool               decryptFailedNotified; // DECRYPT_FAILED notify throttle: one per connection
 
 enum NotificationType : uint8_t {
     KEEPALIVE,

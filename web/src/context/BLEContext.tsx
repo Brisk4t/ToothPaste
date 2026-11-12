@@ -4,13 +4,15 @@ import {
     useState,
     useRef,
     useMemo,
+    useCallback,
 } from "react";
 import type { RefObject, ReactNode } from "react";
 import { keyExists, loadBase64 } from "../services/localSecurity/EncryptedStorage";
 import { ECDHContext } from "./ECDHContext";
-import { createUnencryptedPacket, unpackResponsePacket } from "../services/packetService/packetFunctions";
+import { createUnencryptedPacket, unpackResponsePacket, createVerifyPacket, supportsVerify, isVersionCompatible } from "../services/packetService/packetFunctions";
 import { PacketQueue } from "../services/packetService/PacketQueue";
 import { toBinary } from "@bufbuild/protobuf";
+import { getErrorMessage } from "../lib/utils";
 
 import * as ToothPacketPB from '../services/packetService/toothpacket/toothpacket_pb.js';
 import type { DataPacket, EncryptedData } from '../services/packetService/toothpacket/toothpacket_pb.js';
@@ -22,8 +24,14 @@ export const ConnectionStatus = {
     ready: 1,
     connected: 2,
     unsupported: 3,
+    verifying: 4, // keys derived, VERIFY sent, waiting for PONG
+    mismatch: 5,  // DECRYPT_FAILED received or verification timed out
 } as const;
 export type ConnectionStatus = typeof ConnectionStatus[keyof typeof ConnectionStatus];
+
+// How long to wait for a PONG after sending a VERIFY packet before
+// declaring a key mismatch
+const VERIFY_TIMEOUT_MS = 3000;
 
 interface ReadySignal {
     promise: Promise<void> | null;
@@ -39,6 +47,9 @@ export interface BLEContextValue {
     readyToReceive: RefObject<ReadySignal>;
     sendEncrypted: (inputPayload: unknown, prefix?: number) => Promise<void>;
     sendUnencrypted: (inputString: string) => Promise<void>;
+    retryVerify: () => void;
+    lastSendError: string | null;
+    dismissSendError: () => void;
 }
 
 export const BLEContext = createContext<BLEContextValue | null>(null);
@@ -61,6 +72,13 @@ export function BLEProvider({ children }: { children: ReactNode }) {
     const [pktCharacteristic, setpktCharacteristic] = useState<BluetoothRemoteGATTCharacteristic | null>(null);
     const pktCharRef = useRef<BluetoothRemoteGATTCharacteristic | null>(null);
 
+    // VERIFY/PONG state: nonce of the in-flight VERIFY packet and its timeout timer
+    const verifyNonceRef = useRef<Uint8Array | null>(null);
+    const verifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Send-failure toast is shown at most once per connection
+    const sendErrorShownRef = useRef(false);
+    const [lastSendError, setLastSendError] = useState<string | null>(null);
+
 
     const { loadKeys, createEncryptedPackets } = useContext(ECDHContext)!;
     const readyToReceive = useRef<ReadySignal>({ promise: null, resolve: null });
@@ -80,7 +98,11 @@ export function BLEProvider({ children }: { children: ReactNode }) {
     // Uses a FIFO queue where encryption produces packets and sending consumes them concurrently
     // (encoding into protobuf must be done by the calling function)
     const sendEncrypted = async (inputPayload: unknown, prefix = 0): Promise<void> => {
-        if (!pktCharacteristic) return;
+        // Read the characteristic through the ref: this function may be invoked
+        // from notification listeners that close over an older render, where the
+        // pktCharacteristic state is still null
+        const pktChar = pktCharRef.current;
+        if (!pktChar) return;
 
         // Create a packet queue to hold encrypted packets before sending
         const packetQueue = new PacketQueue<DataPacket>();
@@ -112,7 +134,7 @@ export function BLEProvider({ children }: { children: ReactNode }) {
                     if (packet === null) break;
 
                     // Each packet is a ToothPaste DataPacket object with encryptedData component
-                    await pktCharacteristic.writeValueWithoutResponse(
+                    await pktChar.writeValueWithoutResponse(
                         toBinary(ToothPacketPB.DataPacketSchema, packet)
                     );
                 }
@@ -123,8 +145,57 @@ export function BLEProvider({ children }: { children: ReactNode }) {
 
         } catch (error) {
             console.error("Error sending encrypted packet", error);
+            // Surface the first failure per connection — sends are otherwise silent
+            if (!sendErrorShownRef.current) {
+                sendErrorShownRef.current = true;
+                setLastSendError(`Send failed: ${getErrorMessage(error)}`);
+            }
         }
     };
+
+    // Cancel any in-flight VERIFY exchange (timer + stored nonce)
+    const clearVerifyTimer = () => {
+        if (verifyTimerRef.current) {
+            clearTimeout(verifyTimerRef.current);
+            verifyTimerRef.current = null;
+        }
+        verifyNonceRef.current = null;
+    };
+
+    // Send an encrypted VERIFY packet with a fresh nonce and arm the timeout
+    const sendVerifyPacket = () => {
+        clearVerifyTimer();
+        const nonce = crypto.getRandomValues(new Uint8Array(16));
+        verifyNonceRef.current = nonce;
+        setStatus(ConnectionStatus.verifying);
+        void sendEncrypted(createVerifyPacket(nonce));
+        verifyTimerRef.current = setTimeout(() => {
+            verifyNonceRef.current = null;
+            setStatus(ConnectionStatus.mismatch);
+        }, VERIFY_TIMEOUT_MS);
+    };
+
+    // Load the stored keys, then start the VERIFY/PONG exchange that proves
+    // both sides derived the same session key
+    const startVerification = async (deviceObj: ClipboardDevice, salt?: Uint8Array<ArrayBuffer>): Promise<void> => {
+        clearVerifyTimer();
+        try {
+            await loadKeys(deviceObj.macAddress!, salt);
+        } catch (error) {
+            console.error("Failed to load keys for verification", error);
+            setStatus(ConnectionStatus.mismatch);
+            return;
+        }
+        sendVerifyPacket();
+    };
+
+    // Re-run the VERIFY/PONG exchange after a mismatch (keys stay loaded)
+    const retryVerify = () => {
+        sendVerifyPacket();
+    };
+
+    // Stable identity: SendErrorToast's auto-dismiss timer depends on this
+    const dismissSendError = useCallback(() => setLastSendError(null), []);
 
     // Try to load the self public key from storage and send it unencrypted
     const sendAuth = async (device: ClipboardDevice): Promise<void> => {
@@ -157,18 +228,46 @@ export function BLEProvider({ children }: { children: ReactNode }) {
                 var responsePacket = unpackResponsePacket(bytesArray);
 
                 if (responsePacket.responseType === ToothPacketPB.ResponsePacket_ResponseType.CHALLENGE) {
+                    // Firmware >= 0.10.0: verify the derived key via VERIFY/PONG
+                    // before trusting the connection. Older firmware would drop
+                    // the VERIFY and the timeout would false-positive a mismatch.
+                    if (supportsVerify(responsePacket.firmwareVersion)) {
+                        await startVerification(deviceObj, responsePacket.challengeData as Uint8Array<ArrayBuffer>);
+                    } else {
                         await loadKeys(deviceObj.macAddress!, responsePacket.challengeData as Uint8Array<ArrayBuffer>);
-                    setStatus(ConnectionStatus.ready);
+                        setStatus(ConnectionStatus.ready);
+                    }
                 }
 
                 else if (responsePacket.responseType === ToothPacketPB.ResponsePacket_ResponseType.PEER_KNOWN) {
-                    console.log("Authentication successful");
-                    setStatus(ConnectionStatus.ready);
+                    if (supportsVerify(responsePacket.firmwareVersion)) {
+                        await startVerification(deviceObj);
+                    } else {
+                        console.log("Authentication successful");
+                        setStatus(ConnectionStatus.ready);
+                    }
                 }
 
                 else if (responsePacket.responseType === ToothPacketPB.ResponsePacket_ResponseType.PEER_UNKNOWN) {
                     console.log("Peer declined auth, authentication failed");
                     setStatus(ConnectionStatus.connected);
+                }
+
+                else if (responsePacket.responseType === ToothPacketPB.ResponsePacket_ResponseType.PONG) {
+                    // Only a PONG echoing our in-flight nonce proves the key match
+                    const expected = verifyNonceRef.current;
+                    const echoed = responsePacket.challengeData;
+                    if (expected && echoed && expected.length === echoed.length
+                        && expected.every((byte, i) => byte === echoed[i])) {
+                        clearVerifyTimer();
+                        setStatus(ConnectionStatus.ready);
+                    }
+                }
+
+                else if (responsePacket.responseType === ToothPacketPB.ResponsePacket_ResponseType.DECRYPT_FAILED) {
+                    console.error("Device reports decryption failure (key mismatch)");
+                    clearVerifyTimer();
+                    setStatus(ConnectionStatus.mismatch);
                 }
 
                 console.log("Firmware version:", responsePacket.firmwareVersion);
@@ -204,6 +303,8 @@ export function BLEProvider({ children }: { children: ReactNode }) {
 
             // Set an on disconnect listener
             device.addEventListener("gattserverdisconnected", () => {
+                clearVerifyTimer(); // Cancel any in-flight VERIFY exchange
+                sendErrorShownRef.current = false; // Re-arm the send-failure toast
                 setStatus(ConnectionStatus.disconnected); // Set status to disconnected
                 setDevice(null); // Clear the device object, not doing this causes inconsistent connections when trying to reconnect
 
@@ -300,75 +401,14 @@ export function BLEProvider({ children }: { children: ReactNode }) {
         readyToReceive,
         sendEncrypted,
         sendUnencrypted,
-    }), [device, server, pktCharacteristic, status, connectToDevice, readyToReceive, sendEncrypted, sendUnencrypted]);
+        retryVerify,
+        lastSendError,
+        dismissSendError,
+    }), [device, server, pktCharacteristic, status, connectToDevice, readyToReceive, sendEncrypted, sendUnencrypted, retryVerify, lastSendError, dismissSendError]);
 
     return (
         <BLEContext.Provider value={contextValue}>
             {children}
         </BLEContext.Provider>
     );
-}
-
-/**
- * Check if a device firmware version is compatible with supported versions
- * Supports exact matches, caret versions (^), and suffix validation
- * @param deviceFirmwareVersion - Device version string (e.g., "1.0.0" or "1.0.0-beta")
- * @param supportedFirmwareVersions - List of supported versions with optional "^" for >= matching and suffixes
- * @returns True if version is supported, false otherwise
- */
-export function isVersionCompatible(deviceFirmwareVersion: string, supportedFirmwareVersions: string[] = []): boolean {
-    // Extract base version (x.y.z) and suffix (anything after)
-    const versionMatch = deviceFirmwareVersion.match(/^(\d+\.\d+\.\d+)(.*)/);
-
-    if (!versionMatch) {
-        console.error("Invalid firmware version format:", deviceFirmwareVersion);
-        return false; // Invalid version format
-    }
-
-    const baseVersion = versionMatch[1];
-    const suffix = versionMatch[2]; // Empty string if no suffix
-
-    // Check for exact full version match
-    if (supportedFirmwareVersions.includes(deviceFirmwareVersion)) {
-        return true;
-    }
-
-    // If device has a suffix, the suffix must be explicitly supported
-    if (suffix && !supportedFirmwareVersions.includes(suffix)) {
-        return false;
-    }
-
-    // Check the base version
-    // Exact match
-    if (supportedFirmwareVersions.includes(baseVersion)) {
-        return true;
-    }
-
-    // Check for caret versions (x.y.z^ means >= x.y.z)
-    for (const supportedVersion of supportedFirmwareVersions) {
-        if (supportedVersion.endsWith('^')) {
-            const supportedBase = supportedVersion.slice(0, -1); // Remove the '^'
-            if (isVersionGreaterOrEqual(baseVersion, supportedBase)) {
-                return true;
-            }
-        }
-    }
-
-    return false;
-}
-
-/**
- * Compare semantic versions (x.y.z format)
- * @returns True if version1 >= version2
- */
-function isVersionGreaterOrEqual(version1: string, version2: string): boolean {
-    const v1 = version1.split('.').map(Number);
-    const v2 = version2.split('.').map(Number);
-
-    for (let i = 0; i < 3; i++) {
-        if (v1[i] > v2[i]) return true;
-        if (v1[i] < v2[i]) return false;
-    }
-
-    return true; // Versions are equal
 }

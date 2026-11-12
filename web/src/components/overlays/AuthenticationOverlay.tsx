@@ -7,10 +7,7 @@ import { Button, Typography, Input } from "@material-tailwind/react";
 import { ShieldCheckIcon } from '@heroicons/react/24/outline';
 import { unlockWithPassword, unlockPasswordless } from '../../services/localSecurity/EncryptedStorage';
 import { authStateManager, AuthState } from '../../services/localSecurity/AuthStateManager';
-
-function getErrorMessage(error: unknown): string {
-    return error instanceof Error ? error.message : String(error);
-}
+import { getErrorMessage } from '../../lib/utils';
 
 interface AuthenticationOverlayProps {
     onAuthSuccess: () => void;

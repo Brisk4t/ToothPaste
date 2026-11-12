@@ -12,10 +12,7 @@ import type { ScriptMetadata, ScriptSummary } from '../services/duckyscript/Duck
 import * as EncryptedStorage from '../services/localSecurity/EncryptedStorage';
 import { parseDuckyscript, estimateExecutionTime } from '../services/duckyscript/DuckyscriptParser';
 import type { ParseResult } from '../services/duckyscript/DuckyscriptParser';
-
-function getErrorMessage(error: unknown): string {
-    return error instanceof Error ? error.message : String(error);
-}
+import { getErrorMessage } from '../lib/utils';
 
 export interface DuckyscriptContextValue {
     // State

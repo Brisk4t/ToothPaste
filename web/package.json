@@ -47,7 +47,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
-    "protoc": "npx protoc --es_out=./src/services/packetService/toothpacket --proto_path=./shared ./shared/toothpacket.proto",
+    "test": "vitest run",
+    "protoc": "npx -y protoc --es_out=./src/services/packetService/toothpacket --proto_path=../shared ../shared/toothpacket.proto",
     "deploy": "gh-pages -d dist --repo https://github.com/Brisk4t/ToothPasteWeb.git"
   },
   "browserslist": {
@@ -79,6 +80,7 @@
     "ts-protoc-gen": "^0.15.0",
     "typescript": "^7.0.2",
     "vite": "^7.3.0",
-    "vite-plugin-pwa": "^1.2.0"
+    "vite-plugin-pwa": "^1.2.0",
+    "vitest": "^5.1.0"
   }
 }
