@@ -1,8 +1,13 @@
-import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+// vitest's defineConfig extends vite's with the `test` field
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  test: {
+    environment: 'node',
+    include: ['src/**/*.test.ts'],
+  },
   plugins: [
     react(),
     VitePWA({

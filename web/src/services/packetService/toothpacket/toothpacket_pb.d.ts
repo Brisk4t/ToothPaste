@@ -151,6 +151,12 @@ export declare type EncryptedData = Message<"toothpaste.EncryptedData"> & {
      */
     value: MouseJigglePacket;
     case: "mouseJigglePacket";
+  } | {
+    /**
+     * @generated from field: toothpaste.VerifyPacket verifyPacket = 8;
+     */
+    value: VerifyPacket;
+    case: "verifyPacket";
   } | { case: undefined; value?: undefined };
 };
 
@@ -259,6 +265,20 @@ export enum ResponsePacket_ResponseType {
    * @generated from enum value: CHALLENGE = 3;
    */
   CHALLENGE = 3,
+
+  /**
+   * received a packet but GCM authentication failed (key mismatch)
+   *
+   * @generated from enum value: DECRYPT_FAILED = 4;
+   */
+  DECRYPT_FAILED = 4,
+
+  /**
+   * VERIFY packet decrypted OK, nonce echoed back in challengeData
+   *
+   * @generated from enum value: PONG = 5;
+   */
+  PONG = 5,
 }
 
 /**
@@ -460,4 +480,25 @@ export declare type MouseJigglePacket = Message<"toothpaste.MouseJigglePacket"> 
  * Use `create(MouseJigglePacketSchema)` to create a new message.
  */
 export declare const MouseJigglePacketSchema: GenMessage<MouseJigglePacket>;
+
+/**
+ * Connection verification: sent encrypted right after key derivation,
+ * firmware echoes the nonce back in a PONG ResponsePacket
+ *
+ * @generated from message toothpaste.VerifyPacket
+ */
+export declare type VerifyPacket = Message<"toothpaste.VerifyPacket"> & {
+  /**
+   * 16 bytes
+   *
+   * @generated from field: bytes nonce = 1;
+   */
+  nonce: Uint8Array;
+};
+
+/**
+ * Describes the message toothpaste.VerifyPacket.
+ * Use `create(VerifyPacketSchema)` to create a new message.
+ */
+export declare const VerifyPacketSchema: GenMessage<VerifyPacket>;
 

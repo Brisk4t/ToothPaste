@@ -2,10 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { ESPLoader, Transport } from "esptool-js";
 import { Progress, Typography, Button, Menu } from "@material-tailwind/react";
 import { LinkIcon, ArrowUpCircleIcon } from "@heroicons/react/24/outline";
-
-function getErrorMessage(error: unknown): string {
-    return error instanceof Error ? error.message : String(error);
-}
+import { getErrorMessage } from "../../lib/utils";
 
 // Status enum
 const UpdateStatus = {

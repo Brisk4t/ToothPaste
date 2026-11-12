@@ -3,11 +3,8 @@ import type { KeyboardEvent, MouseEvent } from 'react';
 import { ECDHContext } from '../../context/ECDHContext';
 import { Button, Typography, Spinner } from "@material-tailwind/react";
 import { KeyIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
-import { BLEContext } from '../../context/BLEContext';
-
-function getErrorMessage(error: unknown): string {
-    return error instanceof Error ? error.message : String(error);
-}
+import { BLEContext, ConnectionStatus } from '../../context/BLEContext';
+import { getErrorMessage } from '../../lib/utils';
 
 interface ECDHOverlayProps {
     onChangeOverlay: (overlay: string | null) => void;
@@ -20,6 +17,11 @@ const ECDHOverlay = ({ onChangeOverlay }: ECDHOverlayProps) => {
     const [capsLockEnabled, setCapsLockEnabled] = useState(false);
     const { device, pktCharacteristic, status, sendUnencrypted } = useContext(BLEContext)!;
     const keyRef = useRef<HTMLInputElement | null>(null);
+    // Set once this overlay has sent an AUTH packet; distinguishes a fresh
+    // PEER_UNKNOWN reply (device not in pairing mode) from the initial
+    // "not paired yet" state the overlay opens in
+    const [authSent, setAuthSent] = useState(false);
+    const deviceRejected = authSent && status === ConnectionStatus.connected;
 
     const [isLoading, setisLoading] = useState(false);
 
@@ -67,6 +69,7 @@ const ECDHOverlay = ({ onChangeOverlay }: ECDHOverlayProps) => {
 
             await sleep(2000); // Wait for 2 seconds after generating the shared secret
             await sendUnencrypted(b64SelfPublic);
+            setAuthSent(true);
             setisLoading(false);
 
         } catch (e: unknown) {
@@ -75,17 +78,25 @@ const ECDHOverlay = ({ onChangeOverlay }: ECDHOverlayProps) => {
         }
     };
 
+    // A key mismatch (wrong pasted key) is reported by the connection layer;
+    // surface it inside the pairing dialog so the user can re-paste right here
+    useEffect(() => {
+        if (status === ConnectionStatus.mismatch) {
+            setisLoading(false);
+        }
+    }, [status]);
+
     // Focus the input field when the overlay is shown
     useEffect(() => {
         keyRef.current?.focus();
-    }, []); 
+    }, []);
 
     // Close overlay if device disconnects
     useEffect(() => {
         if (!device) {
             onChangeOverlay(null);
         }
-    }, [device, onChangeOverlay]); 
+    }, [device, onChangeOverlay]);
 
     return (
         <div className="fixed inset-0 bg-ash/60 flex flex-col justify-center items-center z-[9999]" onClick={() => onChangeOverlay(null)}>
@@ -115,6 +126,31 @@ const ECDHOverlay = ({ onChangeOverlay }: ECDHOverlayProps) => {
                     className='w-full h-10 opacity-1 text-text bg-ink border border-3 border-ash rounded-md p-2 my-4 font-body
                     focus:outline-none focus:border-primary focus:ring-primary-ash'
                 />
+
+                <Typography variant="small" className="text-dust text-xs text-center -mt-2 mb-2">
+                    Only use the key from the most recent long-press. If you have long-pressed
+                    more than once, long-press again and use the newest key it types out.
+                </Typography>
+
+                {status === ConnectionStatus.mismatch && (
+                    <div className="w-full bg-secondary/20 border border-secondary rounded-md p-3 mb-2 flex items-start gap-2" role="alert">
+                        <ExclamationTriangleIcon className="h-6 w-6 text-secondary shrink-0" />
+                        <Typography variant="h6" className="text-secondary text-sm normal-case font-medium text-left">
+                            Key mismatch — this key doesn't belong to the device. Long-press the
+                            device button for 10 seconds and paste the key it types out.
+                        </Typography>
+                    </div>
+                )}
+
+                {deviceRejected && (
+                    <div className="w-full bg-orange/20 border border-orange rounded-md p-3 mb-2 flex items-start gap-2" role="alert">
+                        <ExclamationTriangleIcon className="h-6 w-6 text-orange shrink-0" />
+                        <Typography variant="h6" className="text-orange text-sm normal-case font-medium text-left">
+                            The device didn't accept this key. Make sure it is in pairing mode:
+                            hold its button for 10 seconds until the LED starts blinking.
+                        </Typography>
+                    </div>
+                )}
 
                 {capsLockEnabled && (
                     <div className="w-full bg-orange/20 border border-orange rounded-md p-3 mb-2 flex items-center gap-2">

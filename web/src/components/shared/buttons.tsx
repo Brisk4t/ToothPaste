@@ -264,7 +264,7 @@ export function IconToggleButton({
     hoverText = "", // Text to show on hover
     className = "", // Additional classes
     expandDirection = "left", // Direction to expand on hover: "left" or "right"
-    connectionStatus = 0 // 0 = disconnected, 1+ = connected
+    connectionStatus = 0 // 1 = ready (verified), anything else blocks input
 }: IconToggleButtonProps) {
     const [isHovered, setIsHovered] = React.useState(false);
     const [isClicked, setIsClicked] = React.useState(false);
@@ -275,9 +275,13 @@ export function IconToggleButton({
         setTimeout(() => setIsClicked(false), 100);
     };
 
+    // Inputs are only usable in the ready state; connected-but-unverified
+    // states (connected/verifying/mismatch/unsupported) must not send
+    const inputEnabled = connectionStatus === 1;
+
     const getButtonStyle = () => {
         const bgColor = "bg-ink";
-        const clickBgColor = connectionStatus === 0 ? "bg-secondary" : "bg-primary";
+        const clickBgColor = inputEnabled ? "bg-primary" : "bg-secondary";
         const positionClass = expandDirection === "right" ? "left-0" : "right-0";
         const flexOrder = expandDirection === "right" ? "" : "flex-row-reverse";
 
@@ -296,12 +300,12 @@ export function IconToggleButton({
         <div className={`relative w-10 h-10`}>
             <div
                 title={title}
-                onClick={connectionStatus === 0 ? undefined : handleClick}
+                onClick={inputEnabled ? handleClick : undefined}
                 onMouseDown={(e) => e.preventDefault()}
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
                 className={`border border-ash h-10 flex justify-center items-center p-2 rounded-lg transition-all ${
-                    connectionStatus === 0 ? "cursor-not-allowed" : "cursor-pointer"
+                    inputEnabled ? "cursor-pointer" : "cursor-not-allowed"
                 } select-none ${getButtonStyle()} ${className}`}
             >
                 {Icon && <Icon className="h-5 w-5" />}

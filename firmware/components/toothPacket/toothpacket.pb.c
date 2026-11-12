@@ -36,6 +36,9 @@ PB_BIND(toothpaste_ConsumerControlPacket, toothpaste_ConsumerControlPacket, AUTO
 PB_BIND(toothpaste_MouseJigglePacket, toothpaste_MouseJigglePacket, AUTO)
 
 
+PB_BIND(toothpaste_VerifyPacket, toothpaste_VerifyPacket, AUTO)
+
+
 
 
 

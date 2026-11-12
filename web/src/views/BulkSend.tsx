@@ -8,10 +8,7 @@ import DuckyscriptEditor from '../components/duckyscript/DuckyscriptEditor';
 import { parseDuckyscript, executeDuckyscript } from '../services/duckyscript/DuckyscriptParser';
 import { DuckyscriptContext } from '../context/DuckyscriptContext';
 import type { ScriptMetadata } from '../services/duckyscript/DuckyscriptService';
-
-function getErrorMessage(error: unknown): string {
-    return error instanceof Error ? error.message : String(error);
-}
+import { getErrorMessage } from '../lib/utils';
 
 // Structurally matches both the native KeyboardEvent (window listener) and
 // React's synthetic KeyboardEvent<T> (onKeyDown prop) — handleShortcut is used as both.

@@ -195,3 +195,98 @@ export function unpackResponsePacket(responsePacketBytes: Uint8Array): ResponseP
     // Deserialize the ResponsePacket from binary data
     return fromBinary(ToothPacketPB.ResponsePacketSchema, responsePacketBytes);
 }
+
+/**
+ * Check if a device firmware version is compatible with supported versions
+ * Supports exact matches, caret versions (^), and suffix validation
+ * @param deviceFirmwareVersion - Device version string (e.g., "1.0.0" or "1.0.0-beta")
+ * @param supportedFirmwareVersions - List of supported versions with optional "^" for >= matching and suffixes
+ * @returns True if version is supported, false otherwise
+ */
+export function isVersionCompatible(deviceFirmwareVersion: string, supportedFirmwareVersions: string[] = []): boolean {
+    // Extract base version (x.y.z) and suffix (anything after)
+    const versionMatch = deviceFirmwareVersion.match(/^(\d+\.\d+\.\d+)(.*)/);
+
+    if (!versionMatch) {
+        console.error("Invalid firmware version format:", deviceFirmwareVersion);
+        return false; // Invalid version format
+    }
+
+    const baseVersion = versionMatch[1];
+    const suffix = versionMatch[2]; // Empty string if no suffix
+
+    // Check for exact full version match
+    if (supportedFirmwareVersions.includes(deviceFirmwareVersion)) {
+        return true;
+    }
+
+    // If device has a suffix, the suffix must be explicitly supported
+    if (suffix && !supportedFirmwareVersions.includes(suffix)) {
+        return false;
+    }
+
+    // Check the base version
+    // Exact match
+    if (supportedFirmwareVersions.includes(baseVersion)) {
+        return true;
+    }
+
+    // Check for caret versions (x.y.z^ means >= x.y.z)
+    for (const supportedVersion of supportedFirmwareVersions) {
+        if (supportedVersion.endsWith('^')) {
+            const supportedBase = supportedVersion.slice(0, -1); // Remove the '^'
+            if (isVersionGreaterOrEqual(baseVersion, supportedBase)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Compare semantic versions (x.y.z format)
+ * @returns True if version1 >= version2
+ */
+function isVersionGreaterOrEqual(version1: string, version2: string): boolean {
+    const v1 = version1.split('.').map(Number);
+    const v2 = version2.split('.').map(Number);
+
+    for (let i = 0; i < 3; i++) {
+        if (v1[i] > v2[i]) return true;
+        if (v1[i] < v2[i]) return false;
+    }
+
+    return true; // Versions are equal
+}
+
+// First firmware version that answers a VERIFY packet with PONG.
+// Older firmware silently drops VERIFY, so sending it there would only
+// trip the verification timeout and false-positive a key mismatch.
+export const VERIFY_MIN_FIRMWARE_VERSION = "0.10.0";
+
+/**
+ * True when the firmware is known to support the VERIFY/PONG exchange.
+ */
+export function supportsVerify(firmwareVersion: string): boolean {
+    return isVersionCompatible(firmwareVersion, [`${VERIFY_MIN_FIRMWARE_VERSION}^`]);
+}
+
+/**
+ * Build the encrypted VERIFY payload: a 16-byte random nonce the firmware
+ * echoes back in a PONG ResponsePacket when decryption succeeds.
+ */
+export function createVerifyPacket(nonce: Uint8Array): EncryptedData {
+    const verifyPacket = create(ToothPacketPB.VerifyPacketSchema, {});
+    verifyPacket.nonce = nonce;
+
+    return create(ToothPacketPB.EncryptedDataSchema, {
+        // No dedicated PacketType value exists (same as mouseJigglePacket);
+        // the firmware dispatches on the oneof, not on packetType
+        packetType: ToothPacketPB.EncryptedData_PacketType.COMPOSITE,
+        packetData: {
+            case: "verifyPacket",
+            value: verifyPacket,
+        },
+    });
+}
