@@ -120,7 +120,8 @@ const ECDHOverlay = ({ onChangeOverlay }: ECDHOverlayProps) => {
                     <div className="w-full bg-orange/20 border border-orange rounded-md p-3 mb-2 flex items-center gap-2">
                         <ExclamationTriangleIcon className="h-6 w-6 text-orange" />
                         <Typography variant="h6" className="text-orange text-sm">
-                            Caps Lock is enabled - Please disable to continue.
+                            Caps Lock is enabled - Pairing will still work (the key is corrected
+                            automatically), but turning it off before the device types its key is more reliable.
                         </Typography>
                     </div>
                 )}
@@ -128,11 +129,10 @@ const ECDHOverlay = ({ onChangeOverlay }: ECDHOverlayProps) => {
                 {/* This @material-tailwind/react version's Button type has no `loading` prop
                     (present in some other version's docs) — pre-existing usage kept as-is. */}
                 <Button
-                    ref={keyRef}
                     onClick={computeSecret}
                     // @ts-expect-error
                     loading={isLoading.toString()}
-                    disabled={keyInput.trim().length < 44 || !pktCharacteristic || isLoading || capsLockEnabled}
+                    disabled={keyInput.trim().length < 44 || !pktCharacteristic || isLoading}
                     className='w-full h-10 my-4 bg-primary text-text hover:bg-primary-ash focus:bg-primary-focus active:bg-primary-active
                      border-none flex items-center justify-center size-sm'>
 
