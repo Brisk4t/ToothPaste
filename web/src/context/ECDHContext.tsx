@@ -34,6 +34,44 @@ export interface ECDHContextValue {
 // Shared context for ECDH operations
 export const ECDHContext = createContext<ECDHContextValue | null>(null);
 
+// The device types the pairing key through the host keyboard, so a Caps Lock
+// left on while it types arrives with every base64 letter case-flipped
+// (digits and '+'/'/' are unaffected). Base64 is case-sensitive, so restore
+// the original case before decoding.
+export const invertKeyCase = (key: string): string =>
+    key.replace(/[a-zA-Z]/g, (c) => (c === c.toLowerCase() ? c.toUpperCase() : c.toLowerCase()));
+
+/**
+ * Decompress a compressed P-256 public key (33 bytes) to uncompressed format (65 bytes)
+ * Uses elliptic curve math to recover the full Y coordinate from the compressed format
+ * @returns Uncompressed key in raw format (65 bytes): [0x04, ...x, ...y]
+ */
+export const decompressKey = (compressedBytes: Uint8Array): ArrayBuffer => {
+    try {
+        console.log("[ECDHContext] Decompressing key, input length:", compressedBytes.length);
+        const key = ec.keyFromPublic(compressedBytes, "array");
+        const pubPoint = key.getPublic();
+        const x = pubPoint.getX().toArray("be", 32);
+        const y = pubPoint.getY().toArray("be", 32);
+
+        console.log("[ECDHContext] Decompressed x length:", x.length, "y length:", y.length);
+
+        if (x.length !== 32) throw new Error(`X coordinate should be 32 bytes, got ${x.length}`);
+        if (y.length !== 32) throw new Error(`Y coordinate should be 32 bytes, got ${y.length}`);
+
+        const uncompressed = new Uint8Array(65);
+        uncompressed[0] = 0x04;
+        uncompressed.set(x, 1);
+        uncompressed.set(y, 33);
+
+        console.log("[ECDHContext] Decompressed key successfully, output length:", uncompressed.length);
+        return uncompressed.buffer;
+    } catch (error) {
+        console.error("[ECDHContext] Error decompressing key:", error);
+        throw error;
+    }
+};
+
 export const ECDHProvider = ({ children }: { children: ReactNode }) => {
     const aesKey = useRef<CryptoKey | null>(null); // AESKey cryptoKey for encrypting/decrypting messages
     const keyPair = useRef<CryptoKeyPair | null>(null);
@@ -113,37 +151,6 @@ export const ECDHProvider = ({ children }: { children: ReactNode }) => {
             return compressed;
         } catch (error) {
             console.error("[ECDHContext] Error compressing key:", error);
-            throw error;
-        }
-    };
-
-    /**
-     * Decompress a compressed P-256 public key (33 bytes) to uncompressed format (65 bytes)
-     * Uses elliptic curve math to recover the full Y coordinate from the compressed format
-     * @returns Uncompressed key in raw format (65 bytes): [0x04, ...x, ...y]
-     */
-    const decompressKey = (compressedBytes: Uint8Array): ArrayBuffer => {
-        try {
-            console.log("[ECDHContext] Decompressing key, input length:", compressedBytes.length);
-            const key = ec.keyFromPublic(compressedBytes, "array");
-            const pubPoint = key.getPublic();
-            const x = pubPoint.getX().toArray("be", 32);
-            const y = pubPoint.getY().toArray("be", 32);
-
-            console.log("[ECDHContext] Decompressed x length:", x.length, "y length:", y.length);
-
-            if (x.length !== 32) throw new Error(`X coordinate should be 32 bytes, got ${x.length}`);
-            if (y.length !== 32) throw new Error(`Y coordinate should be 32 bytes, got ${y.length}`);
-
-            const uncompressed = new Uint8Array(65);
-            uncompressed[0] = 0x04;
-            uncompressed.set(x, 1);
-            uncompressed.set(y, 33);
-
-            console.log("[ECDHContext] Decompressed key successfully, output length:", uncompressed.length);
-            return uncompressed.buffer;
-        } catch (error) {
-            console.error("[ECDHContext] Error decompressing key:", error);
             throw error;
         }
     };
@@ -246,14 +253,7 @@ export const ECDHProvider = ({ children }: { children: ReactNode }) => {
         );
 
 
-        // Log the base64 AES key for debugging
-        const exportedAESKey = await crypto.subtle.exportKey("raw", aesKeyGen);
-        const base64AESKey = arrayBufferToBase64(exportedAESKey);
-        console.log("[ECDHContext] Derived AES key (base64):", base64AESKey);
-
         aesKey.current = aesKeyGen;
-
-
     };
 
     /**
@@ -375,8 +375,26 @@ export const ECDHProvider = ({ children }: { children: ReactNode }) => {
             }
 
             // Decompress the peer's compressed public key to raw uncompressed format
-            // Then import it as a CryptoKey object for ECDH operations
-            const rawUncompressed = decompressKey(compressedBytes);
+            // Then import it as a CryptoKey object for ECDH operations.
+            // If the key doesn't decode, retry the case-inverted string: a Caps
+            // Lock on during HID typing flips every letter, which invalidates the
+            // 0x02/0x03 point prefix. An untouched key always starts with 'A', so
+            // the two variants can never both be valid.
+            let rawUncompressed: ArrayBuffer;
+            try {
+                rawUncompressed = decompressKey(compressedBytes);
+            } catch (decodeError) {
+                const flippedBytes = new Uint8Array(base64ToArrayBuffer(invertKeyCase(peerKeyBase64)));
+                if (flippedBytes.length !== 33) {
+                    throw decodeError;
+                }
+                try {
+                    rawUncompressed = decompressKey(flippedBytes);
+                    console.log("[ECDHContext] Peer key accepted after case inversion (Caps Lock was likely on)");
+                } catch {
+                    throw decodeError;
+                }
+            }
             console.log("[ECDHContext] Decompressed peer key");
 
             const peerPublicKeyObject = await importPeerPublicKey(rawUncompressed);
